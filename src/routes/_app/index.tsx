@@ -1,12 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Play } from "lucide-react";
-import { getHomeData } from "@/lib/sheba/queries";
-import { usePlayer } from "@/lib/sheba/player";
+import { getHomeData } from "@/lib/zelyro/queries";
+import { usePlayer } from "@/lib/zelyro/player";
 import { CoverCard, ArtistTile } from "@/components/cover-card";
 import { TrackRow } from "@/components/track-row";
 import { SectionRail } from "@/components/section-rail";
 import { Button } from "@/components/ui/button";
-import { copy } from "@/lib/sheba/copy";
+import { copy } from "@/lib/zelyro/copy";
 import { YouTubePromotionCard } from "@/components/youtube-promotion-card";
 
 export const Route = createFileRoute("/_app/")({
@@ -34,13 +34,13 @@ function Home() {
           <div className="absolute inset-0 bg-gradient-to-r from-background/90 via-background/55 to-transparent" />
           <div className="relative grid gap-6 p-6 md:grid-cols-[minmax(0,1fr)_220px] md:p-10">
             <div>
-              <p className="text-xs tracking-[0.2em] text-sand uppercase">Sheba original</p>
+              <p className="text-xs tracking-[0.2em] text-sand uppercase">Featured</p>
               <h1 className="mt-3 font-display text-4xl font-medium md:text-5xl">{copy.tagline}</h1>
               <p className="mt-3 max-w-lg text-sm text-muted-foreground md:text-base">{copy.sub}</p>
               <div className="mt-6 flex flex-wrap gap-3">
                 <Button onClick={() => play(d.trending, 0)}>
                   <Play className="size-4 translate-x-px fill-current" />
-                  Play Ghana trending
+                  Play what’s trending
                 </Button>
                 <Button variant="outline" asChild>
                   <Link to="/welcome">For artists</Link>
@@ -67,7 +67,7 @@ function Home() {
             </div>
             <p className="text-xs text-muted-foreground">YouTube · official player</p>
           </div>
-          <div className="sheba-rail sheba-rail-wide">
+          <div className="media-rail media-rail-wide">
             {d.promoted.map((p) => (
               <YouTubePromotionCard key={p.campaignId} promo={p} />
             ))}
@@ -82,10 +82,10 @@ function Home() {
       </SectionRail>
 
       <section className="mt-10">
-        <h2 className="mb-4 font-display text-xl font-medium md:text-2xl">Ghana charts</h2>
+        <h2 className="mb-4 font-display text-xl font-medium md:text-2xl">Charts</h2>
         <div className="rounded-3xl bg-card p-2 md:p-3">
-          {d.ghana.map((t, i) => (
-            <TrackRow key={t.id} track={t} queue={d.ghana} index={i} />
+          {d.charts.map((t, i) => (
+            <TrackRow key={t.id} track={t} queue={d.charts} index={i} />
           ))}
         </div>
       </section>
@@ -102,13 +102,19 @@ function Home() {
         ))}
       </SectionRail>
 
+      <SectionRail title="Hip Hop">
+        {d.hiphop.map((t) => (
+          <CoverCard key={t.id} track={t} queue={d.hiphop} />
+        ))}
+      </SectionRail>
+
       <SectionRail title="Afrobeats">
         {d.afrobeats.map((t) => (
           <CoverCard key={t.id} track={t} queue={d.afrobeats} />
         ))}
       </SectionRail>
 
-      <SectionRail title="Amapiano after dark">
+      <SectionRail title="After dark">
         {d.amapiano.map((t) => (
           <CoverCard key={t.id} track={t} queue={d.amapiano} />
         ))}
@@ -128,7 +134,7 @@ function Home() {
 
       {d.live.length > 0 && (
         <section className="mt-10">
-          <h2 className="mb-4 font-display text-xl font-medium">Sheba Live</h2>
+          <h2 className="mb-4 font-display text-xl font-medium">Zelyro Live</h2>
           <div className="grid gap-4 sm:grid-cols-2">
             {d.live.map((l) => (
               <Link

@@ -1,6 +1,6 @@
 # Database
 
-Postgres is the system of record. Schema: `migrations/0002_sheba.sql` plus `0004_youtube_promotions.sql`. Seed: `0003_seed.sql`. Better Auth tables are in `0001_auth.sql` (do not edit).
+Postgres is the system of record. Schema: `migrations/0002_core.sql` plus `0004_youtube_promotions.sql`. Seed: `0003_seed.sql`. Better Auth tables are in `0001_auth.sql` (do not edit).
 
 ## Money
 
@@ -20,7 +20,7 @@ There is **no DJ account type**. A DJ registers as Fan, Artist/Creator, Producer
 
 `promotion_campaigns` (+ targets, impressions, clicks, engagement) power Creator Studio promotions. Statuses: draft, pending_review, scheduled, active, paused, completed, rejected.
 
-Sheba-hosted tracks and YouTube-hosted links are separate tables. Do not mix them.
+Zelyro-hosted tracks and YouTube-hosted links are separate tables. Do not mix them.
 
 ## RLS (production Supabase)
 

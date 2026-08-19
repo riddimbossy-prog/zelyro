@@ -20,7 +20,7 @@ export function SectionRail({
           </Link>
         )}
       </div>
-      <div className="sheba-rail">{children}</div>
+      <div className="media-rail">{children}</div>
     </section>
   );
 }

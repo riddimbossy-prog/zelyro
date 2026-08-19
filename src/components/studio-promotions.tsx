@@ -8,8 +8,8 @@ import {
   getMyCampaigns,
   pauseCampaign,
   validatePromotionLink,
-} from "@/lib/sheba/promotions";
-import type { CampaignAnalytics, YouTubePromotion, YouTubeVideo } from "@/lib/sheba/types";
+} from "@/lib/zelyro/promotions";
+import type { CampaignAnalytics, YouTubePromotion, YouTubeVideo } from "@/lib/zelyro/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,14 +18,31 @@ import { toast } from "sonner";
 import { YouTubePromotionCard } from "@/components/youtube-promotion-card";
 import { Link } from "@tanstack/react-router";
 
-const GENRES = ["Highlife", "Hiplife", "Afrobeats", "Amapiano", "Gospel", "Dancehall", "Hip Hop", "Desert Blues"];
+const GENRES = [
+  "Hip Hop",
+  "R&B",
+  "Pop",
+  "Afrobeats",
+  "Gospel",
+  "Dancehall",
+  "Amapiano",
+  "Highlife",
+  "Electronic",
+  "Latin",
+  "Indie",
+  "Rock",
+];
 const COUNTRIES = [
-  { id: "GH", name: "Ghana" },
+  { id: "US", name: "United States" },
+  { id: "GB", name: "United Kingdom" },
   { id: "NG", name: "Nigeria" },
+  { id: "GH", name: "Ghana" },
+  { id: "BR", name: "Brazil" },
+  { id: "JM", name: "Jamaica" },
   { id: "ZA", name: "South Africa" },
-  { id: "KE", name: "Kenya" },
-  { id: "SN", name: "Senegal" },
-  { id: "ML", name: "Mali" },
+  { id: "KR", name: "South Korea" },
+  { id: "FR", name: "France" },
+  { id: "DE", name: "Germany" },
 ];
 
 type Kind = "list" | "youtube" | "song" | "album" | "event" | "livestream" | "analytics";
@@ -91,7 +108,7 @@ export function StudioPromotions() {
         ))}
       </div>
       <p className="mt-3 max-w-xl text-sm text-muted-foreground">
-        Two lanes: upload to Sheba, or paste an official YouTube URL and send listeners there. Campaigns
+        Two lanes: upload to Zelyro, or paste an official YouTube URL and send listeners there. Campaigns
         enter review before they go live.
       </p>
       <ConnectChannel />
@@ -150,7 +167,7 @@ export function StudioPromotions() {
         ))}
         {rows.length === 0 && (
           <li className="rounded-3xl bg-card p-6 text-sm text-muted-foreground">
-            No campaigns yet. Start with a YouTube link — Sheba will pull the title and thumbnail for you.
+            No campaigns yet. Start with a YouTube link — Zelyro will pull the title and thumbnail for you.
           </li>
         )}
       </ul>
@@ -179,7 +196,7 @@ function ConnectChannel() {
     >
       <p className="text-sm font-medium">Connect YouTube channel</p>
       <p className="text-xs text-muted-foreground">
-        Optional. Stores the public channel id, URL, and display name so Sheba can recognize your official presence.
+        Optional. Stores the public channel id, URL, and display name so Zelyro can recognize your official presence.
       </p>
       <Input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://youtube.com/channel/…" required />
       <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Channel display name" required />
@@ -199,8 +216,8 @@ function YoutubeWizard({ onBack, onDone }: { onBack: () => void; onDone: () => v
   const [warn, setWarn] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [country, setCountry] = useState("GH");
-  const [genre, setGenre] = useState("Afrobeats");
+  const [country, setCountry] = useState("US");
+  const [genre, setGenre] = useState("Hip Hop");
   const [audience, setAudience] = useState("fans");
   const [budget, setBudget] = useState("0");
   const [daily, setDaily] = useState("0");
@@ -351,7 +368,7 @@ function YoutubeWizard({ onBack, onDone }: { onBack: () => void; onDone: () => v
           </select>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label>Budget (GHS, optional)</Label>
+              <Label>Budget (USD, optional)</Label>
               <Input type="number" min={0} step="1" value={budget} onChange={(e) => setBudget(e.target.value)} />
             </div>
             <div>
@@ -388,16 +405,16 @@ function YoutubeWizard({ onBack, onDone }: { onBack: () => void; onDone: () => v
               featured: false,
               budgetCents: 0,
               spentCents: 0,
-              currency: "GHS",
+              currency: "USD",
               startDate: start,
               endDate: end,
               impressions: 0,
               clicks: 0,
               video,
-              shebaArtistId: "",
-              shebaArtistName: "You",
-              shebaArtistSlug: "profile",
-              shebaArtistAvatar: null,
+              zelyroArtistId: "",
+              zelyroArtistName: "You",
+              zelyroArtistSlug: "profile",
+              zelyroArtistAvatar: null,
               linkId: "preview",
             }}
           />
@@ -449,7 +466,7 @@ function SimplePromote({
       <h2 className="font-display text-2xl">Promote {type}</h2>
       <Label>Campaign title</Label>
       <Input value={name} onChange={(e) => setName(e.target.value)} required />
-      <Label>Sheba {type} id</Label>
+      <Label>Zelyro {type} id</Label>
       <Input value={contentId} onChange={(e) => setContentId(e.target.value)} placeholder="From your catalog" />
       <Label>Description</Label>
       <Input value={description} onChange={(e) => setDescription(e.target.value)} />
@@ -497,7 +514,7 @@ function Metrics({ a }: { a: CampaignAnalytics }) {
     ["Impressions", String(a.impressions)],
     ["Unique impressions", String(a.uniqueImpressions)],
     ["Clicks", String(a.clicks)],
-    ["Plays initiated (Sheba)", String(a.playsInitiated)],
+    ["Plays initiated (Zelyro)", String(a.playsInitiated)],
     ["Profile visits", String(a.profileVisits)],
     ["Shares", String(a.shares)],
     ["Saves", String(a.saves)],

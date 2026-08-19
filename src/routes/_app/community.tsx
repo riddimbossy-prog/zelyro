@@ -1,8 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { createPost, getCommunity } from "@/lib/sheba/queries";
-import { getActivePromotions } from "@/lib/sheba/promotions";
-import { usePlayer } from "@/lib/sheba/player";
+import { createPost, getCommunity } from "@/lib/zelyro/queries";
+import { getActivePromotions } from "@/lib/zelyro/promotions";
+import { usePlayer } from "@/lib/zelyro/player";
 import { Button } from "@/components/ui/button";
 import { useCurrentUser } from "@/lib/auth/use-current-user";
 import { useState } from "react";

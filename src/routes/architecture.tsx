@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { copy } from "@/lib/sheba/copy";
+import { copy } from "@/lib/zelyro/copy";
 
 export const Route = createFileRoute("/architecture")({ component: Architecture });
 
@@ -32,7 +32,7 @@ function Architecture() {
                       ├─ Supabase Postgres + Auth + RLS
                       ├─ AWS S3 (presigned upload / signed download)
                       ├─ YouTube Data API (search, metadata, official player)
-                      ├─ YouTube promotions (campaigns, impressions, Sheba clicks)
+                      ├─ YouTube promotions (campaigns, impressions, Zelyro clicks)
                       ├─ Firebase Cloud Messaging
                       ├─ Payment adapters (MoMo, cards)
                       └─ Workers (FFmpeg, waveforms, trending)`}</pre>
@@ -44,7 +44,7 @@ function Architecture() {
         </Section>
 
         <Section n="02" title="GitHub repository structure">
-          <pre className="overflow-x-auto rounded-3xl bg-card p-5 text-xs leading-6 text-muted-foreground">{`sheba-music/
+          <pre className="overflow-x-auto rounded-3xl bg-card p-5 text-xs leading-6 text-muted-foreground">{`zelyro/
   apps/flutter    apps/api (NestJS)    apps/admin
   packages/shared-types    packages/configuration
   infrastructure/supabase  cloudflare  digitalocean  github
@@ -67,7 +67,7 @@ function Architecture() {
 
         <Section n="04" title="AWS S3">
           <p className="text-sm leading-relaxed text-muted-foreground">
-            Buckets: sheba-masters (private), sheba-stream (private, signed), sheba-public (covers,
+            Buckets: zelyro-masters (private), zelyro-stream (private, signed), zelyro-public (covers,
             banners). Upload: POST /api/v1/storage/sign → PUT presigned. Download: entitlement check
             then signed GET. Free / paid / premium / artist / admin policies are server-side.
           </p>
@@ -103,9 +103,9 @@ function Architecture() {
             YouTubeService: searchVideos, searchMusic, searchArtists, getVideoDetails, getChannelDetails,
             getRelatedVideos, getPlaylistDetails, validateYouTubeUrl, extractVideoId, getVideoThumbnail,
             getPublicVideoStats. YouTubePromotionService: create, validate, activate, pause,
-            recordImpression, recordClick, recordPlaybackOpen, getCampaignAnalytics. UI labels Sheba vs
+            recordImpression, recordClick, recordPlaybackOpen, getCampaignAnalytics. UI labels Zelyro vs
             YouTube. Playback is the official player. No extraction, no offline rips, no DRM bypass.
-            Sheba clicks and playback opens are never reported as YouTube views.
+            Zelyro clicks and playback opens are never reported as YouTube views.
           </p>
         </Section>
 

@@ -18,10 +18,10 @@ export function formatCount(n: number): string {
   return `${(n / 1_000_000).toFixed(1)}M`;
 }
 
-export function formatMoney(cents: number, currency = "GHS"): string {
+export function formatMoney(cents: number, currency = "USD"): string {
   const value = cents / 100;
   try {
-    return new Intl.NumberFormat("en-GH", {
+    return new Intl.NumberFormat("en-US", {
       style: "currency",
       currency,
       maximumFractionDigits: value % 1 === 0 ? 0 : 2,

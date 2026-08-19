@@ -131,7 +131,7 @@ html.light {
   }
 }
 
-.sheba-rail {
+.media-rail {
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: minmax(148px, 180px);
@@ -141,13 +141,13 @@ html.light {
   scroll-snap-type: x mandatory;
   scrollbar-width: none;
 }
-.sheba-rail::-webkit-scrollbar {
+.media-rail::-webkit-scrollbar {
   display: none;
 }
-.sheba-rail > * {
+.media-rail > * {
   scroll-snap-align: start;
 }
-.sheba-rail-wide {
+.media-rail-wide {
   grid-auto-columns: minmax(220px, 280px);
 }
 

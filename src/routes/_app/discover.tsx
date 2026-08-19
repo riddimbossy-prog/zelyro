@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { getDiscover } from "@/lib/sheba/queries";
+import { getDiscover } from "@/lib/zelyro/queries";
 import { CoverCard, ArtistTile } from "@/components/cover-card";
 import { SectionRail } from "@/components/section-rail";
 import { YouTubePromotionCard } from "@/components/youtube-promotion-card";
@@ -13,21 +13,21 @@ function Discover() {
   const d = Route.useLoaderData();
   if (!d) return null;
   const genres = [
-    { name: "Highlife", img: "/covers/gold-coast.jpg" },
-    { name: "Afrobeats", img: "/covers/terrace-lights.jpg" },
-    { name: "Amapiano", img: "/covers/warehouse.jpg" },
-    { name: "Gospel", img: "/covers/morning-mercy.jpg" },
-    { name: "Hiplife", img: "/covers/night-market.jpg" },
-    { name: "Dancehall", img: "/covers/rooftop-fire.jpg" },
     { name: "Hip Hop", img: "/covers/desk-light.jpg" },
-    { name: "Desert Blues", img: "/covers/dawn-dust.jpg" },
+    { name: "Afrobeats", img: "/covers/terrace-lights.jpg" },
+    { name: "Gospel", img: "/covers/morning-mercy.jpg" },
+    { name: "Dancehall", img: "/covers/rooftop-fire.jpg" },
+    { name: "Amapiano", img: "/covers/warehouse.jpg" },
+    { name: "Highlife", img: "/covers/gold-coast.jpg" },
+    { name: "R&B", img: "/covers/jacaranda.jpg" },
+    { name: "Electronic", img: "/covers/night-market.jpg" },
   ];
   const nearby = d.nearby;
   return (
     <div>
       <h1 className="font-display text-3xl md:text-4xl">Discover</h1>
       <p className="mt-2 max-w-xl text-sm text-muted-foreground">
-        Charts, rooms, and catalogs — Sheba-hosted first. YouTube stays in its own lane, clearly marked.
+        Charts, rooms, and catalogs — Zelyro-hosted first. YouTube stays in its own lane, clearly marked.
       </p>
       <div className="mt-8 grid grid-cols-2 gap-3 md:grid-cols-4">
         {genres.map((g) => (
@@ -49,7 +49,7 @@ function Discover() {
         <section className="mt-10">
           <p className="text-xs tracking-[0.2em] text-sand uppercase">Sponsored</p>
           <h2 className="mt-1 font-display text-2xl">Promoted Music</h2>
-          <div className="sheba-rail sheba-rail-wide mt-4">
+          <div className="media-rail media-rail-wide mt-4">
             {d.promoted.map((p) => (
               <YouTubePromotionCard key={p.campaignId} promo={p} />
             ))}
@@ -57,7 +57,7 @@ function Discover() {
         </section>
       )}
 
-      <SectionRail title="Africa listening now">
+      <SectionRail title="Listening now">
         {d.trending.map((t) => (
           <CoverCard key={t.id} track={t} queue={d.trending} />
         ))}

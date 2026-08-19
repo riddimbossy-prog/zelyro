@@ -1,5 +1,5 @@
 import { ExternalLink, X } from "lucide-react";
-import { useYtPlayer } from "@/lib/sheba/yt-player";
+import { useYtPlayer } from "@/lib/zelyro/yt-player";
 import { Button } from "@/components/ui/button";
 
 export function YoutubePlayerOverlay() {
@@ -41,7 +41,7 @@ export function YoutubePlayerOverlay() {
         </div>
         <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
           <p className="text-xs text-muted-foreground">
-            Playback stays on YouTube. Sheba does not extract or store this video.
+            Playback stays on YouTube. Zelyro does not extract or store this video.
           </p>
           {watchUrl && (
             <Button asChild size="sm" variant="outline">

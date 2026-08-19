@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { addComment, getTrackPage, purchaseTrack } from "@/lib/sheba/queries";
-import { usePlayer } from "@/lib/sheba/player";
+import { addComment, getTrackPage, purchaseTrack } from "@/lib/zelyro/queries";
+import { usePlayer } from "@/lib/zelyro/player";
 import { TrackRow } from "@/components/track-row";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

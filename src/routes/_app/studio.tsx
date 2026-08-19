@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { becomeArtist, getStudioOverview, getWallet, publishTrack, requestPayout, scanTicket } from "@/lib/sheba/queries";
+import { becomeArtist, getStudioOverview, getWallet, publishTrack, requestPayout, scanTicket } from "@/lib/zelyro/queries";
 import { RedirectToSignIn } from "@/lib/auth/gates";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { Button } from "@/components/ui/button";
@@ -76,7 +76,7 @@ function Studio() {
             </ResponsiveContainer>
           </div>
           <h2 className="mt-8 font-display text-xl">Your catalog</h2>
-          <p className="text-xs text-muted-foreground">Sheba-hosted files. YouTube promotions live in Promotions.</p>
+          <p className="text-xs text-muted-foreground">Zelyro-hosted files. YouTube promotions live in Promotions.</p>
           {(studio.data?.tracks ?? []).map((t, i) => (
             <TrackRow key={t.id} track={t} queue={studio.data?.tracks ?? []} index={i} showArtist={false} />
           ))}
@@ -111,8 +111,8 @@ function Stat({ label, value }: { label: string; value: string }) {
 function BecomeArtist({ onDone }: { onDone: () => void }) {
   const [artistName, setArtistName] = useState("");
   const [bio, setBio] = useState("");
-  const [country, setCountry] = useState("GH");
-  const [genres, setGenres] = useState("Highlife");
+  const [country, setCountry] = useState("US");
+  const [genres, setGenres] = useState("Hip Hop");
   return (
     <form
       className="mt-8 max-w-lg space-y-3 rounded-3xl bg-card p-6"
@@ -129,8 +129,7 @@ function BecomeArtist({ onDone }: { onDone: () => void }) {
     >
       <h2 className="font-display text-2xl">Become an artist</h2>
       <p className="text-sm text-muted-foreground">
-        Register as an Artist/Creator — not a DJ role. A DJ who wants to publish music uses this path.
-        Payouts stay server-side.
+        Register as an Artist/Creator. Payouts stay server-side.
       </p>
       <Label>Artist name</Label>
       <Input value={artistName} onChange={(e) => setArtistName(e.target.value)} required />
@@ -147,7 +146,7 @@ function BecomeArtist({ onDone }: { onDone: () => void }) {
 
 function UploadForm({ onDone }: { onDone: () => void }) {
   const [title, setTitle] = useState("");
-  const [genre, setGenre] = useState("Highlife");
+  const [genre, setGenre] = useState("Hip Hop");
   const [distribution, setDistribution] = useState("free_stream");
   const [price, setPrice] = useState("0");
   return (
@@ -175,7 +174,7 @@ function UploadForm({ onDone }: { onDone: () => void }) {
     >
       <h2 className="font-display text-2xl">Upload wizard</h2>
       <p className="text-sm text-muted-foreground">
-        Sheba-hosted: stream, free download, paid download. YouTube links belong in Promotions.
+        Zelyro-hosted: stream, free download, paid download. YouTube links belong in Promotions.
       </p>
       <Label>Title</Label>
       <Input value={title} onChange={(e) => setTitle(e.target.value)} required />
@@ -193,7 +192,7 @@ function UploadForm({ onDone }: { onDone: () => void }) {
         <option value="premium">Premium download</option>
         <option value="subscriber_only">Subscriber only</option>
       </select>
-      <Label>Price (GHS)</Label>
+      <Label>Price (USD)</Label>
       <Input type="number" min={0} step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} />
       <Button type="submit">Publish</Button>
     </form>

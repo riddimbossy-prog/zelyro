@@ -4,7 +4,7 @@ import { GROK_PROVIDERS, authEnabled, signIn, authClient } from "@/lib/auth/clie
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { copy } from "@/lib/sheba/copy";
+import { copy } from "@/lib/zelyro/copy";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/login")({ component: Login });

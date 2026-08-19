@@ -132,7 +132,7 @@ export async function ensureProfile(
     insert into profiles (id, username, display_name, role, avatar_url)
     values (${userId}, ${username}, ${name || "Listener"}, 'fan', ${image})
   `;
-  await sql`insert into wallets (user_id, currency) values (${userId}, 'GHS')`;
+  await sql`insert into wallets (user_id, currency) values (${userId}, 'USD')`;
   await sql`
     insert into playlists (id, user_id, title, is_public, is_system, kind)
     values
@@ -170,7 +170,7 @@ export const getHomeData = createServerFn({ method: "GET" }).handler(async () =>
   try {
     return await loadHome();
   } catch (err) {
-    console.error("[sheba] getHomeData", err);
+    console.error("[zelyro] getHomeData", err);
     throw err;
   }
 });
@@ -192,9 +192,10 @@ async function loadHome() {
     return decorate(rows.map((r) => mapTrack(r)), userId);
   };
 
-  const [trending, ghana, afrobeats, gospel, amapiano, free, newest] = await Promise.all([
+  const [trending, charts, hiphop, afrobeats, gospel, amapiano, free, newest] = await Promise.all([
     fetchTracks("order by t.play_count desc", [], 10),
-    fetchTracks("and t.country = $1 order by t.play_count desc", ["GH"], 8),
+    fetchTracks("order by t.play_count desc, t.like_count desc", [], 8),
+    fetchTracks("and t.genre = $1 order by t.play_count desc", ["Hip Hop"], 8),
     fetchTracks("and t.genre = $1 order by t.play_count desc", ["Afrobeats"], 8),
     fetchTracks("and t.genre = $1 order by t.play_count desc", ["Gospel"], 6),
     fetchTracks("and t.genre = $1 order by t.play_count desc", ["Amapiano"], 6),
@@ -249,7 +250,8 @@ async function loadHome() {
 
   return {
     trending,
-    ghana,
+    charts,
+    hiphop,
     afrobeats,
     gospel,
     amapiano,
@@ -737,7 +739,7 @@ export const purchaseTrack = createServerFn({ method: "POST" })
     const rights =
       licenseType === "premium"
         ? "Authorized downloadable file for personal use. Copyright remains with the artist. This is not a transfer of ownership."
-        : "Access inside your Sheba account. Copyright remains with the artist. This is not a transfer of ownership.";
+        : "Access inside your Zelyro account. Copyright remains with the artist. This is not a transfer of ownership.";
     await sql`
       insert into licenses (id, purchase_id, user_id, track_id, license_type, rights_text)
       values (${`${pid}_lic`}, ${pid}, ${context.userId}, ${t.id}, ${licenseType}, ${rights})
@@ -757,7 +759,7 @@ export const purchaseTrack = createServerFn({ method: "POST" })
     `;
     await sql`
       insert into payment_transactions (id, user_id, provider, amount_cents, currency, status, purpose)
-      values (${`${pid}_pay`}, ${context.userId}, 'sheba_wallet_sim', ${gross}, ${t.currency}, 'completed', 'track_purchase')
+      values (${`${pid}_pay`}, ${context.userId}, 'zelyro_wallet_sim', ${gross}, ${t.currency}, 'completed', 'track_purchase')
     `;
     return { ok: true, already: false as const, purchaseId: pid, rights, licenseType };
   });
@@ -839,7 +841,7 @@ export const buyLiveAccess = createServerFn({ method: "POST" })
     const creator = Math.max(gross - platformFee - processorFee, 0);
     await sql`
       insert into purchases (id, buyer_id, status, currency, gross_cents, processor_fee_cents, platform_fee_cents, creator_cents, fee_snapshot)
-      values (${pid}, ${context.userId}, 'completed', 'GHS', ${gross}, ${processorFee}, ${platformFee}, ${creator}, '{"product":"live"}')
+      values (${pid}, ${context.userId}, 'completed', ${row.currency ?? "USD"}, ${gross}, ${processorFee}, ${platformFee}, ${creator}, '{"product":"live"}')
     `;
     await sql`
       insert into live_entitlements (user_id, live_event_id) values (${context.userId}, ${liveId})
@@ -943,7 +945,7 @@ export const getWallet = createServerFn({ method: "GET" })
       availableCents: available,
       pendingCents: pending,
       lifetimeCents: lifetime,
-      currency: "GHS",
+      currency: "USD",
     };
     return { snapshot, ledger: ledger.map((l) => ({ ...l, createdAt: iso(l.createdAt) })) };
   });
@@ -959,7 +961,7 @@ export const requestPayout = createServerFn({ method: "POST" })
     const id = `po_${Date.now()}`;
     await sql`
       insert into payout_requests (id, artist_id, amount_cents, currency, method, destination, status)
-      values (${id}, ${context.userId}, ${data.amountCents}, 'GHS', ${data.method}, ${data.destination}, 'requested')
+      values (${id}, ${context.userId}, ${data.amountCents}, 'USD', ${data.method}, ${data.destination}, 'requested')
     `;
     await sql`
       insert into ledger_entries (id, wallet_user_id, amount_cents, direction, kind, ref_type, ref_id, available)
@@ -980,7 +982,7 @@ export const becomeArtist = createServerFn({ method: "POST" })
       values (${context.userId}, ${data.artistName}, 'pending', ${data.bio}, ${data.genres})
       on conflict (user_id) do update set artist_name = excluded.artist_name, biography = excluded.biography, genres = excluded.genres
     `;
-    await sql`insert into wallets (user_id, currency) values (${context.userId}, 'GHS') on conflict do nothing`;
+    await sql`insert into wallets (user_id, currency) values (${context.userId}, 'USD') on conflict do nothing`;
     return { ok: true };
   });
 
@@ -1005,7 +1007,7 @@ export const publishTrack = createServerFn({ method: "POST" })
         price_cents, currency, copyright_owner, status, country
       ) values (
         ${id}, ${context.userId}, ${data.title}, ${data.coverUrl}, ${data.audioUrl}, 75000,
-        ${data.genre}, ${data.distribution}, ${data.priceCents}, 'GHS', ${data.title}, 'published', 'GH'
+        ${data.genre}, ${data.distribution}, ${data.priceCents}, 'USD', ${data.title}, 'published', 'US'
       )
     `;
     return { id };

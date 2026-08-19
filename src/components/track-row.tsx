@@ -1,8 +1,8 @@
 import { Heart, MoreHorizontal, Play } from "lucide-react";
 import { Link } from "@tanstack/react-router";
-import type { TrackCard } from "@/lib/sheba/types";
-import { usePlayer } from "@/lib/sheba/player";
-import { toggleLike } from "@/lib/sheba/queries";
+import type { TrackCard } from "@/lib/zelyro/types";
+import { usePlayer } from "@/lib/zelyro/player";
+import { toggleLike } from "@/lib/zelyro/queries";
 import { cn, formatCount, formatTime } from "@/lib/utils";
 import { toast } from "sonner";
 

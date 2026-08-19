@@ -1,6 +1,6 @@
-# Sheba Music — System Architecture (Phase 1)
+# Zelyro — System Architecture (Phase 1)
 
-Sheba is a creator-first African music ecosystem: streaming + direct sales + wallets + events + live + community. This document is the foundation. Do not skip it.
+Zelyro is a creator-first music platform: streaming + direct sales + wallets + events + live + community. This document is the foundation. Do not skip it.
 
 ## 1. Architecture diagram
 
@@ -15,7 +15,7 @@ DigitalOcean  NestJS  /api/v1
         ├── Supabase Postgres + Auth + RLS
         ├── AWS S3          (masters, stream renders, art)
         ├── YouTube Data API (search, metadata; official player only)
-        ├── YouTube promotions (campaigns, Sheba-side analytics)
+        ├── YouTube promotions (campaigns, Zelyro-side analytics)
         ├── Firebase Cloud Messaging
         ├── Payment adapters (MoMo, cards, Apple/Google Pay)
         └── Workers         (FFmpeg, waveform, trending, mail)
@@ -28,7 +28,7 @@ This workspace ships a **web executable slice** of the same product (TanStack St
 ## 2. GitHub structure
 
 ```
-sheba-music/
+zelyro/
   apps/flutter
   apps/api            # NestJS
   apps/admin
@@ -54,15 +54,15 @@ Branches: `main`, `development`, `feature/*`. PR required. Tags `vX.Y.Z` cut pro
 
 Roles: fan, artist, producer, organizer, admin, super_admin. **No DJ role.**
 
-See `migrations/0002_sheba.sql`. Money is integer minor units. Fee snapshots are stored per purchase.
+See `migrations/0002_core.sql`. Money is integer minor units. Fee snapshots are stored per purchase.
 
 ## 4. AWS S3
 
 | Bucket | Access |
 | --- | --- |
-| sheba-masters | private, artist/admin |
-| sheba-stream | private, signed, entitlement |
-| sheba-public | CDN, covers/banners |
+| zelyro-masters | private, artist/admin |
+| zelyro-stream | private, signed, entitlement |
+| zelyro-public | CDN, covers/banners |
 
 Upload = backend presigned PUT. Download = signed GET after purchase/free-download check.
 
@@ -80,7 +80,7 @@ FCM only (+ optional Crashlytics). Topics `artist:{id}`, `live:{id}`. Preference
 
 ## 8. YouTube
 
-`YouTubeService` against the official Data API. `YouTubePromotionService` for campaigns. UI must visually separate Sheba vs YouTube. No extraction, no rips, no DRM bypass. Sheba clicks are not YouTube views.
+`YouTubeService` against the official Data API. `YouTubePromotionService` for campaigns. UI must visually separate Zelyro vs YouTube. No extraction, no rips, no DRM bypass. Zelyro clicks are not YouTube views.
 
 ## 9. Environment (never commit values)
 

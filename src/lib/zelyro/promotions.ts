@@ -59,16 +59,16 @@ function mapPromotion(r: PromoRow): YouTubePromotion {
     featured: Boolean(r.featured),
     budgetCents: Number(r.budget_cents) || 0,
     spentCents: Number(r.spent_cents) || 0,
-    currency: String(r.currency ?? "GHS"),
+    currency: String(r.currency ?? "USD"),
     startDate: r.start_date ? String(r.start_date) : null,
     endDate: r.end_date ? String(r.end_date) : null,
     impressions: Number(r.impressions) || 0,
     clicks: Number(r.clicks) || 0,
     video,
-    shebaArtistId: String(r.creator_id),
-    shebaArtistName: String(r.artist_name ?? r.display_name ?? "Creator"),
-    shebaArtistSlug: String(r.artist_slug ?? ""),
-    shebaArtistAvatar: (r.artist_avatar as string) ?? null,
+    zelyroArtistId: String(r.creator_id),
+    zelyroArtistName: String(r.artist_name ?? r.display_name ?? "Creator"),
+    zelyroArtistSlug: String(r.artist_slug ?? ""),
+    zelyroArtistAvatar: (r.artist_avatar as string) ?? null,
     linkId: String(r.link_id ?? r.external_music_link_id ?? ""),
   };
 }
@@ -176,7 +176,7 @@ export const createYoutubePromotion = createServerFn({ method: "POST" })
       ) values (
         ${campId}, ${context.userId}, 'youtube', ${linkId}, ${name}, ${data.description.trim()},
         'pending_review', ${Math.max(0, data.budgetCents)}, ${Math.max(0, data.dailyBudgetCents)},
-        0, 'GHS', ${data.startDate || null}, ${data.endDate || null},
+        0, 'USD', ${data.startDate || null}, ${data.endDate || null},
         ${data.country}, ${data.genre}, ${data.audience}
       )
     `;
@@ -208,7 +208,7 @@ export const createCatalogPromotion = createServerFn({ method: "POST" })
         id, creator_id, content_type, content_id, campaign_name, description, status, currency
       ) values (
         ${campId}, ${context.userId}, ${data.contentType}, ${data.contentId},
-        ${data.campaignName.trim()}, ${data.description.trim()}, 'pending_review', 'GHS'
+        ${data.campaignName.trim()}, ${data.description.trim()}, 'pending_review', 'USD'
       )
     `;
     return { id: campId, status: "pending_review" as const };
@@ -286,7 +286,7 @@ export const getCampaignAnalytics = createServerFn({ method: "GET" })
     const clickN = Number(clicks[0]?.c ?? 0);
     let youtubeViews: number | null = null;
     let youtubeViewsNote =
-      "YouTube views are only shown when the official Data API returns them. Sheba never invents that number.";
+      "YouTube views are only shown when the official Data API returns them. Zelyro never invents that number.";
     if (camp[0].external_music_link_id) {
       const link = await sql<{ external_content_id: string | null }>`
         select external_content_id from external_music_links where id = ${camp[0].external_music_link_id}
@@ -296,7 +296,7 @@ export const getCampaignAnalytics = createServerFn({ method: "GET" })
         const stats = await getPublicVideoStats(vid);
         if (stats.official) {
           youtubeViews = stats.viewCount;
-          youtubeViewsNote = "Official YouTube view count from the Data API. Not the same as Sheba playback opens.";
+          youtubeViewsNote = "Official YouTube view count from the Data API. Not the same as Zelyro playback opens.";
         }
       }
     }

@@ -1,7 +1,7 @@
 export const copy = {
-  app: "Sheba",
+  app: "Zelyro",
   tagline: "Music, owned by the people who make it.",
-  sub: "Stream and sell on Sheba, or promote your official YouTube — wallets, tickets, and the night in one house.",
+  sub: "Stream and sell on Zelyro, or promote your official YouTube — wallets, tickets, and live shows in one house.",
   nav: {
     home: "Home",
     discover: "Discover",

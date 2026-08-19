@@ -1,14 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { getArtistPage, toggleFollow, purchaseTrack } from "@/lib/sheba/queries";
-import { usePlayer } from "@/lib/sheba/player";
+import { getArtistPage, toggleFollow, purchaseTrack } from "@/lib/zelyro/queries";
+import { usePlayer } from "@/lib/zelyro/player";
 import { TrackRow } from "@/components/track-row";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { formatCount, formatMoney } from "@/lib/utils";
 import { toast } from "sonner";
 import { Play, BadgeCheck } from "lucide-react";
-import { useYtPlayer } from "@/lib/sheba/yt-player";
+import { useYtPlayer } from "@/lib/zelyro/yt-player";
 
 export const Route = createFileRoute("/_app/artist/$slug")({
   loader: ({ params }) => getArtistPage({ data: params.slug }),
@@ -77,14 +77,14 @@ function ArtistPage() {
       </div>
       {artist.bio && <p className="mt-6 max-w-2xl text-sm leading-relaxed text-muted-foreground">{artist.bio}</p>}
       <h2 className="mt-10 font-display text-2xl">Top songs</h2>
-      <p className="text-xs text-muted-foreground">Sheba-hosted</p>
+      <p className="text-xs text-muted-foreground">Zelyro-hosted</p>
       <div className="mt-3">
         {tracks.map((t, i) => (
           <TrackRow key={t.id} track={t} queue={tracks} index={i} showArtist={false} />
         ))}
       </div>
       {albums.length > 0 && (
-        <div className="mt-10 sheba-rail">
+        <div className="mt-10 media-rail">
           {albums.map((a) => (
             <a key={a.id} href={`/album/${a.id}`} className="min-w-0">
               <img src={a.coverUrl} alt="" className="aspect-square w-full rounded-2xl object-cover" />
@@ -114,7 +114,7 @@ function ArtistPage() {
           {youtube.videos.some((v) => v.promoted) && (
             <div className="mt-6">
               <h3 className="font-display text-lg">Promoted videos</h3>
-              <div className="sheba-rail sheba-rail-wide mt-3">
+              <div className="media-rail media-rail-wide mt-3">
                 {youtube.videos
                   .filter((v) => v.promoted)
                   .map((v) => (
@@ -129,7 +129,7 @@ function ArtistPage() {
             return (
               <div key={g.key} className="mt-6">
                 <h3 className="font-display text-lg">{g.label}</h3>
-                <div className="sheba-rail sheba-rail-wide mt-3">
+                <div className="media-rail media-rail-wide mt-3">
                   {items.map((v) => (
                     <YtThumb
                       key={v.id}

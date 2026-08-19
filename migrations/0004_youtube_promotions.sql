@@ -126,23 +126,25 @@ create index if not exists promo_eng_idx on promotion_engagement (campaign_id, c
 insert into producer_profiles (user_id, display_title, beats, services, credits, location, available_for_collab, youtube_url, contact)
 values (
   'sys_ebo',
-  'Analog desk, Twi bars, night-market drums',
-  'Hiplife kits, live brass stems, voice notes',
+  'Analog desk, UK bars, night-market drums',
+  'Hip hop kits, live brass stems, voice notes',
   'Beat lease, mix, feature verse',
   'Kofi Blade — Night Market; Yaw Lion — Rooftop Fire',
-  'Accra',
+  'New York',
   true,
-  'https://youtube.com/@sheba',
-  'studio@sheba.example'
+  'https://youtube.com/@zelyro',
+  'studio@zelyro.example'
 ) on conflict (user_id) do nothing;
 
 insert into studios (id, name, city, country, kind, description) values
   ('st_labadi', 'Labadi Tape Room', 'Accra', 'GH', 'recording', 'Seaside booth, analog board.'),
-  ('st_osu', 'Osu Night Desk', 'Accra', 'GH', 'recording', 'Late sessions, dry vocal chain.'),
-  ('st_ikeja', 'Ikeja Terrace Studio', 'Lagos', 'NG', 'recording', 'Afrobeats tracking rooms.')
+  ('st_ikeja', 'Ikeja Terrace Studio', 'Lagos', 'NG', 'recording', 'Tracking rooms, wet terrace after rain.'),
+  ('st_hackney', 'Hackney Night Desk', 'London', 'GB', 'recording', 'Late sessions under the overground.'),
+  ('st_bushwick', 'Bushwick Room', 'New York', 'US', 'recording', 'Analog board, East River after midnight.'),
+  ('st_kingston', 'Harbour Light', 'Kingston', 'JM', 'recording', 'Rooftop dancehall, no water.')
 on conflict (id) do nothing;
 
--- Official YouTube videos promoted inside Sheba. Metadata is stored so the
+-- Official YouTube videos promoted inside Zelyro. Metadata is stored so the
 -- catalog works without a Data API key; playback always uses YouTube itself.
 insert into external_music_links (
   id, artist_id, provider, external_url, external_content_id, title, thumbnail_url,
@@ -154,7 +156,7 @@ insert into external_music_links (
     'Black Sherif - Kwaku the Traveller (Official Video)',
     'https://i.ytimg.com/vi/GIDiI5kyBDQ/hqdefault.jpg',
     'Black Sherif Music', 'UCKfrbVDBEq-wcYC4rUzEosA',
-    'Official video. Sheba does not host this file.',
+    'Official video. Zelyro does not host this file.',
     213, 'music_video', true, true, true
   ),
   (
@@ -163,7 +165,7 @@ insert into external_music_links (
     'King Promise - Terminator feat. Young Jonn (Official Video)',
     'https://i.ytimg.com/vi/NPCC02SaJVg/hqdefault.jpg',
     'King Promise Official', 'UCHhS8FHRTxM7ysMKRUl3LHQ',
-    'Official video. Sheba does not host this file.',
+    'Official video. Zelyro does not host this file.',
     244, 'music_video', true, true, true
   ),
   (
@@ -172,7 +174,7 @@ insert into external_music_links (
     'Burna Boy - Last Last [Official Music Video]',
     'https://i.ytimg.com/vi/421w1j87fEM/hqdefault.jpg',
     'Burna Boy', 'UCEzDdNqNkT-7rSfSGSr1hWg',
-    'Official video. Sheba does not host this file.',
+    'Official video. Zelyro does not host this file.',
     174, 'music_video', true, true, true
   ),
   (
@@ -181,7 +183,7 @@ insert into external_music_links (
     'Uncle Waffles and Tony Duardo - Tanzania (Official Music Video)',
     'https://i.ytimg.com/vi/WvxADzZMkEI/hqdefault.jpg',
     'Uncle Waffles', 'UCDfH7E8iHkEjmZ6H9uQ5o1g',
-    'Official video. Sheba does not host this file.',
+    'Official video. Zelyro does not host this file.',
     236, 'music_video', true, true, true
   ),
   (
@@ -190,7 +192,7 @@ insert into external_music_links (
     'Uncle Waffles and Tony Duardo - Tanzania (Official Music Video)',
     'https://i.ytimg.com/vi/WvxADzZMkEI/hqdefault.jpg',
     'Uncle Waffles', 'UCDfH7E8iHkEjmZ6H9uQ5o1g',
-    'Amapiano night, official YouTube. Sheba does not host this file.',
+    'Amapiano night, official YouTube. Zelyro does not host this file.',
     236, 'performance', true, true, true
   ),
   (
@@ -219,55 +221,57 @@ insert into promotion_campaigns (
 ) values
   (
     'camp_kwaku', 'sys_ama', 'youtube', 'eml_kwaku',
-    'Kwaku nights — Accra',
-    'Send Ghana listeners to the official video.',
-    'active', 15000, 1500, 4200, 'GHS', '2026-08-01', '2026-09-15',
-    'GH', 'Hiplife', 'new listeners', true
+    'Kwaku nights',
+    'Send new listeners to the official video.',
+    'active', 15000, 1500, 4200, 'USD', '2026-08-01', '2026-09-15',
+    'US,GB,GH', 'Hip Hop', 'new listeners', true
   ),
   (
     'camp_term', 'sys_kofi', 'youtube', 'eml_terminator',
-    'Terminator on Sheba',
-    'Kumasi to the official clip.',
-    'active', 8000, 800, 2100, 'GHS', '2026-08-10', '2026-09-10',
-    'GH', 'Afrobeats', 'fans', false
+    'Terminator on Zelyro',
+    'London to the official clip.',
+    'active', 8000, 800, 2100, 'GBP', '2026-08-10', '2026-09-10',
+    'GB', 'Hip Hop', 'fans', false
   ),
   (
     'camp_last', 'sys_nia', 'youtube', 'eml_lastlast',
-    'Last Last — Lagos terrace',
+    'Last Last — terrace',
     'Official Burna Boy video, promoted from Nia''s studio.',
-    'active', 20000, 2000, 6800, 'GHS', '2026-08-05', '2026-09-30',
-    'NG', 'Afrobeats', 'all', true
+    'active', 20000, 2000, 6800, 'USD', '2026-08-05', '2026-09-30',
+    'NG,US,GB', 'Afrobeats', 'all', true
   ),
   (
     'camp_tanz', 'sys_lila', 'youtube', 'eml_tanzania',
     'Tanzania — jacaranda season',
     'Official amapiano video.',
-    'active', 12000, 1000, 3500, 'GHS', '2026-08-12', '2026-09-20',
-    'ZA', 'Amapiano', 'playlist curators', false
+    'active', 12000, 1000, 3500, 'ZAR', '2026-08-12', '2026-09-20',
+    'ZA,US,GB', 'Amapiano', 'playlist curators', false
   ),
   (
     'camp_ware', 'sys_wave', 'youtube', 'eml_warehouseyt',
     'Warehouse 04 on YouTube',
     'The Accra Wave sending the floor to YouTube.',
-    'active', 9000, 900, 1800, 'GHS', '2026-08-08', '2026-09-08',
-    'GH', 'Amapiano', 'fans', false
+    'active', 9000, 900, 1800, 'USD', '2026-08-08', '2026-09-08',
+    'GH,US', 'Amapiano', 'fans', false
   ),
   (
     'camp_pending', 'sys_adwoa', 'youtube', 'eml_freemind',
     'Sunday Light clip',
     'Awaiting review.',
-    'pending_review', 0, 0, 0, 'GHS', '2026-08-20', '2026-09-20',
-    'GH', 'Gospel', 'fans', false
+    'pending_review', 0, 0, 0, 'USD', '2026-08-20', '2026-09-20',
+    'US', 'Gospel', 'fans', false
   )
 on conflict (id) do nothing;
 
 insert into promotion_targets (id, campaign_id, target_type, target_value) values
-  ('pt_1', 'camp_kwaku', 'country', 'GH'),
-  ('pt_2', 'camp_kwaku', 'genre', 'Hiplife'),
+  ('pt_1', 'camp_kwaku', 'country', 'US'),
+  ('pt_2', 'camp_kwaku', 'genre', 'Hip Hop'),
   ('pt_3', 'camp_last', 'country', 'NG'),
   ('pt_4', 'camp_last', 'genre', 'Afrobeats'),
   ('pt_5', 'camp_tanz', 'country', 'ZA'),
-  ('pt_6', 'camp_tanz', 'genre', 'Amapiano')
+  ('pt_6', 'camp_tanz', 'genre', 'Amapiano'),
+  ('pt_7', 'camp_term', 'country', 'GB'),
+  ('pt_8', 'camp_term', 'genre', 'Hip Hop')
 on conflict (id) do nothing;
 
 insert into promotion_impressions (id, campaign_id, user_id, created_at) values

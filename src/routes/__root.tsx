@@ -10,7 +10,7 @@ import { PreviewHostBridge } from "@/components/preview-host-bridge";
 import { Toaster } from "sonner";
 import appCss from "../styles.css?url";
 
-const APP_NAME = "Sheba";
+const APP_NAME = "Zelyro";
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 20_000, refetchOnWindowFocus: false } },
 });
@@ -23,7 +23,7 @@ export const Route = createRootRoute({
       { title: APP_NAME },
       {
         name: "description",
-        content: "Sheba — a creator-first African music ecosystem. Stream, buy, and sit with the people who make the sound.",
+        content: "Zelyro — a creator-first music platform. Stream, buy, and sit with the people who make the sound.",
       },
       { name: "theme-color", content: "#0c0b0a" },
     ],

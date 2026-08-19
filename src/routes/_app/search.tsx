@@ -1,12 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { searchCatalog } from "@/lib/sheba/queries";
+import { searchCatalog } from "@/lib/zelyro/queries";
 import { ArtistTile } from "@/components/cover-card";
 import { TrackRow } from "@/components/track-row";
 import { Input } from "@/components/ui/input";
 import { YouTubePromotionCard } from "@/components/youtube-promotion-card";
-import { useYtPlayer } from "@/lib/sheba/yt-player";
+import { useYtPlayer } from "@/lib/zelyro/yt-player";
 import { Play } from "lucide-react";
 import { z } from "zod";
 
@@ -40,13 +40,13 @@ function SearchPage() {
         <Input
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="Artists, songs, Accra, gospel, YouTube…"
+          placeholder="Artists, songs, cities, genres, YouTube…"
           autoFocus
         />
       </form>
       {!q && (
         <div className="mt-8 flex flex-wrap gap-2">
-          {["Ama Serwaa", "Afrobeats", "Accra", "Amapiano", "Gospel", "Burna"].map((s) => (
+          {["Hip Hop", "Gospel", "Afrobeats", "Ama Serwaa", "London", "YouTube"].map((s) => (
             <button
               key={s}
               type="button"
@@ -61,19 +61,19 @@ function SearchPage() {
       {data && (
         <div className="mt-8 space-y-10">
           <section>
-            <p className="text-xs tracking-widest text-sand uppercase">Sheba Music</p>
+            <p className="text-xs tracking-widest text-sand uppercase">Zelyro</p>
             <h2 className="mb-3 font-display text-xl">Catalog</h2>
             {data.tracks.map((t, i) => (
               <TrackRow key={t.id} track={t} queue={data.tracks} index={i} />
             ))}
             {data.tracks.length === 0 && (
-              <p className="text-sm text-muted-foreground">No Sheba tracks matched.</p>
+              <p className="text-sm text-muted-foreground">No Zelyro tracks matched.</p>
             )}
           </section>
           {data.artists.length > 0 && (
             <div>
               <h2 className="mb-3 font-display text-lg">Artists & producers</h2>
-              <div className="sheba-rail">
+              <div className="media-rail">
                 {data.artists.map((a) => (
                   <ArtistTile key={a.id} slug={a.slug} name={a.name} avatarUrl={a.avatarUrl} verified={a.verified} />
                 ))}
@@ -81,7 +81,7 @@ function SearchPage() {
             </div>
           )}
           {data.albums.length > 0 && (
-            <div className="sheba-rail">
+            <div className="media-rail">
               {data.albums.map((a) => (
                 <Link key={a.id} to="/album/$id" params={{ id: a.id }} className="min-w-0">
                   <img src={a.coverUrl} alt="" className="aspect-square w-full rounded-2xl object-cover" />
@@ -94,10 +94,10 @@ function SearchPage() {
             <p className="text-xs tracking-widest text-sand uppercase">YouTube</p>
             <h2 className="mt-1 font-display text-xl">Hosted on YouTube</h2>
             <p className="mt-1 mb-4 text-sm text-muted-foreground">
-              Separate from Sheba-hosted songs. Play uses YouTube's official player.
+              Separate from Zelyro-hosted songs. Play uses YouTube's official player.
             </p>
             {data.youtube.promoted.length > 0 && (
-              <div className="sheba-rail sheba-rail-wide mb-6">
+              <div className="media-rail media-rail-wide mb-6">
                 {data.youtube.promoted.map((p) => (
                   <YouTubePromotionCard key={p.campaignId} promo={p} />
                 ))}

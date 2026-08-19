@@ -14,8 +14,8 @@ Creators paste `youtube.com/watch?v=…` or `youtu.be/…`. Metadata (title, thu
 
 ## Metrics
 
-Sheba reports Sheba impressions, clicks, and playback opens. **Do not** display those as YouTube views. Official YouTube statistics appear only when the Data API returns them.
+Zelyro reports Zelyro impressions, clicks, and playback opens. **Do not** display those as YouTube views. Official YouTube statistics appear only when the Data API returns them.
 
 ## Product
 
-Discovery + search + playback + sharing + artist promotion + traffic to legitimate YouTube content. UI and database keep Sheba-hosted songs distinguishable from YouTube-hosted videos.
+Discovery + search + playback + sharing + artist promotion + traffic to legitimate YouTube content. UI and database keep Zelyro-hosted songs distinguishable from YouTube-hosted videos.

@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { getLibrary } from "@/lib/sheba/queries";
+import { getLibrary } from "@/lib/zelyro/queries";
 import { TrackRow } from "@/components/track-row";
 import { ArtistTile } from "@/components/cover-card";
 import { RedirectToSignIn } from "@/lib/auth/gates";
@@ -70,7 +70,7 @@ function Library() {
       {d && d.following.length > 0 && (
         <div className="mt-10">
           <h2 className="mb-4 font-display text-xl">Following</h2>
-          <div className="sheba-rail">
+          <div className="media-rail">
             {d.following.map((a) => (
               <ArtistTile key={a.id} slug={a.slug} name={a.name} avatarUrl={a.avatarUrl} verified={a.verified} />
             ))}

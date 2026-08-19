@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { buyLiveAccess, getLivePage } from "@/lib/sheba/queries";
+import { buyLiveAccess, getLivePage } from "@/lib/zelyro/queries";
 import { Button } from "@/components/ui/button";
 import { formatMoney } from "@/lib/utils";
 import { toast } from "sonner";
@@ -16,7 +16,7 @@ function LivePage() {
   return (
     <div>
       <img src={live.posterUrl} alt="" className="h-64 w-full rounded-[28px] object-cover md:h-80" />
-      <p className="mt-6 text-xs tracking-widest text-sand uppercase">Sheba Live · PPV</p>
+      <p className="mt-6 text-xs tracking-widest text-sand uppercase">Zelyro Live · PPV</p>
       <h1 className="mt-2 font-display text-4xl">{live.title}</h1>
       <p className="text-muted-foreground">{live.artistName}</p>
       {entitled ? (

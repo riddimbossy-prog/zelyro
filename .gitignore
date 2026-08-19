@@ -23,7 +23,7 @@ npm-debug.log*
 .DS_Store
 Thumbs.db
 
-# sandbox / local preview (not part of Sheba)
+# sandbox / local preview (not part of Zelyro)
 AGENTS.md
 .grok/
 artifacts/

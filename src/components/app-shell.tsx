@@ -8,7 +8,7 @@ import {
   UserRound,
   Mic2,
 } from "lucide-react";
-import { copy } from "@/lib/sheba/copy";
+import { copy } from "@/lib/zelyro/copy";
 import { cn } from "@/lib/utils";
 import { FullPlayer, MiniPlayer } from "@/components/player";
 import { YoutubePlayerOverlay } from "@/components/youtube-player";

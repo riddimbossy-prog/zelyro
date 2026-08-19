@@ -13,8 +13,8 @@ import {
   X,
 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
-import { usePlayer, getSpectrum } from "@/lib/sheba/player";
-import { toggleLike, purchaseTrack } from "@/lib/sheba/queries";
+import { usePlayer, getSpectrum } from "@/lib/zelyro/player";
+import { toggleLike, purchaseTrack } from "@/lib/zelyro/queries";
 import { cn, formatMoney, formatTime } from "@/lib/utils";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";

@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { getPlaylistPage } from "@/lib/sheba/queries";
-import { usePlayer } from "@/lib/sheba/player";
+import { getPlaylistPage } from "@/lib/zelyro/queries";
+import { usePlayer } from "@/lib/zelyro/player";
 import { TrackRow } from "@/components/track-row";
 import { Button } from "@/components/ui/button";
 import { Play } from "lucide-react";

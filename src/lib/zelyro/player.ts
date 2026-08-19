@@ -71,7 +71,7 @@ function audio(): HTMLAudioElement | null {
         navigator.mediaSession.metadata = new MediaMetadata({
           title: t.title,
           artist: t.artistName,
-          album: t.albumTitle ?? "Sheba",
+          album: t.albumTitle ?? "Zelyro",
           artwork: t.coverUrl ? [{ src: t.coverUrl, sizes: "800x800" }] : [],
         });
         navigator.mediaSession.playbackState = "playing";

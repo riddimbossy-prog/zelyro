@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { getMyProfile, updateMyProfile } from "@/lib/sheba/queries";
+import { getMyProfile, updateMyProfile } from "@/lib/zelyro/queries";
 import { RedirectToSignIn, UserButton } from "@/lib/auth/gates";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { Button } from "@/components/ui/button";
@@ -17,7 +17,7 @@ function Profile() {
   const p = q.data;
   const [displayName, setDisplayName] = useState("");
   const [bio, setBio] = useState("");
-  const [country, setCountry] = useState("GH");
+  const [country, setCountry] = useState("US");
   const [city, setCity] = useState("");
   const ready = Boolean(p);
   if (isPending) return <div className="h-40 animate-pulse rounded-3xl bg-secondary" />;
@@ -54,7 +54,7 @@ function Profile() {
           <Label>Bio</Label>
           <Input defaultValue={p!.bio ?? ""} onChange={(e) => setBio(e.target.value)} />
           <Label>Country</Label>
-          <Input defaultValue={p!.country ?? "GH"} onChange={(e) => setCountry(e.target.value)} />
+          <Input defaultValue={p!.country ?? "US"} onChange={(e) => setCountry(e.target.value)} />
           <Label>City</Label>
           <Input defaultValue={p!.city ?? ""} onChange={(e) => setCity(e.target.value)} />
           <Button type="submit">Save</Button>
@@ -68,7 +68,7 @@ function Profile() {
           Library and tickets
         </Link>
         <Link to="/architecture">Architecture</Link>
-        <Link to="/welcome">About Sheba</Link>
+        <Link to="/welcome">About Zelyro</Link>
       </div>
     </div>
   );

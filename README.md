@@ -1,6 +1,6 @@
-# Sheba Music
+# Zelyro
 
-Creator-first African music ecosystem: **streaming + direct sales + YouTube promotion + artist wallets + events + ticketing + paid livestreams + community** in one product.
+Creator-first music platform: **streaming + direct sales + YouTube promotion + artist wallets + events + ticketing + paid livestreams + community** in one product.
 
 This repository ships:
 
@@ -15,7 +15,7 @@ Production clients (Flutter iOS / Android / Web / foldables) and the NestJS API 
 | --- | --- |
 | Listen | Home, charts, artist pages, global player |
 | Own | Paid / premium downloads with a stored license (copyright does not transfer) |
-| Promote | Paste an official YouTube URL — Sheba discovers, shares, and measures Sheba-generated clicks |
+| Promote | Paste an official YouTube URL — Zelyro discovers, shares, and measures Zelyro-generated clicks |
 | Support | Artist ledger, payouts, tickets, PPV livestreams |
 | Community | Posts, comments, follows |
 
@@ -24,7 +24,7 @@ Account types: Fan, Artist/Creator, Producer, Event Organizer, Admin, Super Admi
 ## Repository
 
 ```
-sheba-music/
+zelyro/
   src/                 web catalog (TanStack Start)
   migrations/          Postgres schema + seed
   docs/                architecture, security, payments, streaming, …
@@ -37,8 +37,8 @@ Target production layout (Flutter + NestJS monorepo) is documented in `docs/arch
 ## Run the web catalog
 
 ```bash
-git clone https://github.com/riddimbossy-prog/sheba-music.git
-cd sheba-music
+git clone https://github.com/riddimbossy-prog/zelyro.git
+cd zelyro
 cp .env.example .env
 npm install
 npm run dev

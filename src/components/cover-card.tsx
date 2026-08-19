@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { Play } from "lucide-react";
-import type { TrackCard } from "@/lib/sheba/types";
-import { usePlayer } from "@/lib/sheba/player";
+import type { TrackCard } from "@/lib/zelyro/types";
+import { usePlayer } from "@/lib/zelyro/player";
 import { cn } from "@/lib/utils";
 
 export function CoverCard({
