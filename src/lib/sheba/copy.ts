@@ -1,0 +1,26 @@
+export const copy = {
+  app: "Sheba",
+  tagline: "Music, owned by the people who make it.",
+  sub: "Stream and sell on Sheba, or promote your official YouTube — wallets, tickets, and the night in one house.",
+  nav: {
+    home: "Home",
+    discover: "Discover",
+    library: "Library",
+    community: "Community",
+    profile: "Profile",
+    studio: "Studio",
+    search: "Search",
+  },
+  auth: {
+    signIn: "Sign in",
+    signOut: "Sign out",
+    continueGoogle: "Continue with Google",
+    continueX: "Continue with X",
+    email: "Email",
+    password: "Password",
+    name: "Name",
+    create: "Create account",
+    haveAccount: "Have an account",
+    needAccount: "Need an account",
+  },
+} as const;

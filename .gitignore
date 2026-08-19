@@ -1,0 +1,36 @@
+# dependencies
+node_modules/
+.node_modules.lock
+
+# build / cache
+dist/
+.output/
+.vercel/
+.tanstack/
+.nitro/
+.pglite/
+pglite-data/
+*.tsbuildinfo
+
+# env / secrets
+.env
+.env.*
+!.env.example
+
+# logs / os
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+
+# sandbox / local preview (not part of Sheba)
+AGENTS.md
+.grok/
+artifacts/
+public/__grok/
+screenshots/
+
+# editor
+.idea/
+.vscode/
+*.swp
