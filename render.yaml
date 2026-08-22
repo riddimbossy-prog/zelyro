@@ -1,0 +1,104 @@
+# Render Blueprint — VerzZify
+# https://render.com/docs/blueprint-spec
+# Env names below are the exact keys the app reads (process.env.*).
+
+databases:
+  - name: verzzify-db
+    plan: free
+    databaseName: verzzify
+    user: verzzify
+
+services:
+  - type: web
+    name: verzzify
+    runtime: node
+    plan: starter
+    region: oregon
+    buildCommand: npm ci && NITRO_PRESET=node-server npx vite build
+    startCommand: npm run start
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      # --- Runtime ---
+      - key: NODE_VERSION
+        value: "22"
+      - key: NODE_ENV
+        value: production
+      - key: NITRO_PRESET
+        value: node-server
+      - key: PORT
+        value: "10000"
+      - key: VITE_AUTH_ENABLED
+        value: "false"
+      - key: VITE_PUBLIC_HOSTNAME
+        value: verzzify.com
+
+      # --- Auth (Better Auth) ---
+      - key: BETTER_AUTH_URL
+        value: https://verzzify.com
+      - key: BETTER_AUTH_SECRET
+        generateValue: true
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: TWITTER_CLIENT_ID
+        sync: false
+      - key: TWITTER_CLIENT_SECRET
+        sync: false
+
+      # --- Postgres (Render DB, or paste Supabase URI over this) ---
+      - key: DATABASE_URL
+        fromDatabase:
+          name: verzzify-db
+          property: connectionString
+      - key: SUPABASE_DB_URL
+        sync: false
+      - key: SUPABASE_DATABASE_URL
+        sync: false
+      - key: POSTGRES_URL
+        sync: false
+
+      # --- Supabase API (optional if DATABASE_URL is already set) ---
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: VITE_SUPABASE_URL
+        sync: false
+      - key: VITE_SUPABASE_ANON_KEY
+        sync: false
+
+      # --- AWS S3 ---
+      - key: AWS_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false
+      - key: AWS_REGION
+        value: eu-west-1
+      - key: S3_REGION
+        value: eu-west-1
+      - key: S3_MASTERS_BUCKET
+        value: verzzify-masters
+      - key: S3_STREAM_BUCKET
+        value: verzzify-stream
+      - key: S3_PUBLIC_BUCKET
+        value: verzzify-public
+      - key: S3_ENDPOINT
+        sync: false
+
+      # --- Catalog APIs ---
+      - key: YOUTUBE_API_KEY
+        sync: false
+      - key: JAMENDO_CLIENT_ID
+        sync: false
+
+      # --- Later ---
+      - key: FCM_PROJECT_ID
+        sync: false
+      - key: PAYMENT_WEBHOOK_SECRET
+        sync: false
+      - key: VITE_API_BASE
+        value: https://verzzify.com/api/v1
