@@ -7,17 +7,19 @@ import { RedirectToSignIn } from "@/lib/auth/gates";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { DownloadsFolder } from "@/components/downloads-folder";
 
 export const Route = createFileRoute("/_app/library")({ component: Library });
 
 function Library() {
   const { user, isPending } = useCurrentUserState();
   const q = useQuery({ queryKey: ["library"], queryFn: () => getLibrary(), enabled: Boolean(user) });
-  const [tab, setTab] = useState<"liked" | "purchased" | "history" | "tickets">("liked");
+  const [tab, setTab] = useState<"downloads" | "liked" | "purchased" | "history" | "tickets">("downloads");
   if (isPending) return <div className="h-40 animate-pulse rounded-3xl bg-secondary" />;
   if (!user) return <RedirectToSignIn />;
   const d = q.data;
   const tabs = [
+    ["downloads", "Downloads"],
     ["liked", "Liked"],
     ["purchased", "Purchased"],
     ["history", "Recently played"],
@@ -43,7 +45,9 @@ function Library() {
         ))}
       </div>
       <div className="mt-6">
+        {tab === "downloads" && <DownloadsFolder />}
         {tab !== "tickets" &&
+          tab !== "downloads" &&
           (d?.[tab] ?? []).map((t, i) => (
             <TrackRow key={t.id} track={t} queue={d?.[tab] ?? []} index={i} />
           ))}
@@ -63,7 +67,7 @@ function Library() {
           ) : (
             <p className="text-sm text-muted-foreground">No tickets yet.</p>
           ))}
-        {tab !== "tickets" && d && d[tab].length === 0 && (
+        {tab !== "tickets" && tab !== "downloads" && d && d[tab].length === 0 && (
           <p className="text-sm text-muted-foreground">Nothing here yet. Play something you love.</p>
         )}
       </div>
@@ -72,7 +76,15 @@ function Library() {
           <h2 className="mb-4 font-display text-xl">Following</h2>
           <div className="media-rail">
             {d.following.map((a) => (
-              <ArtistTile key={a.id} slug={a.slug} name={a.name} avatarUrl={a.avatarUrl} verified={a.verified} />
+              <ArtistTile
+                key={a.id}
+                id={a.id}
+                slug={a.slug}
+                name={a.name}
+                avatarUrl={a.avatarUrl}
+                verified={a.verified}
+                followed
+              />
             ))}
           </div>
         </div>

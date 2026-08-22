@@ -7,6 +7,7 @@ import type {
   EventCard,
   LedgerRow,
   LiveCard,
+  MackProfileData,
   PlaylistCard,
   PostCard,
   TicketType,
@@ -15,6 +16,8 @@ import type {
   YouTubePromotion,
 } from "./types";
 import { loadActivePromotions, loadArtistYoutube, loadNearby, searchYoutubeCatalog } from "./promotions";
+import { loadYoutubeHome, normalizeRegion } from "./yt-charts";
+import { detectViewerGeo } from "./geo";
 
 type TrackRow = {
   id: string;
@@ -100,9 +103,13 @@ const TRACK_COLS = `
 
 async function optionalUserId(): Promise<string | null> {
   try {
-    const { getSessionUser } = await import("@/lib/auth/verify.server");
-    const u = await getSessionUser();
-    return u?.id ?? null;
+    const { requireUserId, getSessionUser } = await import("@/lib/auth/verify.server");
+    try {
+      return await requireUserId();
+    } catch {
+      const u = await getSessionUser();
+      return u?.id ?? null;
+    }
   } catch {
     return null;
   }
@@ -192,16 +199,35 @@ async function loadHome() {
     return decorate(rows.map((r) => mapTrack(r)), userId);
   };
 
-  const [trending, charts, hiphop, afrobeats, gospel, amapiano, free, newest] = await Promise.all([
-    fetchTracks("order by t.play_count desc", [], 10),
-    fetchTracks("order by t.play_count desc, t.like_count desc", [], 8),
+  const [trending, charts, hiphop, afrobeats, gospel, amapiano, latin, pop, electronic, free, newest] = await Promise.all([
+    fetchTracks("order by t.play_count desc", [], 12),
+    fetchTracks("order by (t.play_count + coalesce((select units from chart_download_units u where u.track_id = t.id), 0) * 200) desc, t.play_count desc", [], 10),
     fetchTracks("and t.genre = $1 order by t.play_count desc", ["Hip Hop"], 8),
     fetchTracks("and t.genre = $1 order by t.play_count desc", ["Afrobeats"], 8),
     fetchTracks("and t.genre = $1 order by t.play_count desc", ["Gospel"], 6),
     fetchTracks("and t.genre = $1 order by t.play_count desc", ["Amapiano"], 6),
+    fetchTracks("and t.genre = $1 order by t.play_count desc", ["Latin"], 8),
+    fetchTracks("and t.genre in ('City Pop','Electropop','Indie Pop','Pop') order by t.play_count desc", [], 8),
+    fetchTracks("and t.genre in ('Electronic','Techno','Electropop') order by t.play_count desc", [], 8),
     fetchTracks("and t.distribution in ('free_download','free_stream') order by t.play_count desc", [], 8),
-    fetchTracks("order by t.created_at desc", [], 8),
+    fetchTracks("order by t.created_at desc", [], 10),
   ]);
+
+  let fromFollowed: TrackCard[] = [];
+  let followingIds: string[] = [];
+  if (userId) {
+    const ids = await sql<{ following_id: string }>`
+      select following_id from follows where follower_id = ${userId}
+    `;
+    followingIds = ids.map((r) => r.following_id);
+    if (followingIds.length) {
+      fromFollowed = await fetchTracks(
+        "and a.user_id in (select following_id from follows where follower_id = $1) order by t.created_at desc",
+        [userId],
+        12,
+      );
+    }
+  }
 
   const artists = await sql.query<Record<string, unknown>>(
     `select p.id, p.username as slug, a.artist_name as name, p.avatar_url, p.banner_url,
@@ -248,6 +274,23 @@ async function loadHome() {
   const posts = await loadPosts(sql, 8);
   const promoted = await loadActivePromotions(8);
 
+  let country = "US";
+  let city: string | null = null;
+  try {
+    const geo = await detectViewerGeo();
+    country = geo.region;
+    city = geo.city;
+  } catch {
+    /* keep US */
+  }
+  if (userId) {
+    const row = await sql<{ country: string | null }>`
+      select country from profiles where id = ${userId} limit 1
+    `;
+    if (row[0]?.country) country = normalizeRegion(row[0].country);
+  }
+  const youtubeHome = await loadYoutubeHome(country, city);
+
   return {
     trending,
     charts,
@@ -255,6 +298,9 @@ async function loadHome() {
     afrobeats,
     gospel,
     amapiano,
+    latin,
+    pop,
+    electronic,
     free,
     newest,
     artists: artists.map(mapArtist),
@@ -264,6 +310,10 @@ async function loadHome() {
     live: live.map(mapLive),
     posts,
     promoted,
+    country: youtubeHome.region,
+    youtubeHome,
+    fromFollowed,
+    followingIds,
   };
 }
 
@@ -326,6 +376,37 @@ function mapLive(r: Record<string, unknown>): LiveCard {
     artistSlug: String(r.artist_slug),
     status: String(r.status),
   };
+}
+
+async function loadChartRanks(
+  sql: Awaited<ReturnType<typeof getSql>>,
+  ids: string[],
+): Promise<Record<string, number>> {
+  if (!ids.length) return {};
+  const rows = await sql.query<{ item_id: string; position: number }>(
+    `select item_id, position from chart_ranks
+     where snapshot_id = 'snap_tracks_global' and item_type = 'track'
+       and item_id in (${ids.map((_, i) => `$${i + 1}`).join(",")})`,
+    ids,
+  );
+  return Object.fromEntries(rows.map((r) => [r.item_id, Number(r.position)]));
+}
+
+async function loadArtistLive(
+  sql: Awaited<ReturnType<typeof getSql>>,
+  artistId: string,
+): Promise<LiveCard[]> {
+  const rows = await sql.query<Record<string, unknown>>(
+    `select l.id, l.title, l.poster_url, l.starts_at, l.price_cents, l.is_free, l.status,
+            a.artist_name, p.username as artist_slug
+     from live_events l
+     join artist_profiles a on a.user_id = l.artist_id
+     join profiles p on p.id = a.user_id
+     where l.artist_id = $1
+     order by l.starts_at desc limit 6`,
+    [artistId],
+  );
+  return rows.map(mapLive);
 }
 
 async function loadPosts(
@@ -490,9 +571,10 @@ export const getArtistPage = createServerFn({ method: "GET" })
       select price_cents, duration_min, available from video_call_services where artist_id = ${artist.id}
     `;
     const youtube = await loadArtistYoutube(artist.id);
+    const decoratedTracks = await decorate(tracks.map((r) => mapTrack(r)), userId);
     return {
       artist,
-      tracks: await decorate(tracks.map((r) => mapTrack(r)), userId),
+      tracks: decoratedTracks,
       albums: albums.map(mapAlbum),
       following,
       videoCall: call[0]
@@ -503,6 +585,11 @@ export const getArtistPage = createServerFn({ method: "GET" })
           }
         : null,
       youtube,
+      live: await loadArtistLive(sql, artist.id),
+      chartRanks: await loadChartRanks(
+        sql,
+        decoratedTracks.map((t) => t.id),
+      ),
     };
   });
 
@@ -683,6 +770,9 @@ export const toggleFollow = createServerFn({ method: "POST" })
       await sql`delete from follows where follower_id = ${context.userId} and following_id = ${artistId}`;
       return { following: false };
     }
+    if (artistId === context.userId) {
+      return { following: false };
+    }
     await sql`insert into follows (follower_id, following_id) values (${context.userId}, ${artistId})`;
     return { following: true };
   });
@@ -739,7 +829,7 @@ export const purchaseTrack = createServerFn({ method: "POST" })
     const rights =
       licenseType === "premium"
         ? "Authorized downloadable file for personal use. Copyright remains with the artist. This is not a transfer of ownership."
-        : "Access inside your Zelyro account. Copyright remains with the artist. This is not a transfer of ownership.";
+        : "Access inside your VerzZify account. Copyright remains with the artist. This is not a transfer of ownership.";
     await sql`
       insert into licenses (id, purchase_id, user_id, track_id, license_type, rights_text)
       values (${`${pid}_lic`}, ${pid}, ${context.userId}, ${t.id}, ${licenseType}, ${rights})
@@ -1064,26 +1154,136 @@ export const getStudioOverview = createServerFn({ method: "GET" })
 
 export const getMyProfile = createServerFn({ method: "GET" })
   .middleware([authMiddleware])
-  .handler(async ({ context }) => {
+  .handler(async ({ context }): Promise<MackProfileData | null> => {
     const sql = await getSql();
     await ensureProfile(context.userId, null, null, null);
-    const p = await sql<Record<string, unknown>>`
-      select id, username, display_name, role, country, bio, avatar_url, favorite_genres, city
-      from profiles where id = ${context.userId} limit 1
+    const p = await sql.query<Record<string, unknown>>(
+      `select p.id, p.username, p.display_name, p.role, p.country, p.bio, p.avatar_url,
+              p.banner_url, p.favorite_genres, p.city,
+              a.verification_status, a.genres, a.monthly_listeners, a.biography, a.socials,
+              a.artist_name,
+              (select count(*) from follows f where f.following_id = p.id) as followers,
+              (select count(*) from follows f where f.follower_id = p.id) as following_count,
+              (select coalesce(sum(t.play_count), 0) from tracks t where t.artist_id = p.id) as total_plays
+       from profiles p
+       left join artist_profiles a on a.user_id = p.id
+       where p.id = $1 limit 1`,
+      [context.userId],
+    );
+    if (!p[0]) return null;
+    const row = p[0];
+    const tracks = await sql.query<TrackRow>(
+      `select ${TRACK_COLS} ${TRACK_FROM} where t.artist_id = $1 and t.status = 'published'
+       order by t.play_count desc`,
+      [context.userId],
+    );
+    const albums = await sql.query<Record<string, unknown>>(
+      `select al.id, al.title, al.cover_url, al.album_type, al.artist_id, al.price_cents,
+              al.currency, al.release_date, a.artist_name, p.username as artist_slug
+       from albums al
+       join artist_profiles a on a.user_id = al.artist_id
+       join profiles p on p.id = a.user_id
+       where al.artist_id = $1`,
+      [context.userId],
+    );
+    const liked = await sql.query<TrackRow>(
+      `select ${TRACK_COLS} ${TRACK_FROM}
+       join favorites f on f.target_id = t.id
+       where f.user_id = $1 and f.target_type = 'track'`,
+      [context.userId],
+    );
+    const playlists = await sql.query<PlaylistCard>(
+      `select id, title, description, cover_url as "coverUrl", kind
+       from playlists where user_id = $1 and is_system = false
+       order by created_at desc`,
+      [context.userId],
+    );
+    const following = await sql.query<Record<string, unknown>>(
+      `select p.id, p.username as slug, a.artist_name as name, p.avatar_url, p.banner_url,
+              p.country, p.city, a.biography as bio, a.genres, a.verification_status,
+              a.monthly_listeners, p.role,
+              (select count(*) from follows f2 where f2.following_id = p.id) as followers
+       from follows f
+       join artist_profiles a on a.user_id = f.following_id
+       join profiles p on p.id = a.user_id
+       where f.follower_id = $1`,
+      [context.userId],
+    );
+    const suggested = await sql.query<Record<string, unknown>>(
+      `select p.id, p.username as slug, a.artist_name as name, p.avatar_url, p.banner_url,
+              p.country, p.city, a.biography as bio, a.genres, a.verification_status,
+              a.monthly_listeners, p.role,
+              (select count(*) from follows f2 where f2.following_id = p.id) as followers
+       from artist_profiles a
+       join profiles p on p.id = a.user_id
+       where p.id <> $1
+         and p.id not in (select following_id from follows where follower_id = $1)
+       order by a.monthly_listeners desc
+       limit 8`,
+      [context.userId],
+    );
+    const posts = await sql.query<Record<string, unknown>>(
+      `select po.id, po.body, po.image_url, po.like_count, po.created_at, po.track_id,
+              pr.display_name as author_name, pr.username as author_slug, pr.avatar_url as author_avatar
+       from posts po join profiles pr on pr.id = po.user_id
+       where po.user_id = $1
+       order by po.created_at desc limit 12`,
+      [context.userId],
+    );
+    const decoratedTracks = await decorate(tracks.map((r) => mapTrack(r)), context.userId);
+    const decoratedLiked = liked.map((r) => mapTrack(r, { liked: true }));
+    const call = await sql<{ price_cents: number; duration_min: number; available: boolean }>`
+      select price_cents, duration_min, available from video_call_services
+      where artist_id = ${context.userId}
     `;
-    return p[0]
-      ? {
-          id: String(p[0].id),
-          username: String(p[0].username),
-          displayName: String(p[0].display_name),
-          role: String(p[0].role),
-          country: (p[0].country as string) ?? null,
-          bio: (p[0].bio as string) ?? null,
-          avatarUrl: (p[0].avatar_url as string) ?? null,
-          favoriteGenres: (p[0].favorite_genres as string) ?? null,
-          city: (p[0].city as string) ?? null,
-        }
-      : null;
+    return {
+      id: String(row.id),
+      username: String(row.username),
+      displayName: String(row.artist_name || row.display_name),
+      role: String(row.role),
+      country: (row.country as string) ?? null,
+      bio: (row.biography as string) || (row.bio as string) || null,
+      avatarUrl: (row.avatar_url as string) ?? null,
+      bannerUrl: (row.banner_url as string) ?? null,
+      city: (row.city as string) ?? null,
+      favoriteGenres: (row.favorite_genres as string) ?? null,
+      verified: row.verification_status === "verified",
+      genres: (row.genres as string) ?? null,
+      monthlyListeners: Number(row.monthly_listeners) || 0,
+      followers: Number(row.followers) || 0,
+      followingCount: Number(row.following_count) || 0,
+      totalPlays: Number(row.total_plays) || 0,
+      socials: (row.socials as string) ?? null,
+      tracks: decoratedTracks,
+      albums: albums.map(mapAlbum),
+      liked: decoratedLiked,
+      playlists,
+      following: following.map(mapArtist),
+      suggested: suggested.map(mapArtist),
+      posts: posts.map((r) => ({
+        id: String(r.id),
+        body: String(r.body),
+        imageUrl: (r.image_url as string) ?? null,
+        likeCount: Number(r.like_count) || 0,
+        createdAt: iso(r.created_at),
+        authorName: String(r.author_name),
+        authorSlug: String(r.author_slug),
+        authorAvatar: (r.author_avatar as string) ?? null,
+        track: r.track_id ? decoratedTracks.find((t) => t.id === String(r.track_id)) ?? null : null,
+      })),
+      chartRanks: await loadChartRanks(
+        sql,
+        decoratedTracks.map((t) => t.id),
+      ),
+      live: await loadArtistLive(sql, context.userId),
+      videoCall: call[0]
+        ? {
+            priceCents: Number(call[0].price_cents),
+            durationMin: Number(call[0].duration_min),
+            available: Boolean(call[0].available),
+          }
+        : null,
+    };
   });
 
 export const updateMyProfile = createServerFn({ method: "POST" })

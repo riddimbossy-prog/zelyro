@@ -1,13 +1,15 @@
-# Zelyro
+# VerzZify
 
 Creator-first music platform: **streaming + direct sales + YouTube promotion + artist wallets + events + ticketing + paid livestreams + community** in one product.
 
 This repository ships:
 
-1. **Architecture & ops docs** — Phase 1 foundation (diagrams, ERD, S3, DigitalOcean, Cloudflare, Firebase, YouTube, env, CI/CD, security, build order).
+1. **Architecture & ops docs** — Phase 1 foundation (diagrams, ERD, S3, DigitalOcean, Cloudflare, Firebase, YouTube, Jamendo, env, CI/CD, security, build order).
 2. **Runnable web catalog** — TanStack Start + Postgres, so the player, discovery, studio, purchases, events, and community can be used today.
 
 Production clients (Flutter iOS / Android / Web / foldables) and the NestJS API consume the same `/api/v1` contract described in [docs/architecture.md](docs/architecture.md).
+
+**Launch order:** Flutter Web MVP → real artists/listeners → native playback, downloads, notifications, billing → compile that project for Android/iOS → store submission. This TanStack catalog is the preview, not the store app.
 
 ## Product
 
@@ -15,7 +17,7 @@ Production clients (Flutter iOS / Android / Web / foldables) and the NestJS API 
 | --- | --- |
 | Listen | Home, charts, artist pages, global player |
 | Own | Paid / premium downloads with a stored license (copyright does not transfer) |
-| Promote | Paste an official YouTube URL — Zelyro discovers, shares, and measures Zelyro-generated clicks |
+| Promote | Paste an official YouTube URL — VerzZify discovers, shares, and measures VerzZify-generated clicks |
 | Support | Artist ledger, payouts, tickets, PPV livestreams |
 | Community | Posts, comments, follows |
 

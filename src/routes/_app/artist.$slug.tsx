@@ -1,14 +1,13 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { getArtistPage, toggleFollow, purchaseTrack } from "@/lib/zelyro/queries";
-import { usePlayer } from "@/lib/zelyro/player";
-import { TrackRow } from "@/components/track-row";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { getArtistPage, purchaseTrack } from "@/lib/zelyro/queries";
+import { bookVideoCall } from "@/lib/zelyro/video-actions";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { formatCount, formatMoney } from "@/lib/utils";
 import { toast } from "sonner";
-import { Play, BadgeCheck } from "lucide-react";
+import { Play } from "lucide-react";
 import { useYtPlayer } from "@/lib/zelyro/yt-player";
+import { MackProfileView } from "@/components/mack-profile";
 
 export const Route = createFileRoute("/_app/artist/$slug")({
   loader: ({ params }) => getArtistPage({ data: params.slug }),
@@ -17,18 +16,18 @@ export const Route = createFileRoute("/_app/artist/$slug")({
 
 function ArtistPage() {
   const { slug } = Route.useParams();
-  const qc = useQueryClient();
   const initial = Route.useLoaderData();
   const q = useQuery({
     queryKey: ["artist", slug],
     queryFn: () => getArtistPage({ data: slug }),
     initialData: initial ?? undefined,
   });
-  const play = usePlayer((s) => s.play);
   const openYt = useYtPlayer((s) => s.open);
+  const navigate = useNavigate();
   if (q.isPending) return <div className="h-80 animate-pulse rounded-3xl bg-secondary" />;
   if (!q.data) return <p className="py-16">Artist not found.</p>;
-  const { artist, tracks, albums, following, videoCall, youtube } = q.data;
+  const { artist, tracks, albums, following, videoCall, youtube, live, chartRanks } = q.data;
+  const totalPlays = tracks.reduce((n, t) => n + t.playCount, 0);
 
   const groups = [
     { key: "music_video", label: "Music videos" },
@@ -40,68 +39,44 @@ function ArtistPage() {
 
   return (
     <div>
-      <div className="relative overflow-hidden rounded-[28px]">
-        <img src={artist.bannerUrl ?? "/banners/accra.jpg"} alt="" className="h-48 w-full object-cover md:h-64" />
-        <div className="absolute inset-0 bg-gradient-to-t from-background to-transparent" />
-        <div className="absolute bottom-4 left-4 flex items-end gap-4">
-          <img src={artist.avatarUrl ?? "/favicon.svg"} alt="" className="size-24 rounded-full object-cover md:size-28" />
-          <div>
-            <p className="flex items-center gap-2 font-display text-3xl">
-              {artist.name}
-              {artist.verified && <BadgeCheck className="size-6 text-sand" />}
-            </p>
-            <p className="text-sm text-muted-foreground">
-              {artist.city}, {artist.country} · {formatCount(artist.monthlyListeners)} monthly listeners
-            </p>
-          </div>
-        </div>
-      </div>
-      <div className="mt-6 flex flex-wrap gap-3">
-        <Button onClick={() => play(tracks, 0)}>
-          <Play className="size-4 fill-current" /> Play
-        </Button>
-        <Button
-          variant={following ? "subtle" : "outline"}
-          onClick={async () => {
-            try {
-              await toggleFollow({ data: artist.id });
-              void qc.invalidateQueries({ queryKey: ["artist", slug] });
-            } catch {
-              toast("Sign in to follow");
-            }
-          }}
-        >
-          {following ? "Following" : "Follow"}
-        </Button>
-        <Badge>{artist.genres}</Badge>
-      </div>
-      {artist.bio && <p className="mt-6 max-w-2xl text-sm leading-relaxed text-muted-foreground">{artist.bio}</p>}
-      <h2 className="mt-10 font-display text-2xl">Top songs</h2>
-      <p className="text-xs text-muted-foreground">Zelyro-hosted</p>
-      <div className="mt-3">
-        {tracks.map((t, i) => (
-          <TrackRow key={t.id} track={t} queue={tracks} index={i} showArtist={false} />
-        ))}
-      </div>
-      {albums.length > 0 && (
-        <div className="mt-10 media-rail">
-          {albums.map((a) => (
-            <a key={a.id} href={`/album/${a.id}`} className="min-w-0">
-              <img src={a.coverUrl} alt="" className="aspect-square w-full rounded-2xl object-cover" />
-              <p className="mt-2 truncate text-sm">{a.title}</p>
-              <p className="text-xs text-muted-foreground">{a.albumType}</p>
-            </a>
-          ))}
-        </div>
-      )}
+      <MackProfileView
+        name={artist.name}
+        slug={artist.slug}
+        avatarUrl={artist.avatarUrl}
+        bannerUrl={artist.bannerUrl}
+        bio={artist.bio}
+        city={artist.city}
+        country={artist.country}
+        verified={artist.verified}
+        totalPlays={totalPlays}
+        followers={artist.followers}
+        followingCount={0}
+        genres={artist.genres}
+        monthlyListeners={artist.monthlyListeners}
+        tracks={tracks}
+        albums={albums}
+        live={live}
+        chartRanks={chartRanks}
+        videoCall={videoCall}
+        isFollowing={following}
+        artistId={artist.id}
+        onBookCall={async () => {
+          try {
+            const r = await bookVideoCall({ data: { artistId: artist.id } });
+            void navigate({ to: "/video/$id", params: { id: r.id } });
+          } catch (e) {
+            toast(e instanceof Error ? e.message : "Could not book a slot");
+          }
+        }}
+      />
 
       {youtube && (youtube.connection || youtube.videos.length > 0) && (
         <section className="mt-12">
-          <p className="text-xs tracking-[0.2em] text-sand uppercase">YouTube</p>
-          <h2 className="mt-1 font-display text-2xl">YouTube</h2>
+          <p className="text-xs tracking-[0.2em] text-sand uppercase">Videos</p>
+          <h2 className="mt-1 font-display text-2xl">Watch</h2>
           {youtube.connection && (
             <p className="mt-2 text-sm text-muted-foreground">
-              Connected channel: {youtube.connection.channelName}
+              Connected: {youtube.connection.channelName}
               {youtube.connection.subscriberCount
                 ? ` · ${formatCount(youtube.connection.subscriberCount)} subscribers (public)`
                 : ""}
@@ -156,12 +131,22 @@ function ArtistPage() {
       {videoCall?.available && (
         <section className="mt-10 rounded-3xl bg-card p-6">
           <p className="text-xs tracking-widest text-sand uppercase">Fan session</p>
-          <h3 className="mt-2 font-display text-xl">Paid 1:1 video</h3>
+          <h3 className="mt-2 font-display text-xl">1-1 Video Chat</h3>
           <p className="mt-2 text-sm text-muted-foreground">
             {videoCall.durationMin} minutes · {formatMoney(videoCall.priceCents)}
           </p>
-          <Button className="mt-4" onClick={() => toast("Booking calendar ships with the video-call provider adapter.")}>
-            Request a slot
+          <Button
+            className="mt-4"
+            onClick={async () => {
+              try {
+                const r = await bookVideoCall({ data: { artistId: artist.id } });
+                void navigate({ to: "/video/$id", params: { id: r.id } });
+              } catch (e) {
+                toast(e instanceof Error ? e.message : "Sign in to book a slot");
+              }
+            }}
+          >
+            Join 1-1
           </Button>
         </section>
       )}

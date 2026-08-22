@@ -15,6 +15,7 @@ import type {
 import {
   getPublicVideoStats,
   getVideoThumbnail,
+  moreFromArtist,
   searchMusic,
   validateYouTubeUrl,
   youtubeWatchUrl,
@@ -286,7 +287,7 @@ export const getCampaignAnalytics = createServerFn({ method: "GET" })
     const clickN = Number(clicks[0]?.c ?? 0);
     let youtubeViews: number | null = null;
     let youtubeViewsNote =
-      "YouTube views are only shown when the official Data API returns them. Zelyro never invents that number.";
+      "YouTube views are only shown when the official Data API returns them. VerzZify never invents that number.";
     if (camp[0].external_music_link_id) {
       const link = await sql<{ external_content_id: string | null }>`
         select external_content_id from external_music_links where id = ${camp[0].external_music_link_id}
@@ -296,7 +297,7 @@ export const getCampaignAnalytics = createServerFn({ method: "GET" })
         const stats = await getPublicVideoStats(vid);
         if (stats.official) {
           youtubeViews = stats.viewCount;
-          youtubeViewsNote = "Official YouTube view count from the Data API. Not the same as Zelyro playback opens.";
+          youtubeViewsNote = "Official YouTube view count from the Data API. Not the same as VerzZify playback opens.";
         }
       }
     }
@@ -497,6 +498,21 @@ export async function searchYoutubeCatalog(q: string) {
 export const searchYoutube = createServerFn({ method: "GET" })
   .validator((q: string) => q.trim().slice(0, 80))
   .handler(async ({ data: q }) => searchYoutubeCatalog(q));
+
+export const searchDiscover = createServerFn({ method: "GET" })
+  .validator((d: { q: string; kind?: "songs" | "beats" | "albums" }) => d)
+  .handler(async ({ data }) => {
+    const q = data.q.trim().slice(0, 80);
+    if (!q) return { videos: [] as YouTubeVideo[], promoted: [] as YouTubePromotion[] };
+    const extra =
+      data.kind === "beats" ? " type beat instrumental" : data.kind === "albums" ? " full album" : " official audio";
+    return searchYoutubeCatalog(`${q}${extra}`);
+  });
+
+export const getMoreFromArtist = createServerFn({ method: "GET" })
+  .validator((d: { channelName: string; channelId?: string | null; videoId?: string | null }) => d)
+  .handler(async ({ data }) => moreFromArtist(data));
+
 
 export const getAdminCampaigns = createServerFn({ method: "GET" })
   .middleware([authMiddleware])

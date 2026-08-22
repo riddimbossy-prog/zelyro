@@ -10,7 +10,7 @@ import { PreviewHostBridge } from "@/components/preview-host-bridge";
 import { Toaster } from "sonner";
 import appCss from "../styles.css?url";
 
-const APP_NAME = "Zelyro";
+const APP_NAME = "VerzZify";
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 20_000, refetchOnWindowFocus: false } },
 });
@@ -23,9 +23,9 @@ export const Route = createRootRoute({
       { title: APP_NAME },
       {
         name: "description",
-        content: "Zelyro — a creator-first music platform. Stream, buy, and sit with the people who make the sound.",
+        content: "VerzZify — a creator-first music platform. Stream, buy, and sit with the people who make the sound.",
       },
-      { name: "theme-color", content: "#0c0b0a" },
+      { name: "theme-color", content: "#07010d" },
     ],
     links: [
       { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
@@ -34,7 +34,7 @@ export const Route = createRootRoute({
       { rel: "apple-touch-icon", href: "/__grok/icon-180.png" },
       {
         rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,400;0,500;0,600;1,400&family=Fraunces:opsz,wght@9..144,500;9..144,600&display=swap",
+        href: "https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,400;0,500;0,600;1,400&family=Outfit:wght@500;600;700;800&display=swap",
       },
     ],
   }),
@@ -56,7 +56,7 @@ function Root() {
               theme="dark"
               position="top-center"
               toastOptions={{
-                className: "bg-card text-foreground border border-border",
+                className: "glass text-foreground border-0",
               }}
             />
           </AuthProvider>

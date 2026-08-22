@@ -1,15 +1,17 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { GROK_PROVIDERS, authEnabled, signIn, authClient } from "@/lib/auth/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { copy } from "@/lib/zelyro/copy";
+import { BrandMark } from "@/components/brand-mark";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/login")({ component: Login });
 
 function Login() {
+  if (!authEnabled) return <Navigate to="/" />;
   const [mode, setMode] = useState<"in" | "up">("in");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -40,9 +42,7 @@ function Login() {
       <div className="absolute inset-0 bg-gradient-to-b from-background/40 via-background/80 to-background" />
       <div className="relative mx-auto grid min-h-dvh max-w-md place-items-center px-6 py-12">
         <div className="w-full rounded-[28px] bg-card p-8 shadow-[var(--shadow-border)]">
-          <Link to="/" className="font-display text-3xl">
-            {copy.app}
-          </Link>
+          <BrandMark />
           <p className="mt-2 text-sm text-muted-foreground">{copy.tagline}</p>
           <div className="mt-8 space-y-3">
             {authEnabled ? (

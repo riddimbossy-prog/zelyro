@@ -13,9 +13,9 @@ export function SectionRail({
   return (
     <section className="mt-8">
       <div className="mb-4 flex items-end justify-between">
-        <h2 className="font-display text-xl font-medium md:text-2xl">{title}</h2>
+        <h2 className="font-display text-2xl font-semibold">{title}</h2>
         {to && (
-          <Link to={to} className="text-xs font-medium text-muted-foreground hover:text-foreground">
+          <Link to={to} className="text-sm font-medium text-primary hover:text-foreground">
             See all
           </Link>
         )}

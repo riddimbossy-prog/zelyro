@@ -23,6 +23,10 @@ npm-debug.log*
 .DS_Store
 Thumbs.db
 
+# local object store (preview S3 stand-in)
+.data/
+uploads/
+
 # sandbox / local preview (not part of Zelyro)
 AGENTS.md
 .grok/

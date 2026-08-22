@@ -22,27 +22,34 @@ const GENRES = [
   "Hip Hop",
   "R&B",
   "Pop",
+  "Latin",
+  "Electronic",
+  "City Pop",
+  "Electropop",
+  "Techno",
+  "Indie",
   "Afrobeats",
   "Gospel",
   "Dancehall",
   "Amapiano",
   "Highlife",
-  "Electronic",
-  "Latin",
-  "Indie",
   "Rock",
 ];
 const COUNTRIES = [
   { id: "US", name: "United States" },
   { id: "GB", name: "United Kingdom" },
+  { id: "JP", name: "Japan" },
+  { id: "KR", name: "South Korea" },
+  { id: "MX", name: "Mexico" },
+  { id: "DE", name: "Germany" },
+  { id: "IN", name: "India" },
+  { id: "BR", name: "Brazil" },
   { id: "NG", name: "Nigeria" },
   { id: "GH", name: "Ghana" },
-  { id: "BR", name: "Brazil" },
-  { id: "JM", name: "Jamaica" },
-  { id: "ZA", name: "South Africa" },
-  { id: "KR", name: "South Korea" },
   { id: "FR", name: "France" },
-  { id: "DE", name: "Germany" },
+  { id: "LB", name: "Lebanon" },
+  { id: "ZA", name: "South Africa" },
+  { id: "JM", name: "Jamaica" },
 ];
 
 type Kind = "list" | "youtube" | "song" | "album" | "event" | "livestream" | "analytics";
@@ -95,7 +102,7 @@ export function StudioPromotions() {
       <div className="flex flex-wrap gap-2">
         {(
           [
-            ["youtube", "Promote YouTube Link"],
+            ["youtube", "Promote a track"],
             ["song", "Promote Song"],
             ["album", "Promote Album"],
             ["event", "Promote Event"],
@@ -108,7 +115,7 @@ export function StudioPromotions() {
         ))}
       </div>
       <p className="mt-3 max-w-xl text-sm text-muted-foreground">
-        Two lanes: upload to Zelyro, or paste an official YouTube URL and send listeners there. Campaigns
+        Two lanes: upload to VerzZify, or paste a public watch URL and send listeners to it. Campaigns
         enter review before they go live.
       </p>
       <ConnectChannel />
@@ -167,7 +174,7 @@ export function StudioPromotions() {
         ))}
         {rows.length === 0 && (
           <li className="rounded-3xl bg-card p-6 text-sm text-muted-foreground">
-            No campaigns yet. Start with a YouTube link — Zelyro will pull the title and thumbnail for you.
+            No campaigns yet. Start with a public watch URL — VerzZify pulls the title and thumbnail.
           </li>
         )}
       </ul>
@@ -194,9 +201,9 @@ function ConnectChannel() {
         }
       }}
     >
-      <p className="text-sm font-medium">Connect YouTube channel</p>
+      <p className="text-sm font-medium">Connect a channel</p>
       <p className="text-xs text-muted-foreground">
-        Optional. Stores the public channel id, URL, and display name so Zelyro can recognize your official presence.
+        Optional. Stores the public channel id, URL, and display name so VerzZify can recognize your official presence.
       </p>
       <Input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://youtube.com/channel/…" required />
       <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Channel display name" required />
@@ -277,7 +284,7 @@ function YoutubeWizard({ onBack, onDone }: { onBack: () => void; onDone: () => v
         ← Promotions
       </button>
       <p className="mt-3 text-xs tracking-[0.2em] text-sand uppercase">Step {step} of 5</p>
-      <h2 className="mt-1 font-display text-2xl">Promote YouTube Link</h2>
+      <h2 className="mt-1 font-display text-2xl">Promote a track</h2>
 
       {step === 1 && (
         <form
@@ -288,7 +295,7 @@ function YoutubeWizard({ onBack, onDone }: { onBack: () => void; onDone: () => v
             void validate();
           }}
         >
-          <Label>Paste your official YouTube URL</Label>
+          <Label>Paste a public watch URL</Label>
           <Input
             value={url}
             onChange={(e) => setUrl(e.target.value)}
@@ -296,7 +303,7 @@ function YoutubeWizard({ onBack, onDone }: { onBack: () => void; onDone: () => v
             required
           />
           <p className="text-xs text-muted-foreground">
-            Title, thumbnail, and channel come from YouTube. Do not type them by hand.
+            Title, thumbnail, and channel come from the source. Do not type them by hand.
           </p>
           <Button type="submit">Continue</Button>
         </form>
@@ -466,7 +473,7 @@ function SimplePromote({
       <h2 className="font-display text-2xl">Promote {type}</h2>
       <Label>Campaign title</Label>
       <Input value={name} onChange={(e) => setName(e.target.value)} required />
-      <Label>Zelyro {type} id</Label>
+      <Label>VerzZify {type} id</Label>
       <Input value={contentId} onChange={(e) => setContentId(e.target.value)} placeholder="From your catalog" />
       <Label>Description</Label>
       <Input value={description} onChange={(e) => setDescription(e.target.value)} />
@@ -514,7 +521,7 @@ function Metrics({ a }: { a: CampaignAnalytics }) {
     ["Impressions", String(a.impressions)],
     ["Unique impressions", String(a.uniqueImpressions)],
     ["Clicks", String(a.clicks)],
-    ["Plays initiated (Zelyro)", String(a.playsInitiated)],
+    ["Plays initiated (VerzZify)", String(a.playsInitiated)],
     ["Profile visits", String(a.profileVisits)],
     ["Shares", String(a.shares)],
     ["Saves", String(a.saves)],

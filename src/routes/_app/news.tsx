@@ -8,7 +8,7 @@ function News() {
   const q = useQuery({ queryKey: ["news"], queryFn: () => getNews() });
   return (
     <div>
-      <h1 className="font-display text-3xl">Zelyro Journal</h1>
+      <h1 className="font-display text-3xl">VerzZify Journal</h1>
       <ul className="mt-8 grid gap-6 md:grid-cols-2">
         {(q.data ?? []).map((a) => (
           <li key={a.id} className="overflow-hidden rounded-3xl bg-card">

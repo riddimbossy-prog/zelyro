@@ -52,7 +52,7 @@ export function YouTubePromotionCard({
       if (navigator.share) await navigator.share({ title: promo.video.title, url });
       else {
         await navigator.clipboard.writeText(url);
-        toast("YouTube link copied");
+        toast("Link copied");
       }
     } catch {
       toast("Could not share");
@@ -65,10 +65,10 @@ export function YouTubePromotionCard({
         type="button"
         onClick={play}
         className={cn(
-          "relative block overflow-hidden rounded-2xl bg-secondary",
+          "cover-shine relative block overflow-hidden rounded-2xl bg-secondary",
           compact ? "size-24 shrink-0" : "w-full",
         )}
-        aria-label={`Play ${promo.video.title} on YouTube`}
+        aria-label={`Play ${promo.video.title}`}
       >
         <img
           src={promo.video.thumbnailUrl}
@@ -92,7 +92,7 @@ export function YouTubePromotionCard({
           {promo.country ? ` · ${promo.country}` : ""}
         </p>
         <p className="mt-1 text-[11px] text-muted-foreground">
-          YouTube · promoted by{" "}
+          Promoted by{" "}
           <Link to="/artist/$slug" params={{ slug: promo.zelyroArtistSlug }} className="underline">
             {promo.zelyroArtistName}
           </Link>

@@ -52,6 +52,12 @@ export interface P2PRoomOptions {
   onMessage?: (from: string, data: unknown, channel: "state" | "reliable") => void;
   /** Fires once, on the first successful signaling poll (registration). */
   onConnected?: () => void;
+  /** Optional camera/mic to send. Can be attached later via attachLocalStream. */
+  localStream?: MediaStream | null;
+  /** Remote media from a peer (1-1 video, or extra tracks on a game room). */
+  onTrack?: (from: string, stream: MediaStream) => void;
+  /** Cap remotes (1 = a 1-1 call). Unset = mesh. */
+  maxRemotes?: number;
 }
 
 interface PeerSlot {
@@ -106,9 +112,11 @@ export class P2PRoom {
   private closed = false;
   private everPolled = false;
   private lastPeersFingerprint = "";
+  private localStream: MediaStream | null;
 
   constructor(opts: P2PRoomOptions) {
     this.opts = opts;
+    this.localStream = opts.localStream ?? null;
   }
 
   /**
@@ -165,6 +173,30 @@ export class P2PRoom {
 
   peerList(): PeerInfo[] {
     return [...this.peers.values()].map((s) => ({ ...s.info }));
+  }
+
+  /** Swap camera/mic after join (flip camera, unmute). Triggers renegotiation. */
+  attachLocalStream(stream: MediaStream | null): void {
+    this.localStream = stream;
+    for (const slot of this.peers.values()) this.syncTracks(slot.pc, stream);
+  }
+
+  private syncTracks(pc: RTCPeerConnection, stream: MediaStream | null): void {
+    const senders = pc.getSenders();
+    if (!stream) {
+      for (const sender of senders) {
+        if (sender.track) void sender.replaceTrack(null);
+      }
+      return;
+    }
+    for (const track of stream.getTracks()) {
+      const byKind = senders.find((s) => s.track?.kind === track.kind);
+      if (byKind) {
+        if (byKind.track !== track) void byKind.replaceTrack(track);
+      } else {
+        pc.addTrack(track, stream);
+      }
+    }
   }
 
   // ── signaling loop ─────────────────────────────────────────────────────────
@@ -228,6 +260,7 @@ export class P2PRoom {
       if (existing) {
         existing.info.name = p.name;
       } else {
+        if (this.opts.maxRemotes && this.peers.size >= this.opts.maxRemotes) continue;
         // Exactly one side dials each pair; the other waits for the offer.
         this.connectTo(p.id, p.name, this.opts.selfId > p.id);
       }
@@ -299,7 +332,17 @@ export class P2PRoom {
         slot.makingOffer = false;
       }
     };
+    pc.ontrack = (ev) => {
+      const stream = ev.streams[0] ?? new MediaStream([ev.track]);
+      this.opts.onTrack?.(peerId, stream);
+    };
     pc.ondatachannel = (e) => this.attachChannel(slot, e.channel);
+
+    if (this.localStream) {
+      for (const track of this.localStream.getTracks()) {
+        pc.addTrack(track, this.localStream);
+      }
+    }
 
     if (initiator) {
       // Creating the channels triggers negotiationneeded → the offer.
@@ -367,9 +410,8 @@ export class P2PRoom {
     if (this.closed) return;
     let slot = this.peers.get(from);
     if (!slot) {
-      // New peers dial us in the same poll that adds them to the roster.
-      // Signals outlive membership, so drop senders the roster doesn't vouch for.
       if (!roster.has(from)) return;
+      if (this.opts.maxRemotes && this.peers.size >= this.opts.maxRemotes) return;
       const created = this.connectTo(from, "", false);
       if (!created) return;
       slot = created;

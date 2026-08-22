@@ -1,4 +1,5 @@
 import type { YouTubeVideo } from "./types";
+import { ALL_YT_VIDEOS, searchLocalYoutube } from "./yt-charts";
 
 const YT_ID = /^[a-zA-Z0-9_-]{11}$/;
 
@@ -303,7 +304,9 @@ export const LOCAL_YOUTUBE_CATALOG: YouTubeVideo[] = [
 function localSearch(q: string): YouTubeVideo[] {
   const n = q.trim().toLowerCase();
   if (!n) return [];
-  return LOCAL_YOUTUBE_CATALOG.filter(
+  const local = searchLocalYoutube(n);
+  if (local.length) return local;
+  return ALL_YT_VIDEOS.filter(
     (v) =>
       v.title.toLowerCase().includes(n) ||
       v.channelName.toLowerCase().includes(n) ||
@@ -315,7 +318,7 @@ async function dataApiSearch(q: string, extra = ""): Promise<YouTubeVideo[]> {
   const key = apiKey();
   if (!key) return localSearch(q);
   const url =
-    `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=8&q=${encodeURIComponent(q)}${extra}&key=${key}`;
+    `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=12&q=${encodeURIComponent(q)}${extra}&key=${key}`;
   const res = await fetch(url);
   if (!res.ok) return localSearch(q);
   const json = (await res.json()) as {
@@ -348,6 +351,32 @@ async function dataApiSearch(q: string, extra = ""): Promise<YouTubeVideo[]> {
       };
     })
     .filter(Boolean) as YouTubeVideo[];
+}
+
+export async function moreFromArtist(opts: {
+  channelName: string;
+  channelId?: string | null;
+  videoId?: string | null;
+}): Promise<YouTubeVideo[]> {
+  const exclude = opts.videoId ?? "";
+  const name = opts.channelName.trim();
+  const local = ALL_YT_VIDEOS.filter((v) => {
+    if (v.videoId === exclude) return false;
+    if (opts.channelId && v.channelId === opts.channelId) return true;
+    return v.channelName.toLowerCase() === name.toLowerCase() || v.channelName.toLowerCase().includes(name.toLowerCase().replace(/vevo$/i, "").trim());
+  });
+  const extra = opts.channelId ? `&channelId=${encodeURIComponent(opts.channelId)}` : "";
+  const q = opts.channelId ? "official audio OR official video OR lyrics" : `${name} official audio`;
+  const live = await dataApiSearch(q, `${extra}&videoCategoryId=10`);
+  const named = name ? await dataApiSearch(`${name} songs`, "&videoCategoryId=10") : [];
+  const seen = new Set<string>();
+  const out: YouTubeVideo[] = [];
+  for (const v of [...local, ...live, ...named]) {
+    if (!v.videoId || v.videoId === exclude || seen.has(v.videoId)) continue;
+    seen.add(v.videoId);
+    out.push(v);
+  }
+  return out.slice(0, 16);
 }
 
 export async function searchVideos(q: string): Promise<YouTubeVideo[]> {

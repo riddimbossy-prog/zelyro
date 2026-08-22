@@ -1,7 +1,8 @@
 export const copy = {
-  app: "Zelyro",
+  app: "VerzZify",
+  domain: "verzzify.com",
   tagline: "Music, owned by the people who make it.",
-  sub: "Stream and sell on Zelyro, or promote your official YouTube — wallets, tickets, and live shows in one house.",
+  sub: "Stream and sell on VerzZify — wallets, tickets, and live shows in one house.",
   nav: {
     home: "Home",
     discover: "Discover",
@@ -10,6 +11,7 @@ export const copy = {
     profile: "Profile",
     studio: "Studio",
     search: "Search",
+    charts: "Charts",
   },
   auth: {
     signIn: "Sign in",

@@ -110,6 +110,36 @@ export type PostCard = {
   track: TrackCard | null;
 };
 
+export type MackProfileData = {
+  id: string;
+  username: string;
+  displayName: string;
+  role: string;
+  country: string | null;
+  bio: string | null;
+  avatarUrl: string | null;
+  bannerUrl: string | null;
+  city: string | null;
+  favoriteGenres: string | null;
+  verified: boolean;
+  genres: string | null;
+  monthlyListeners: number;
+  followers: number;
+  followingCount: number;
+  totalPlays: number;
+  socials: string | null;
+  tracks: TrackCard[];
+  albums: AlbumCard[];
+  liked: TrackCard[];
+  playlists: PlaylistCard[];
+  following: ArtistCard[];
+  suggested?: ArtistCard[];
+  posts: PostCard[];
+  chartRanks: Record<string, number>;
+  live: LiveCard[];
+  videoCall: { priceCents: number; durationMin: number; available: boolean } | null;
+};
+
 export type WalletSnapshot = {
   availableCents: number;
   pendingCents: number;
@@ -127,37 +157,6 @@ export type LedgerRow = {
   meta: string | null;
 };
 
-export type AccountRole = "fan" | "artist" | "producer" | "organizer" | "admin" | "super_admin";
-
-export const ACCOUNT_ROLES: AccountRole[] = [
-  "fan",
-  "artist",
-  "producer",
-  "organizer",
-  "admin",
-  "super_admin",
-];
-
-export type ExternalProvider =
-  | "youtube"
-  | "spotify"
-  | "apple_music"
-  | "audiomack"
-  | "soundcloud"
-  | "boomplay"
-  | "other";
-
-export type CampaignStatus =
-  | "draft"
-  | "pending_review"
-  | "scheduled"
-  | "active"
-  | "paused"
-  | "completed"
-  | "rejected";
-
-export type CampaignContentType = "youtube" | "song" | "album" | "event" | "livestream";
-
 export type YouTubeVideo = {
   videoId: string;
   title: string;
@@ -174,6 +173,45 @@ export type YouTubeVideo = {
   likeCount: number | null;
   source: "youtube";
 };
+
+export type YtArtistCard = {
+  channelId: string;
+  channelName: string;
+  avatarUrl: string | null;
+  channelUrl: string | null;
+  sampleVideoId: string;
+};
+
+export type YtPlaylistCard = {
+  id: string;
+  title: string;
+  subtitle: string;
+  thumbnailUrl: string;
+  videos: YouTubeVideo[];
+};
+
+export type NearbyScene = {
+  region: string;
+  regionName: string;
+  videos: YouTubeVideo[];
+  artists: YtArtistCard[];
+};
+
+export type CampaignStatus =
+  | "draft"
+  | "pending"
+  | "pending_review"
+  | "active"
+  | "paused"
+  | "completed"
+  | "rejected";
+
+export type CampaignContentType =
+  | "youtube"
+  | "song"
+  | "album"
+  | "event"
+  | "livestream";
 
 export type YouTubePromotion = {
   campaignId: string;
@@ -216,13 +254,12 @@ export type CampaignAnalytics = {
   youtubeViewsNote: string;
 };
 
-export type StudioPlace = {
-  id: string;
-  name: string;
-  city: string | null;
-  country: string | null;
-  kind: string;
-  description: string | null;
+export type YoutubeConnection = {
+  channelId: string;
+  channelUrl: string;
+  channelName: string;
+  avatarUrl: string | null;
+  subscriberCount: number | null;
 };
 
 export type ProducerCard = {
@@ -237,10 +274,50 @@ export type ProducerCard = {
   available: boolean;
 };
 
-export type YoutubeConnection = {
-  channelId: string;
-  channelUrl: string;
-  channelName: string;
-  avatarUrl: string | null;
-  subscriberCount: number | null;
+export type StudioPlace = {
+  id: string;
+  name: string;
+  city: string | null;
+  country: string | null;
+  kind: string;
+  description: string | null;
+};
+
+export type ChartDelta = "up" | "down" | "same" | "new";
+
+export type ChartTrackEntry = {
+  rank: number;
+  previousRank: number | null;
+  delta: number | null;
+  movement: ChartDelta;
+  points: number;
+  sales: number;
+  peak: number;
+  weeksOn: number;
+  gainer: boolean;
+  track: TrackCard;
+};
+
+export type ChartArtistEntry = {
+  rank: number;
+  previousRank: number | null;
+  delta: number | null;
+  movement: ChartDelta;
+  points: number;
+  peak: number;
+  weeksOn: number;
+  artist: ArtistCard;
+};
+
+export type ChartBoard = {
+  kind: "tracks" | "artists";
+  scope: string;
+  genre: string | null;
+  title: string;
+  subtitle: string;
+  updatedLabel: string;
+  tracks: ChartTrackEntry[];
+  artists: ChartArtistEntry[];
+  countries: { id: string; label: string }[];
+  genres: { id: string; label: string }[];
 };

@@ -2,7 +2,7 @@
 @import "tw-animate-css";
 
 @theme {
-  --font-display: "Fraunces", "Iowan Old Style", "Palatino Linotype", serif;
+  --font-display: "Outfit", "Figtree", "Segoe UI", system-ui, sans-serif;
   --font-sans: "Figtree", "Segoe UI", system-ui, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
 
@@ -27,6 +27,9 @@
   --color-ring: var(--accent);
   --color-sand: var(--sand);
   --color-ink: var(--bg);
+  --color-glow-coral: var(--glow-coral);
+  --color-glow-teal: var(--glow-teal);
+  --color-glow-gold: var(--glow-gold);
 
   --radius-xs: 4px;
   --radius-sm: 8px;
@@ -35,54 +38,80 @@
   --radius-xl: 24px;
   --radius-2xl: 32px;
   --radius: 12px;
+
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-pop: cubic-bezier(0.34, 1.2, 0.64, 1);
 }
 
 :root,
 html.dark {
   color-scheme: dark;
-  --bg: #0c0b0a;
-  --surface: #161310;
-  --surface-2: #1e1a16;
-  --fg: #f4efe8;
-  --fg-muted: #9a9288;
-  --fg-subtle: #6f6860;
-  --accent: #c45c3a;
-  --accent-fg: #fff8f3;
-  --sand: #e8d5b5;
-  --border: color-mix(in oklab, var(--fg) 12%, transparent);
-  --border-strong: color-mix(in oklab, var(--fg) 22%, transparent);
-  --danger: #c44b3a;
-  --ok: #6f9e6a;
-  --shadow-border: 0 0 0 1px rgba(244, 239, 232, 0.08);
-  --shadow-border-hover: 0 0 0 1px rgba(244, 239, 232, 0.14);
+  --bg: #07010d;
+  --surface: color-mix(in oklab, #2a1638 52%, transparent);
+  --surface-2: color-mix(in oklab, #3b1d52 42%, transparent);
+  --fg: #f6f0ff;
+  --fg-muted: #c4b4d8;
+  --fg-subtle: #8e7a9e;
+  --accent: #c026d3;
+  --accent-fg: #fff8ff;
+  --sand: #e9d5ff;
+  --border: color-mix(in oklab, var(--fg) 16%, transparent);
+  --border-strong: color-mix(in oklab, var(--fg) 28%, transparent);
+  --danger: #ff5a4a;
+  --ok: #4ee0a3;
+  --glow-coral: #d946ef;
+  --glow-teal: #818cf8;
+  --glow-gold: #c084fc;
+  --glass: color-mix(in oklab, #22102f 46%, transparent);
+  --glass-edge: color-mix(in oklab, white 22%, transparent);
+  --glass-highlight: color-mix(in oklab, white 38%, transparent);
+  --glass-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    0 0 0 1px color-mix(in oklab, white 8%, transparent),
+    0 18px 50px color-mix(in oklab, black 38%, transparent);
+  --shadow-border: 0 0 0 1px rgba(255, 246, 238, 0.1), 0 12px 40px rgba(0, 0, 0, 0.28);
+  --shadow-border-hover:
+    0 0 0 1px rgba(255, 246, 238, 0.2),
+    0 16px 48px color-mix(in oklab, var(--accent) 22%, transparent);
 }
 
 html.light {
   color-scheme: light;
-  --bg: #f6f1ea;
-  --surface: #fffaf3;
-  --surface-2: #efe6d8;
-  --fg: #1c1712;
-  --fg-muted: #6b6258;
-  --fg-subtle: #8a8176;
-  --accent: #9e3f24;
-  --accent-fg: #fff8f3;
-  --sand: #5c4630;
+  --bg: #f7f1ff;
+  --surface: color-mix(in oklab, white 62%, transparent);
+  --surface-2: color-mix(in oklab, #f3e8ff 58%, transparent);
+  --fg: #1a0b24;
+  --fg-muted: #6d5278;
+  --fg-subtle: #8a7694;
+  --accent: #a21caf;
+  --accent-fg: #fff8ff;
+  --sand: #7e22ce;
   --border: color-mix(in oklab, var(--fg) 12%, transparent);
   --border-strong: color-mix(in oklab, var(--fg) 20%, transparent);
   --danger: #b42318;
-  --ok: #3f7a3a;
+  --ok: #1f8a62;
+  --glow-coral: #d946ef;
+  --glow-teal: #7c3aed;
+  --glow-gold: #c084fc;
+  --glass: color-mix(in oklab, white 58%, transparent);
+  --glass-edge: color-mix(in oklab, white 70%, transparent);
+  --glass-highlight: color-mix(in oklab, white 90%, transparent);
+  --glass-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    0 0 0 1px color-mix(in oklab, var(--fg) 8%, transparent),
+    0 16px 40px color-mix(in oklab, var(--accent) 10%, transparent);
   --shadow-border:
-    0 0 0 1px rgba(28, 23, 18, 0.06),
-    0 1px 2px -1px rgba(28, 23, 18, 0.06),
-    0 2px 4px 0 rgba(28, 23, 18, 0.04);
+    0 0 0 1px rgba(28, 18, 14, 0.06),
+    0 1px 2px -1px rgba(28, 18, 14, 0.06),
+    0 12px 32px color-mix(in oklab, var(--accent) 12%, transparent);
   --shadow-border-hover:
-    0 0 0 1px rgba(28, 23, 18, 0.1),
-    0 1px 2px -1px rgba(28, 23, 18, 0.08);
+    0 0 0 1px rgba(28, 18, 14, 0.1),
+    0 18px 40px color-mix(in oklab, var(--accent) 16%, transparent);
 }
 
 @layer base {
   html {
+    font-size: 18px;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
@@ -96,6 +125,32 @@ html.light {
   body {
     font-family: var(--font-sans);
     line-height: 1.5;
+    isolation: isolate;
+    overflow-x: hidden;
+  }
+  body::before,
+  body::after {
+    content: "";
+    position: fixed;
+    inset: -20%;
+    z-index: -2;
+    pointer-events: none;
+    transform: translateZ(0);
+  }
+  body::before {
+    background:
+      radial-gradient(42% 38% at 12% 8%, color-mix(in oklab, var(--glow-coral) 55%, transparent), transparent 70%),
+      radial-gradient(36% 42% at 92% 12%, color-mix(in oklab, var(--glow-teal) 48%, transparent), transparent 68%),
+      radial-gradient(48% 36% at 78% 88%, color-mix(in oklab, var(--glow-gold) 42%, transparent), transparent 70%),
+      radial-gradient(30% 28% at 28% 78%, color-mix(in oklab, var(--glow-teal) 28%, transparent), transparent 70%);
+    animation: aurora-drift 22s var(--ease-out-soft) infinite alternate;
+    filter: saturate(1.2);
+  }
+  body::after {
+    z-index: -1;
+    background:
+      radial-gradient(120% 80% at 50% -10%, transparent 40%, color-mix(in oklab, var(--bg) 55%, transparent) 100%);
+    animation: aurora-breathe 10s ease-in-out infinite alternate;
   }
   h1,
   h2,
@@ -118,17 +173,259 @@ html.light {
     outline-offset: -1px;
   }
   ::selection {
-    background: color-mix(in oklab, var(--accent) 40%, transparent);
+    background: color-mix(in oklab, var(--accent) 46%, transparent);
+    color: var(--fg);
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    transition-duration: 0.01ms !important;
+@layer components {
+  .glass {
+    background: var(--glass);
+    backdrop-filter: blur(22px) saturate(1.55);
+    -webkit-backdrop-filter: blur(22px) saturate(1.55);
+    box-shadow: var(--glass-shadow);
+    border: 1px solid var(--glass-edge);
   }
+
+  .bg-card {
+    background: var(--glass);
+    backdrop-filter: blur(22px) saturate(1.5);
+    -webkit-backdrop-filter: blur(22px) saturate(1.5);
+    box-shadow: var(--glass-shadow);
+  }
+
+  .bg-secondary {
+    background: var(--surface-2);
+    backdrop-filter: blur(16px) saturate(1.3);
+    -webkit-backdrop-filter: blur(16px) saturate(1.3);
+  }
+
+  .bg-primary {
+    background-image: linear-gradient(
+      180deg,
+      color-mix(in oklab, white 28%, var(--accent)) 0%,
+      var(--accent) 48%,
+      color-mix(in oklab, black 14%, var(--accent)) 100%
+    );
+    box-shadow:
+      inset 0 1px 0 color-mix(in oklab, white 42%, transparent),
+      0 10px 28px color-mix(in oklab, var(--accent) 42%, transparent);
+  }
+
+  .glow-title {
+    background: linear-gradient(
+      118deg,
+      var(--fg) 8%,
+      var(--sand) 38%,
+      var(--glow-coral) 62%,
+      var(--glow-teal) 100%
+    );
+    background-size: 220% 220%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: title-sheen 9s ease-in-out infinite;
+  }
+
+  .cover-shine {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+    transition:
+      transform 280ms var(--ease-out-soft),
+      box-shadow 280ms var(--ease-out-soft);
+  }
+  .cover-shine::after {
+    content: "";
+    position: absolute;
+    inset: -20%;
+    background: linear-gradient(
+      115deg,
+      transparent 32%,
+      color-mix(in oklab, white 38%, transparent) 48%,
+      transparent 64%
+    );
+    transform: translateX(-130%) rotate(8deg);
+    transition: transform 700ms var(--ease-out-soft);
+    pointer-events: none;
+    z-index: 2;
+  }
+  .cover-shine:hover,
+  .cover-shine:focus-visible {
+    transform: translateY(-6px) scale(1.025);
+    box-shadow:
+      0 18px 40px color-mix(in oklab, var(--glow-coral) 28%, transparent),
+      0 0 0 1px color-mix(in oklab, white 18%, transparent);
+  }
+  .cover-shine:hover::after,
+  .cover-shine:focus-visible::after {
+    transform: translateX(130%) rotate(8deg);
+  }
+
+  .nav-chip {
+    transition:
+      background-color 200ms var(--ease-out-soft),
+      color 200ms var(--ease-out-soft),
+      transform 200ms var(--ease-out-soft),
+      box-shadow 200ms var(--ease-out-soft);
+  }
+  .nav-chip:hover {
+    transform: translateX(4px);
+  }
+  .nav-chip-active {
+    background: color-mix(in oklab, var(--accent) 22%, var(--glass));
+    color: var(--fg);
+    box-shadow:
+      inset 0 1px 0 var(--glass-highlight),
+      0 0 24px color-mix(in oklab, var(--accent) 28%, transparent);
+  }
+
+  .chip {
+    transition:
+      transform 200ms var(--ease-out-soft),
+      background-color 200ms var(--ease-out-soft),
+      color 200ms var(--ease-out-soft),
+      box-shadow 200ms var(--ease-out-soft);
+  }
+  .chip:hover {
+    transform: translateY(-2px);
+  }
+
+  .disc-spin {
+    animation: disc-spin 9s linear infinite;
+  }
+
+  .eq-bar {
+    transform-origin: bottom;
+    animation: eq 0.9s ease-in-out infinite;
+  }
+
+  .fab-glow {
+    animation: pulse-glow 2.4s ease-in-out infinite;
+  }
+}
+
+/* Unlayered so frosted glass wins over Tailwind bg-* utilities. */
+.glass,
+.bg-card {
+  background: var(--glass);
+  backdrop-filter: blur(22px) saturate(1.55);
+  -webkit-backdrop-filter: blur(22px) saturate(1.55);
+  box-shadow: var(--glass-shadow);
+}
+.glass {
+  border: 1px solid var(--glass-edge);
+}
+.bg-primary {
+  background-color: var(--accent);
+  background-image: linear-gradient(
+    180deg,
+    color-mix(in oklab, white 28%, var(--accent)) 0%,
+    var(--accent) 48%,
+    color-mix(in oklab, black 14%, var(--accent)) 100%
+  );
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklab, white 42%, transparent),
+    0 10px 28px color-mix(in oklab, var(--accent) 42%, transparent);
+}
+
+
+@keyframes aurora-drift {
+  0% {
+    transform: translate3d(-4%, -2%, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(3%, 4%, 0) scale(1.08);
+  }
+  100% {
+    transform: translate3d(5%, -3%, 0) scale(1.04);
+  }
+}
+
+@keyframes aurora-breathe {
+  from {
+    opacity: 0.55;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes title-sheen {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+    filter: blur(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: blur(0);
+  }
+}
+
+@keyframes disc-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes eq {
+  0%,
+  100% {
+    transform: scaleY(0.45);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+@keyframes pulse-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--accent) 0%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 32px color-mix(in oklab, var(--accent) 45%, transparent);
+  }
+}
+
+.page-rise > * {
+  animation: rise 0.62s var(--ease-out-soft) both;
+}
+.page-rise > *:nth-child(1) {
+  animation-delay: 40ms;
+}
+.page-rise > *:nth-child(2) {
+  animation-delay: 110ms;
+}
+.page-rise > *:nth-child(3) {
+  animation-delay: 180ms;
+}
+.page-rise > *:nth-child(4) {
+  animation-delay: 250ms;
+}
+.page-rise > *:nth-child(5) {
+  animation-delay: 320ms;
+}
+.page-rise > *:nth-child(6) {
+  animation-delay: 390ms;
+}
+.page-rise > *:nth-child(7) {
+  animation-delay: 460ms;
+}
+.page-rise > *:nth-child(8) {
+  animation-delay: 530ms;
 }
 
 .media-rail {
@@ -146,6 +443,31 @@ html.light {
 }
 .media-rail > * {
   scroll-snap-align: start;
+  animation: rise 0.55s var(--ease-out-soft) both;
+}
+.media-rail > *:nth-child(1) {
+  animation-delay: 60ms;
+}
+.media-rail > *:nth-child(2) {
+  animation-delay: 110ms;
+}
+.media-rail > *:nth-child(3) {
+  animation-delay: 160ms;
+}
+.media-rail > *:nth-child(4) {
+  animation-delay: 210ms;
+}
+.media-rail > *:nth-child(5) {
+  animation-delay: 260ms;
+}
+.media-rail > *:nth-child(6) {
+  animation-delay: 310ms;
+}
+.media-rail > *:nth-child(7) {
+  animation-delay: 360ms;
+}
+.media-rail > *:nth-child(8) {
+  animation-delay: 410ms;
 }
 .media-rail-wide {
   grid-auto-columns: minmax(220px, 280px);
@@ -153,4 +475,85 @@ html.light {
 
 .tabular {
   font-variant-numeric: tabular-nums;
+}
+
+.mack-wave {
+  display: flex;
+  align-items: flex-end;
+  gap: 1.5px;
+  height: 40px;
+  width: 100%;
+  min-width: 0;
+  cursor: pointer;
+}
+.mack-wave-lg {
+  height: 72px;
+  gap: 2px;
+}
+.mack-wave i {
+  display: block;
+  flex: 1 1 0;
+  min-width: 2px;
+  border-radius: 1px;
+  transform-origin: bottom;
+  transition: background-color 120ms ease-out, height 80ms linear;
+}
+.profile-hero-scrim {
+  background:
+    linear-gradient(
+      to top,
+      var(--bg) 0%,
+      color-mix(in oklab, var(--bg) 55%, transparent) 42%,
+      transparent 78%
+    );
+}
+.avatar-ring {
+  box-shadow:
+    0 0 0 3px var(--bg),
+    0 0 0 5px color-mix(in oklab, var(--accent) 80%, transparent),
+    0 18px 40px color-mix(in oklab, black 45%, transparent);
+}
+.cover-spin {
+  animation: cover-spin 16s linear infinite;
+}
+@keyframes cover-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.eq-dot {
+  animation: eq-bounce 0.9s var(--ease-out-soft) infinite;
+}
+.eq-dot:nth-child(2) {
+  animation-delay: 120ms;
+}
+.eq-dot:nth-child(3) {
+  animation-delay: 240ms;
+}
+@keyframes eq-bounce {
+  0%,
+  100% {
+    transform: scaleY(0.4);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .page-rise > *,
+  .media-rail > * {
+    opacity: 1 !important;
+    transform: none !important;
+    filter: none !important;
+  }
 }

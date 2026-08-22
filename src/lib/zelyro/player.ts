@@ -1,6 +1,8 @@
 import { create } from "zustand";
 import type { TrackCard } from "./types";
 import { recordStream } from "./queries";
+import { resolvePlaybackUrl, useDownloads } from "./downloads";
+import { toast } from "sonner";
 
 type Repeat = "off" | "all" | "one";
 
@@ -66,12 +68,13 @@ function audio(): HTMLAudioElement | null {
       lastTick = performance.now();
       usePlayer.setState({ isPlaying: true });
       setupAnalyser();
+      void ctx?.resume();
       const t = usePlayer.getState().queue[usePlayer.getState().index];
       if (t && navigator.mediaSession) {
         navigator.mediaSession.metadata = new MediaMetadata({
           title: t.title,
           artist: t.artistName,
-          album: t.albumTitle ?? "Zelyro",
+          album: t.albumTitle ?? "VerzZify",
           artwork: t.coverUrl ? [{ src: t.coverUrl, sizes: "800x800" }] : [],
         });
         navigator.mediaSession.playbackState = "playing";
@@ -116,6 +119,8 @@ function flushStream() {
   );
 }
 
+let loadGen = 0;
+
 function loadCurrent() {
   const s = usePlayer.getState();
   const t = s.queue[s.index];
@@ -125,9 +130,29 @@ function loadCurrent() {
   listenedMs = 0;
   lastTick = 0;
   reported = false;
-  a.src = t.audioUrl;
-  a.volume = s.muted ? 0 : s.volume;
-  void a.play().catch(() => usePlayer.setState({ isPlaying: false }));
+  const gen = ++loadGen;
+  void (async () => {
+    const src = await resolvePlaybackUrl(t);
+    if (gen !== loadGen) return;
+    if (!src) {
+      const now = usePlayer.getState();
+      const items = now.queue;
+      for (let n = 1; n < items.length; n++) {
+        const i = (now.index + n) % items.length;
+        if (useDownloads.getState().has(items[i].id)) {
+          usePlayer.setState({ index: i });
+          loadCurrent();
+          return;
+        }
+      }
+      toast("Nothing in this queue is in Downloads. Save tracks while you’re online.");
+      usePlayer.setState({ isPlaying: false });
+      return;
+    }
+    a.src = src;
+    a.volume = s.muted ? 0 : s.volume;
+    void a.play().catch(() => usePlayer.setState({ isPlaying: false }));
+  })();
   if (navigator.mediaSession) {
     navigator.mediaSession.setActionHandler("play", () => usePlayer.getState().toggle());
     navigator.mediaSession.setActionHandler("pause", () => usePlayer.getState().toggle());
@@ -151,6 +176,7 @@ export const usePlayer = create<PlayerState>((set, get) => ({
   duration: 0,
   expanded: false,
   play: (tracks, index = 0) => {
+    void import("./yt-player").then((m) => m.useYtPlayer.getState().close());
     set({ queue: tracks, index });
     loadCurrent();
   },
@@ -162,18 +188,37 @@ export const usePlayer = create<PlayerState>((set, get) => ({
     if (!a) return;
     const s = get();
     if (!s.queue[s.index]) return;
+    void ctx?.resume();
     if (a.paused) {
       if (!a.src) loadCurrent();
-      else void a.play();
+      else void a.play().catch(() => usePlayer.setState({ isPlaying: false }));
     } else a.pause();
   },
   next: () => {
     const s = get();
     if (!s.queue.length) return;
+    if (s.repeat === "one") {
+      const a = audio();
+      if (a) {
+        a.currentTime = 0;
+        void a.play();
+      }
+      return;
+    }
+    const cur = s.queue[s.index];
+    const later = s.queue.slice(s.index + 1);
+    const sameLater = later.findIndex(
+      (t) => t.artistId === cur?.artistId || t.artistSlug === cur?.artistSlug,
+    );
     let next = s.index + 1;
-    if (s.shuffle) next = Math.floor(Math.random() * s.queue.length);
+    if (sameLater >= 0) next = s.index + 1 + sameLater;
+    else if (s.shuffle) next = Math.floor(Math.random() * s.queue.length);
     if (next >= s.queue.length) {
-      if (s.repeat === "all") next = 0;
+      const earlier = s.queue.findIndex(
+        (t, i) => i !== s.index && (t.artistId === cur?.artistId || t.artistSlug === cur?.artistSlug),
+      );
+      if (earlier >= 0 && s.repeat !== "off") next = earlier;
+      else if (s.repeat === "all") next = 0;
       else {
         audio()?.pause();
         set({ isPlaying: false, position: 0 });

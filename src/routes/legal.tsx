@@ -1,13 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { BrandMark } from "@/components/brand-mark";
 
 export const Route = createFileRoute("/legal")({ component: Legal });
 
 function Legal() {
   return (
     <main className="mx-auto max-w-2xl px-6 py-16">
-      <Link to="/" className="font-display text-2xl">
-        Zelyro
-      </Link>
+      <BrandMark />
       <h1 className="mt-8 font-display text-4xl">Legal placeholders</h1>
       <p className="mt-4 text-sm text-muted-foreground">
         These documents must be reviewed by qualified counsel before launch. They exist so the product
@@ -15,7 +14,7 @@ function Legal() {
       </p>
       <ul className="mt-8 space-y-6 text-sm leading-relaxed">
         <li>
-          <strong>Terms of Service.</strong> Use of Zelyro, accounts, acceptable use, and termination.
+          <strong>Terms of Service.</strong> Use of VerzZify, accounts, acceptable use, and termination.
         </li>
         <li>
           <strong>Privacy Policy.</strong> What we collect, why, and how to export or delete.

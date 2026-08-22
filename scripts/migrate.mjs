@@ -14,10 +14,14 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import pg from "pg";
 
-const databaseUrl = process.env.DATABASE_URL;
+const databaseUrl =
+  process.env.DATABASE_URL ||
+  process.env.SUPABASE_DB_URL ||
+  process.env.SUPABASE_DATABASE_URL ||
+  process.env.POSTGRES_URL;
 if (!databaseUrl) {
   console.log(
-    "[migrate] DATABASE_URL not set — skipping (the PGLite fallback migrates itself).",
+    "[migrate] DATABASE_URL / SUPABASE_DB_URL not set — skipping (the PGLite fallback migrates itself).",
   );
   process.exit(0);
 }

@@ -1,10 +1,11 @@
-import { Heart, MoreHorizontal, Play } from "lucide-react";
+import { Heart, Play } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import type { TrackCard } from "@/lib/zelyro/types";
 import { usePlayer } from "@/lib/zelyro/player";
 import { toggleLike } from "@/lib/zelyro/queries";
 import { cn, formatCount, formatTime } from "@/lib/utils";
 import { toast } from "sonner";
+import { DownloadButton } from "@/components/download-button";
 
 export function TrackRow({
   track,
@@ -77,6 +78,7 @@ export function TrackRow({
         {formatTime(track.durationMs / 1000)}
       </p>
       <div className="flex items-center gap-1">
+        <DownloadButton track={track} className="hidden sm:inline-flex" />
         <button
           type="button"
           className="grid size-9 place-items-center text-muted-foreground hover:text-foreground"
@@ -94,9 +96,6 @@ export function TrackRow({
             className={cn("size-4", track.liked && "fill-primary text-primary")}
           />
         </button>
-        <span className="grid size-9 place-items-center text-muted-foreground">
-          <MoreHorizontal className="size-4" />
-        </span>
       </div>
     </div>
   );

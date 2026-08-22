@@ -2,15 +2,16 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { searchCatalog } from "@/lib/zelyro/queries";
+import { searchDiscover } from "@/lib/zelyro/promotions";
 import { ArtistTile } from "@/components/cover-card";
 import { TrackRow } from "@/components/track-row";
 import { Input } from "@/components/ui/input";
-import { YouTubePromotionCard } from "@/components/youtube-promotion-card";
-import { useYtPlayer } from "@/lib/zelyro/yt-player";
-import { Play } from "lucide-react";
+import { YtVideoCard } from "@/components/yt-video-card";
+import { cn } from "@/lib/utils";
 import { z } from "zod";
 
 const searchSchema = z.object({ q: z.string().optional() });
+const KINDS = ["songs", "beats", "albums"] as const;
 
 export const Route = createFileRoute("/_app/search")({
   validateSearch: searchSchema,
@@ -20,13 +21,19 @@ export const Route = createFileRoute("/_app/search")({
 function SearchPage() {
   const { q: initial } = Route.useSearch();
   const [q, setQ] = useState(initial ?? "");
-  const query = useQuery({
+  const [kind, setKind] = useState<(typeof KINDS)[number]>("songs");
+  const catalog = useQuery({
     queryKey: ["search", q],
     queryFn: () => searchCatalog({ data: q }),
     enabled: q.trim().length > 0,
   });
-  const data = query.data;
-  const openYt = useYtPlayer((s) => s.open);
+  const discover = useQuery({
+    queryKey: ["discover-page", kind, q],
+    queryFn: () => searchDiscover({ data: { q, kind } }),
+    enabled: q.trim().length > 1,
+  });
+  const data = catalog.data;
+  const videos = discover.data?.videos ?? [];
 
   return (
     <div>
@@ -40,13 +47,28 @@ function SearchPage() {
         <Input
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="Artists, songs, cities, genres, YouTube…"
+          placeholder="Songs, beats, albums, artists…"
           autoFocus
         />
       </form>
+      <div className="mt-3 flex gap-2">
+        {KINDS.map((k) => (
+          <button
+            key={k}
+            type="button"
+            onClick={() => setKind(k)}
+            className={cn(
+              "h-9 rounded-full px-3 text-xs capitalize",
+              kind === k ? "bg-primary text-primary-foreground" : "bg-secondary",
+            )}
+          >
+            {k}
+          </button>
+        ))}
+      </div>
       {!q && (
         <div className="mt-8 flex flex-wrap gap-2">
-          {["Hip Hop", "Gospel", "Afrobeats", "Ama Serwaa", "London", "YouTube"].map((s) => (
+          {["Pop", "Latin", "Seoul", "Hip Hop", "Afrobeats"].map((s) => (
             <button
               key={s}
               type="button"
@@ -58,80 +80,57 @@ function SearchPage() {
           ))}
         </div>
       )}
-      {data && (
+      {q.trim().length > 0 && (
         <div className="mt-8 space-y-10">
           <section>
-            <p className="text-xs tracking-widest text-sand uppercase">Zelyro</p>
-            <h2 className="mb-3 font-display text-xl">Catalog</h2>
-            {data.tracks.map((t, i) => (
-              <TrackRow key={t.id} track={t} queue={data.tracks} index={i} />
-            ))}
-            {data.tracks.length === 0 && (
-              <p className="text-sm text-muted-foreground">No Zelyro tracks matched.</p>
-            )}
-          </section>
-          {data.artists.length > 0 && (
-            <div>
-              <h2 className="mb-3 font-display text-lg">Artists & producers</h2>
-              <div className="media-rail">
-                {data.artists.map((a) => (
-                  <ArtistTile key={a.id} slug={a.slug} name={a.name} avatarUrl={a.avatarUrl} verified={a.verified} />
+            <p className="text-xs tracking-widest text-sand uppercase">Discover</p>
+            <h2 className="mb-3 font-display text-xl capitalize">{kind}</h2>
+            {videos.length > 0 ? (
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {videos.map((v) => (
+                  <YtVideoCard key={v.videoId} video={v} queue={videos} />
                 ))}
               </div>
-            </div>
-          )}
-          {data.albums.length > 0 && (
-            <div className="media-rail">
-              {data.albums.map((a) => (
-                <Link key={a.id} to="/album/$id" params={{ id: a.id }} className="min-w-0">
-                  <img src={a.coverUrl} alt="" className="aspect-square w-full rounded-2xl object-cover" />
-                  <p className="mt-2 truncate text-sm">{a.title}</p>
-                </Link>
-              ))}
-            </div>
-          )}
-          <section>
-            <p className="text-xs tracking-widest text-sand uppercase">YouTube</p>
-            <h2 className="mt-1 font-display text-xl">Hosted on YouTube</h2>
-            <p className="mt-1 mb-4 text-sm text-muted-foreground">
-              Separate from Zelyro-hosted songs. Play uses YouTube's official player.
-            </p>
-            {data.youtube.promoted.length > 0 && (
-              <div className="media-rail media-rail-wide mb-6">
-                {data.youtube.promoted.map((p) => (
-                  <YouTubePromotionCard key={p.campaignId} promo={p} />
-                ))}
-              </div>
-            )}
-            <ul className="space-y-2">
-              {data.youtube.videos.map((v) => (
-                <li key={v.videoId}>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      openYt({
-                        videoId: v.videoId,
-                        title: v.title,
-                        channel: v.channelName,
-                        watchUrl: v.url,
-                      })
-                    }
-                    className="flex w-full items-center gap-3 rounded-2xl bg-card p-2 text-left"
-                  >
-                    <img src={v.thumbnailUrl} alt="" className="aspect-video w-28 rounded-lg object-cover" />
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm">{v.title}</span>
-                      <span className="block text-xs text-muted-foreground">{v.channelName} · YouTube</span>
-                    </span>
-                    <Play className="size-4 fill-current" />
-                  </button>
-                </li>
-              ))}
-            </ul>
-            {data.youtube.videos.length === 0 && data.youtube.promoted.length === 0 && (
-              <p className="text-sm text-muted-foreground">No YouTube matches for that search.</p>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                {discover.isFetching ? "Searching…" : "No matches in that lane."}
+              </p>
             )}
           </section>
+          {data && (
+            <>
+              <section>
+                <p className="text-xs tracking-widest text-sand uppercase">On VerzZify</p>
+                <h2 className="mb-3 font-display text-xl">Catalog</h2>
+                {data.tracks.map((t, i) => (
+                  <TrackRow key={t.id} track={t} queue={data.tracks} index={i} />
+                ))}
+                {data.tracks.length === 0 && (
+                  <p className="text-sm text-muted-foreground">No hosted tracks matched.</p>
+                )}
+              </section>
+              {data.artists.length > 0 && (
+                <div>
+                  <h2 className="mb-3 font-display text-lg">Artists & producers</h2>
+                  <div className="media-rail">
+                    {data.artists.map((a) => (
+                      <ArtistTile key={a.id} id={a.id} slug={a.slug} name={a.name} avatarUrl={a.avatarUrl} verified={a.verified} />
+                    ))}
+                  </div>
+                </div>
+              )}
+              {data.albums.length > 0 && (
+                <div className="media-rail">
+                  {data.albums.map((a) => (
+                    <Link key={a.id} to="/album/$id" params={{ id: a.id }} className="min-w-0">
+                      <img src={a.coverUrl} alt="" className="aspect-square w-full rounded-2xl object-cover" />
+                      <p className="mt-2 truncate text-sm">{a.title}</p>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
         </div>
       )}
     </div>

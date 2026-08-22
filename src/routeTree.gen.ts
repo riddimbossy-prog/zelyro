@@ -16,6 +16,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as WelcomeRouteImport } from './routes/welcome'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppAdminRouteImport } from './routes/_app/admin'
+import { Route as AppChartsRouteImport } from './routes/_app/charts'
 import { Route as AppCommunityRouteImport } from './routes/_app/community'
 import { Route as AppDiscoverRouteImport } from './routes/_app/discover'
 import { Route as AppLibraryRouteImport } from './routes/_app/library'
@@ -24,13 +25,18 @@ import { Route as AppProfileRouteImport } from './routes/_app/profile'
 import { Route as AppSearchRouteImport } from './routes/_app/search'
 import { Route as AppStudioRouteImport } from './routes/_app/studio'
 import { Route as ApiHealthRouteImport } from './routes/api/health'
+import { Route as ApiInfraRouteImport } from './routes/api/infra'
+import { Route as ApiRtcRouteImport } from './routes/api/rtc'
 import { Route as AppAlbumIdRouteImport } from './routes/_app/album.$id'
 import { Route as AppArtistSlugRouteImport } from './routes/_app/artist.$slug'
 import { Route as AppEventIdRouteImport } from './routes/_app/event.$id'
 import { Route as AppLiveIdRouteImport } from './routes/_app/live.$id'
 import { Route as AppPlaylistIdRouteImport } from './routes/_app/playlist.$id'
 import { Route as AppTrackIdRouteImport } from './routes/_app/track.$id'
+import { Route as AppVideoIdRouteImport } from './routes/_app/video.$id'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as ApiStorageUploadRouteImport } from './routes/api/storage/upload'
+import { Route as ApiStorageMediaIdRouteImport } from './routes/api/storage/media.$id'
 
 const AppRoute = AppRouteImport.update({
   id: '/_app',
@@ -64,6 +70,11 @@ const AppIndexRoute = AppIndexRouteImport.update({
 const AppAdminRoute = AppAdminRouteImport.update({
   id: '/admin',
   path: '/admin',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppChartsRoute = AppChartsRouteImport.update({
+  id: '/charts',
+  path: '/charts',
   getParentRoute: () => AppRoute,
 } as any)
 const AppCommunityRoute = AppCommunityRouteImport.update({
@@ -106,6 +117,16 @@ const ApiHealthRoute = ApiHealthRouteImport.update({
   path: '/api/health',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiInfraRoute = ApiInfraRouteImport.update({
+  id: '/api/infra',
+  path: '/api/infra',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiRtcRoute = ApiRtcRouteImport.update({
+  id: '/api/rtc',
+  path: '/api/rtc',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppAlbumIdRoute = AppAlbumIdRouteImport.update({
   id: '/album/$id',
   path: '/album/$id',
@@ -136,9 +157,24 @@ const AppTrackIdRoute = AppTrackIdRouteImport.update({
   path: '/track/$id',
   getParentRoute: () => AppRoute,
 } as any)
+const AppVideoIdRoute = AppVideoIdRouteImport.update({
+  id: '/video/$id',
+  path: '/video/$id',
+  getParentRoute: () => AppRoute,
+} as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiStorageUploadRoute = ApiStorageUploadRouteImport.update({
+  id: '/api/storage/upload',
+  path: '/api/storage/upload',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiStorageMediaIdRoute = ApiStorageMediaIdRouteImport.update({
+  id: '/api/storage/media/$id',
+  path: '/api/storage/media/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
 
@@ -149,6 +185,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/welcome': typeof WelcomeRoute
   '/admin': typeof AppAdminRoute
+  '/charts': typeof AppChartsRoute
   '/community': typeof AppCommunityRoute
   '/discover': typeof AppDiscoverRoute
   '/library': typeof AppLibraryRoute
@@ -157,13 +194,18 @@ export interface FileRoutesByFullPath {
   '/search': typeof AppSearchRoute
   '/studio': typeof AppStudioRoute
   '/api/health': typeof ApiHealthRoute
+  '/api/infra': typeof ApiInfraRoute
+  '/api/rtc': typeof ApiRtcRoute
   '/album/$id': typeof AppAlbumIdRoute
   '/artist/$slug': typeof AppArtistSlugRoute
   '/event/$id': typeof AppEventIdRoute
   '/live/$id': typeof AppLiveIdRoute
   '/playlist/$id': typeof AppPlaylistIdRoute
   '/track/$id': typeof AppTrackIdRoute
+  '/video/$id': typeof AppVideoIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/storage/upload': typeof ApiStorageUploadRoute
+  '/api/storage/media/$id': typeof ApiStorageMediaIdRoute
 }
 export interface FileRoutesByTo {
   '/architecture': typeof ArchitectureRoute
@@ -171,6 +213,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/welcome': typeof WelcomeRoute
   '/admin': typeof AppAdminRoute
+  '/charts': typeof AppChartsRoute
   '/community': typeof AppCommunityRoute
   '/discover': typeof AppDiscoverRoute
   '/library': typeof AppLibraryRoute
@@ -179,6 +222,8 @@ export interface FileRoutesByTo {
   '/search': typeof AppSearchRoute
   '/studio': typeof AppStudioRoute
   '/api/health': typeof ApiHealthRoute
+  '/api/infra': typeof ApiInfraRoute
+  '/api/rtc': typeof ApiRtcRoute
   '/': typeof AppIndexRoute
   '/album/$id': typeof AppAlbumIdRoute
   '/artist/$slug': typeof AppArtistSlugRoute
@@ -186,7 +231,10 @@ export interface FileRoutesByTo {
   '/live/$id': typeof AppLiveIdRoute
   '/playlist/$id': typeof AppPlaylistIdRoute
   '/track/$id': typeof AppTrackIdRoute
+  '/video/$id': typeof AppVideoIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/storage/upload': typeof ApiStorageUploadRoute
+  '/api/storage/media/$id': typeof ApiStorageMediaIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -196,6 +244,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/welcome': typeof WelcomeRoute
   '/_app/admin': typeof AppAdminRoute
+  '/_app/charts': typeof AppChartsRoute
   '/_app/community': typeof AppCommunityRoute
   '/_app/discover': typeof AppDiscoverRoute
   '/_app/library': typeof AppLibraryRoute
@@ -204,6 +253,8 @@ export interface FileRoutesById {
   '/_app/search': typeof AppSearchRoute
   '/_app/studio': typeof AppStudioRoute
   '/api/health': typeof ApiHealthRoute
+  '/api/infra': typeof ApiInfraRoute
+  '/api/rtc': typeof ApiRtcRoute
   '/_app/': typeof AppIndexRoute
   '/_app/album/$id': typeof AppAlbumIdRoute
   '/_app/artist/$slug': typeof AppArtistSlugRoute
@@ -211,7 +262,10 @@ export interface FileRoutesById {
   '/_app/live/$id': typeof AppLiveIdRoute
   '/_app/playlist/$id': typeof AppPlaylistIdRoute
   '/_app/track/$id': typeof AppTrackIdRoute
+  '/_app/video/$id': typeof AppVideoIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/storage/upload': typeof ApiStorageUploadRoute
+  '/api/storage/media/$id': typeof ApiStorageMediaIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -222,6 +276,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/welcome'
     | '/admin'
+    | '/charts'
     | '/community'
     | '/discover'
     | '/library'
@@ -230,13 +285,18 @@ export interface FileRouteTypes {
     | '/search'
     | '/studio'
     | '/api/health'
+    | '/api/infra'
+    | '/api/rtc'
     | '/album/$id'
     | '/artist/$slug'
     | '/event/$id'
     | '/live/$id'
     | '/playlist/$id'
     | '/track/$id'
+    | '/video/$id'
     | '/api/auth/$'
+    | '/api/storage/upload'
+    | '/api/storage/media/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/architecture'
@@ -244,6 +304,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/welcome'
     | '/admin'
+    | '/charts'
     | '/community'
     | '/discover'
     | '/library'
@@ -252,6 +313,8 @@ export interface FileRouteTypes {
     | '/search'
     | '/studio'
     | '/api/health'
+    | '/api/infra'
+    | '/api/rtc'
     | '/'
     | '/album/$id'
     | '/artist/$slug'
@@ -259,7 +322,10 @@ export interface FileRouteTypes {
     | '/live/$id'
     | '/playlist/$id'
     | '/track/$id'
+    | '/video/$id'
     | '/api/auth/$'
+    | '/api/storage/upload'
+    | '/api/storage/media/$id'
   id:
     | '__root__'
     | '/_app'
@@ -268,6 +334,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/welcome'
     | '/_app/admin'
+    | '/_app/charts'
     | '/_app/community'
     | '/_app/discover'
     | '/_app/library'
@@ -276,6 +343,8 @@ export interface FileRouteTypes {
     | '/_app/search'
     | '/_app/studio'
     | '/api/health'
+    | '/api/infra'
+    | '/api/rtc'
     | '/_app/'
     | '/_app/album/$id'
     | '/_app/artist/$slug'
@@ -283,7 +352,10 @@ export interface FileRouteTypes {
     | '/_app/live/$id'
     | '/_app/playlist/$id'
     | '/_app/track/$id'
+    | '/_app/video/$id'
     | '/api/auth/$'
+    | '/api/storage/upload'
+    | '/api/storage/media/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -293,7 +365,11 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   WelcomeRoute: typeof WelcomeRoute
   ApiHealthRoute: typeof ApiHealthRoute
+  ApiInfraRoute: typeof ApiInfraRoute
+  ApiRtcRoute: typeof ApiRtcRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  ApiStorageUploadRoute: typeof ApiStorageUploadRoute
+  ApiStorageMediaIdRoute: typeof ApiStorageMediaIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -345,6 +421,13 @@ declare module '@tanstack/react-router' {
       path: '/admin'
       fullPath: '/admin'
       preLoaderRoute: typeof AppAdminRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/charts': {
+      id: '/_app/charts'
+      path: '/charts'
+      fullPath: '/charts'
+      preLoaderRoute: typeof AppChartsRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/community': {
@@ -403,6 +486,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiHealthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/infra': {
+      id: '/api/infra'
+      path: '/api/infra'
+      fullPath: '/api/infra'
+      preLoaderRoute: typeof ApiInfraRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/rtc': {
+      id: '/api/rtc'
+      path: '/api/rtc'
+      fullPath: '/api/rtc'
+      preLoaderRoute: typeof ApiRtcRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_app/album/$id': {
       id: '/_app/album/$id'
       path: '/album/$id'
@@ -445,6 +542,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppTrackIdRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/video/$id': {
+      id: '/_app/video/$id'
+      path: '/video/$id'
+      fullPath: '/video/$id'
+      preLoaderRoute: typeof AppVideoIdRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/api/auth/$': {
       id: '/api/auth/$'
       path: '/api/auth/$'
@@ -452,11 +556,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/storage/upload': {
+      id: '/api/storage/upload'
+      path: '/api/storage/upload'
+      fullPath: '/api/storage/upload'
+      preLoaderRoute: typeof ApiStorageUploadRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/storage/media/$id': {
+      id: '/api/storage/media/$id'
+      path: '/api/storage/media/$id'
+      fullPath: '/api/storage/media/$id'
+      preLoaderRoute: typeof ApiStorageMediaIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 interface AppRouteChildren {
   AppAdminRoute: typeof AppAdminRoute
+  AppChartsRoute: typeof AppChartsRoute
   AppCommunityRoute: typeof AppCommunityRoute
   AppDiscoverRoute: typeof AppDiscoverRoute
   AppLibraryRoute: typeof AppLibraryRoute
@@ -471,10 +590,12 @@ interface AppRouteChildren {
   AppLiveIdRoute: typeof AppLiveIdRoute
   AppPlaylistIdRoute: typeof AppPlaylistIdRoute
   AppTrackIdRoute: typeof AppTrackIdRoute
+  AppVideoIdRoute: typeof AppVideoIdRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
   AppAdminRoute: AppAdminRoute,
+  AppChartsRoute: AppChartsRoute,
   AppCommunityRoute: AppCommunityRoute,
   AppDiscoverRoute: AppDiscoverRoute,
   AppLibraryRoute: AppLibraryRoute,
@@ -489,6 +610,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppLiveIdRoute: AppLiveIdRoute,
   AppPlaylistIdRoute: AppPlaylistIdRoute,
   AppTrackIdRoute: AppTrackIdRoute,
+  AppVideoIdRoute: AppVideoIdRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
@@ -500,7 +622,11 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   WelcomeRoute: WelcomeRoute,
   ApiHealthRoute: ApiHealthRoute,
+  ApiInfraRoute: ApiInfraRoute,
+  ApiRtcRoute: ApiRtcRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
+  ApiStorageUploadRoute: ApiStorageUploadRoute,
+  ApiStorageMediaIdRoute: ApiStorageMediaIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

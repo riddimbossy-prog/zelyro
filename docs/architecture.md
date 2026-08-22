@@ -1,6 +1,6 @@
-# Zelyro — System Architecture (Phase 1)
+# VerzZify — System Architecture (Phase 1)
 
-Zelyro is a creator-first music platform: streaming + direct sales + wallets + events + live + community. This document is the foundation. Do not skip it.
+VerzZify is a creator-first music platform: streaming + direct sales + wallets + events + live + community. This document is the foundation. Do not skip it.
 
 ## 1. Architecture diagram
 
@@ -12,10 +12,11 @@ Cloudflare  — DNS, TLS, CDN, WAF, bot, rate-limit, image resize
         │
         ▼
 DigitalOcean  NestJS  /api/v1
-        ├── Supabase Postgres + Auth + RLS
+        ├── Supabase Postgres + RLS (Better Auth sessions)
         ├── AWS S3          (masters, stream renders, art)
         ├── YouTube Data API (search, metadata; official player only)
-        ├── YouTube promotions (campaigns, Zelyro-side analytics)
+        ├── Jamendo API        (independents: stream + optional download)
+        ├── YouTube promotions (campaigns, VerzZify-side analytics)
         ├── Firebase Cloud Messaging
         ├── Payment adapters (MoMo, cards, Apple/Google Pay)
         └── Workers         (FFmpeg, waveform, trending, mail)
@@ -23,7 +24,17 @@ DigitalOcean  NestJS  /api/v1
 
 **Rule:** Flutter never holds S3, payment, or service-role secrets. The API is the only privileged actor.
 
-This workspace ships a **web executable slice** of the same product (TanStack Start + Postgres) so the catalog, player, auth, ledger, tickets, and studio can be demonstrated immediately. Native Flutter clients consume the same `/api/v1` contract.
+This workspace ships a **web executable slice** of the same product (TanStack Start + Postgres) so discovery, player, studio, and geo home can be tried immediately. It is **not** the store client.
+
+## Launch order
+
+1. **Flutter Web MVP** — one Flutter project: home (IP country + nearby), VerzZify player, catalog, studio lite. YouTube stays Data API + official player only.
+2. **Test with real artists and listeners** — playback, geo feed, follow, promote-a-track.
+3. **Complete native playback, downloads, notifications, billing** — `<audio>`/just_audio for VerzZify masters, FCM, wallets, store billing. No YouTube offline.
+4. **Compile the same Flutter project for Android and iOS** — no second UI rewrite.
+5. **Submit native-quality builds** to Play and App Store.
+
+Do not ship this TanStack preview to the stores. Do not split into a separate native app until step 4.
 
 ## 2. GitHub structure
 
@@ -60,11 +71,12 @@ See `migrations/0002_core.sql`. Money is integer minor units. Fee snapshots are 
 
 | Bucket | Access |
 | --- | --- |
-| zelyro-masters | private, artist/admin |
-| zelyro-stream | private, signed, entitlement |
-| zelyro-public | CDN, covers/banners |
+| verzzify-masters | private, artist/admin |
+| verzzify-stream | private, signed, entitlement |
+| verzzify-public | CDN, covers/banners |
 
-Upload = backend presigned PUT. Download = signed GET after purchase/free-download check.
+Upload = `requestUpload` then presigned PUT (AWS) or `/api/storage/upload` (preview). Download = `/api/storage/media/:id` after the object is marked ready. Masters never stream. `npm run infra:provision` creates the buckets when AWS keys exist.
+
 
 ## 5. DigitalOcean API
 
@@ -80,7 +92,7 @@ FCM only (+ optional Crashlytics). Topics `artist:{id}`, `live:{id}`. Preference
 
 ## 8. YouTube
 
-`YouTubeService` against the official Data API. `YouTubePromotionService` for campaigns. UI must visually separate Zelyro vs YouTube. No extraction, no rips, no DRM bypass. Zelyro clicks are not YouTube views.
+`YouTubeService` against the official Data API. `YouTubePromotionService` for campaigns. UI must visually separate VerzZify vs YouTube. No extraction, no rips, no DRM bypass. VerzZify clicks are not YouTube views.
 
 ## 9. Environment (never commit values)
 
