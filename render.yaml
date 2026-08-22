@@ -14,7 +14,7 @@ services:
     runtime: node
     plan: starter
     region: oregon
-    buildCommand: npm ci && NITRO_PRESET=node-server npx vite build
+    buildCommand: npm ci --include=dev && NITRO_PRESET=node-server npx vite build
     startCommand: npm run start
     healthCheckPath: /api/health
     autoDeploy: true
@@ -24,6 +24,8 @@ services:
         value: "22"
       - key: NODE_ENV
         value: production
+      - key: NPM_CONFIG_PRODUCTION
+        value: "false"
       - key: NITRO_PRESET
         value: node-server
       - key: PORT
