@@ -17,7 +17,7 @@ import type {
 } from "./types";
 import { loadActivePromotions, loadArtistYoutube, loadNearby, searchYoutubeCatalog } from "./promotions";
 import { loadYoutubeHome, normalizeRegion } from "./yt-charts";
-import { detectViewerGeo } from "./geo.server";
+import { getViewerGeo } from "./geo";
 
 type TrackRow = {
   id: string;
@@ -277,7 +277,7 @@ export async function loadHome() {
   let country = "US";
   let city: string | null = null;
   try {
-    const geo = await detectViewerGeo();
+    const geo = await getViewerGeo();
     country = geo.region;
     city = geo.city;
   } catch {
