@@ -89,6 +89,7 @@ class _Shell extends StatelessWidget {
   Widget build(BuildContext context) {
     final loc = GoRouterState.of(context).uri.path;
     final wide = MediaQuery.sizeOf(context).width >= 900;
+    final call = loc.startsWith('/video');
     int idx = dests.indexWhere((d) => d.$1 == loc);
     if (idx < 0) idx = 0;
     return Scaffold(
@@ -96,7 +97,7 @@ class _Shell extends StatelessWidget {
       body: Aurora(
         child: Row(
           children: [
-          if (wide)
+          if (wide && !call)
             NavigationRail(
               selectedIndex: idx,
               onDestinationSelected: (i) => context.go(dests[i].$1),
@@ -112,17 +113,17 @@ class _Shell extends StatelessWidget {
           Expanded(
             child: Column(
               children: [
-                const TopBar(),
+                if (!call) const TopBar(),
                 Expanded(child: child),
-                const YoutubeDock(),
-                const MiniBar(),
+                if (!call) const YoutubeDock(),
+                if (!call) const MiniBar(),
               ],
             ),
           ),
         ],
         ),
       ),
-      bottomNavigationBar: wide
+      bottomNavigationBar: wide || call
           ? null
           : NavigationBar(
               selectedIndex: idx.clamp(0, 4),

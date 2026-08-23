@@ -6,11 +6,7 @@ import {
   PhoneOff,
   Video,
   VideoOff,
-  Volume2,
-  VolumeX,
   SwitchCamera,
-  Lock,
-  Clock,
   ArrowLeft,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -112,6 +108,28 @@ export function VideoCallRoom({ session }: { session: VideoSession }) {
     const t = window.setInterval(() => setElapsed((n) => n + 1), 1000);
     return () => window.clearInterval(t);
   }, [phase]);
+
+  const [hearts, setHearts] = useState<{ id: number; x: number }[]>([]);
+  const [vibes, setVibes] = useState<string[]>(["Welcome to the room ✨", "Drop a heart if you’re here"]);
+  const [draft, setDraft] = useState("");
+
+  function burstHeart() {
+    const id = Date.now() + Math.random();
+    const x = 8 + Math.random() * 28;
+    setHearts((h) => [...h, { id, x }]);
+    window.setTimeout(() => setHearts((h) => h.filter((n) => n.id !== id)), 2200);
+  }
+
+  function sendVibe() {
+    const t = draft.trim();
+    if (!t) {
+      burstHeart();
+      return;
+    }
+    setVibes((v) => [...v.slice(-7), t]);
+    setDraft("");
+    burstHeart();
+  }
 
   const remaining = Math.max(0, session.durationMin * 60 - elapsed);
   const showLocal = Boolean(stream && camOn && !camError);
@@ -239,9 +257,7 @@ export function VideoCallRoom({ session }: { session: VideoSession }) {
   }
 
   return (
-    <div className="relative min-h-dvh overflow-hidden bg-background text-foreground">
-      <img src={session.artistAvatar ?? "/banners/accra.jpg"} alt="" className="absolute inset-0 size-full object-cover" />
-      <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-background/20" />
+    <div className="relative min-h-dvh overflow-hidden bg-black text-white">
       <video
         ref={remoteRef}
         className={cn("absolute inset-0 size-full object-cover", !remoteLive && "hidden")}
@@ -249,83 +265,89 @@ export function VideoCallRoom({ session }: { session: VideoSession }) {
         playsInline
       />
       {!remoteLive && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center">
-          {showLocal && !remoteLive ? (
-            <video ref={localRef} className="absolute inset-0 size-full object-cover" autoPlay playsInline muted />
-          ) : (
-            <img
-              src={isHost ? user?.profileImageUrl ?? "/favicon.svg" : session.artistAvatar ?? "/favicon.svg"}
-              alt=""
-              className="size-32 rounded-full object-cover ring-2 ring-border"
-            />
-          )}
-        </div>
+        <video
+          ref={showLocal ? localRef : undefined}
+          className="absolute inset-0 size-full object-cover"
+          autoPlay
+          playsInline
+          muted
+        />
       )}
-      <header className="absolute top-0 right-0 left-0 z-20 flex items-start justify-between p-4">
-        <div className="rounded-full bg-background/80 px-3 py-1.5 text-xs backdrop-blur-sm">
-          <span className="inline-flex items-center gap-1.5">
-            <span
-              className={cn(
-                "size-1.5 rounded-full",
-                call.connectionState === "connected" ? "bg-primary" : "bg-muted-foreground",
-              )}
-            />
-            {linkLabel}
-          </span>
-          <span className="mx-2 text-muted-foreground">·</span>
-          <span className="tabular">{formatTime(elapsed)}</span>
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-black/80" />
+
+      <header className="absolute top-0 right-0 left-0 z-20 flex items-center gap-3 p-4">
+        <img src={session.artistAvatar ?? "/favicon.svg"} alt="" className="size-10 rounded-full object-cover ring-2 ring-white/40" />
+        <div className="min-w-0 flex-1">
+          <p className="truncate font-display text-base font-extrabold">{otherName}</p>
+          <p className="text-[11px] tracking-widest text-white/70 uppercase">{linkLabel} · {formatTime(elapsed)}</p>
         </div>
-        <div className="rounded-full bg-background/80 px-3 py-1.5 text-xs tabular backdrop-blur-sm">
-          <Clock className="mr-1 inline size-3" />
-          {formatTime(remaining)} left
-        </div>
+        <span className="rounded-full bg-[#C026D3] px-3 py-1 text-[11px] font-extrabold tracking-widest">LIVE</span>
+        <span className="rounded-full bg-white/15 px-3 py-1 text-[11px] font-bold backdrop-blur">{formatTime(remaining)}</span>
       </header>
-      <div className="absolute top-16 left-4 z-20">
-        <p className="font-display text-xl">{otherName}</p>
-        <p className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-          <Lock className="size-3" /> {call.connectionState === "connected" ? "Peer-to-peer" : "Signaling…"}
-        </p>
+
+      <div className="absolute bottom-28 left-4 z-20 max-w-[70%] space-y-2">
+        {vibes.slice(-5).map((v, i) => (
+          <p key={i} className="w-fit max-w-full rounded-2xl bg-black/35 px-3 py-1.5 text-sm backdrop-blur-md">
+            {v}
+          </p>
+        ))}
       </div>
-      <div className="absolute right-4 bottom-28 z-20 overflow-hidden rounded-2xl bg-card ring-1 ring-border">
+
+      {hearts.map((h) => (
+        <span
+          key={h.id}
+          className="pointer-events-none absolute bottom-36 z-30 text-3xl"
+          style={{ right: `${h.x}%`, animation: "vz-float 2.2s ease-out forwards" }}
+        >
+          ♥
+        </span>
+      ))}
+
+      <aside className="absolute right-3 bottom-36 z-20 flex flex-col items-center gap-4">
         {remoteLive && showLocal ? (
-          <video ref={localRef} className="h-36 w-28 object-cover" autoPlay playsInline muted />
-        ) : remoteLive ? (
-          <div className="grid h-36 w-28 place-items-center">
-            <VideoOff className="size-5 text-muted-foreground" />
-          </div>
+          <video ref={localRef} className="h-28 w-20 rounded-2xl object-cover ring-2 ring-white/30" autoPlay playsInline muted />
         ) : (
-          <div className="grid h-36 w-28 place-items-center px-2 text-center text-[11px] text-muted-foreground">
-            You
-          </div>
+          <div className="grid h-28 w-20 place-items-center rounded-2xl bg-white/10 text-[11px]">You</div>
         )}
-      </div>
+        <button type="button" onClick={burstHeart} className="grid size-12 place-items-center rounded-full bg-white/15 text-2xl backdrop-blur" aria-label="Heart">♥</button>
+        <button type="button" onClick={() => setVibes((v) => [...v.slice(-7), "Sent a gift 🎁"])} className="grid size-12 place-items-center rounded-full bg-white/15 text-xl backdrop-blur" aria-label="Gift">🎁</button>
+        <RoundToggle on={false} label="Flip camera" onClick={() => setFacing((f) => (f === "user" ? "environment" : "user"))}>
+          <SwitchCamera className="size-5" />
+        </RoundToggle>
+      </aside>
+
       {call.connectionState === "failed" && (
-        <p className="absolute bottom-32 left-4 right-4 z-20 text-center text-xs text-muted-foreground">
-          Couldn't reach them on this network. Ask them to rejoin.
+        <p className="absolute bottom-32 left-4 right-16 z-20 text-center text-xs text-white/80">
+          Couldn't reach them. Add TURN keys on Render for hard networks.
         </p>
       )}
-      <nav className="absolute right-0 bottom-0 left-0 z-20 flex items-center justify-center gap-3 px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
+
+      <nav className="absolute right-0 bottom-0 left-0 z-20 flex items-center gap-2 px-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
+        <form
+          className="flex min-w-0 flex-1 items-center gap-2 rounded-full bg-white/10 px-3 py-2 backdrop-blur-xl"
+          onSubmit={(e) => {
+            e.preventDefault();
+            sendVibe();
+          }}
+        >
+          <input
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            placeholder="Say something…"
+            className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-white/50"
+          />
+        </form>
         <RoundToggle on={!micOn} label={micOn ? "Mute" : "Unmute"} onClick={() => setMicOn((v) => !v)}>
           {micOn ? <Mic className="size-5" /> : <MicOff className="size-5" />}
         </RoundToggle>
         <RoundToggle on={!camOn} label={camOn ? "Camera off" : "Camera on"} onClick={() => setCamOn((v) => !v)}>
           {camOn ? <Video className="size-5" /> : <VideoOff className="size-5" />}
         </RoundToggle>
-        <button
-          type="button"
-          aria-label="End call"
-          onClick={() => void hangUp()}
-          className="grid size-16 place-items-center rounded-full bg-destructive text-destructive-foreground"
-        >
+        <button type="button" aria-label="End call" onClick={() => void hangUp()} className="grid size-14 place-items-center rounded-full bg-[#C026D3]">
           <PhoneOff className="size-6" />
         </button>
-        <RoundToggle on={!speakerOn} label={speakerOn ? "Speaker" : "Muted"} onClick={() => setSpeakerOn((v) => !v)}>
-          {speakerOn ? <Volume2 className="size-5" /> : <VolumeX className="size-5" />}
-        </RoundToggle>
-        <RoundToggle on={false} label="Flip camera" onClick={() => setFacing((f) => (f === "user" ? "environment" : "user"))}>
-          <SwitchCamera className="size-5" />
-        </RoundToggle>
       </nav>
+      <style>{`@keyframes vz-float { from { transform: translateY(0) scale(1); opacity: 1; } to { transform: translateY(-46vh) scale(1.4); opacity: 0; } }`}</style>
     </div>
   );
 }

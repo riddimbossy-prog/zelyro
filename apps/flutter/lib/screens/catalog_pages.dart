@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import '../call_dom.dart';
 import '../catalog.dart';
 import '../player_controller.dart';
 import '../theme.dart';
@@ -80,60 +81,29 @@ class LiveScreen extends StatelessWidget {
   }
 }
 
-class VideoScreen extends StatelessWidget {
+class VideoScreen extends StatefulWidget {
   const VideoScreen({super.key, required this.id});
   final String id;
   @override
+  State<VideoScreen> createState() => _VideoScreenState();
+}
+
+class _VideoScreenState extends State<VideoScreen> {
+  @override
+  void initState() {
+    super.initState();
+    CallDom.open(widget.id);
+  }
+
+  @override
+  void dispose() {
+    CallDom.close();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        children: [
-          Row(children: [
-            IconButton(onPressed: () => context.pop(), icon: const Icon(Icons.arrow_back)),
-            Text('1-1 video', style: Theme.of(context).textTheme.headlineMedium),
-          ]),
-          const SizedBox(height: 8),
-          Expanded(
-            child: Glass(
-              child: Stack(
-                children: [
-                  Positioned.fill(child: MediaImg('/covers/seoul-glass.jpg', cache: 700)),
-                  const DecoratedBox(decoration: BoxDecoration(color: Color(0x66000000))),
-                  const Center(child: CircleAvatar(radius: 48, backgroundColor: accent, child: Icon(Icons.person, size: 48))),
-                  Positioned(
-                    right: 16,
-                    bottom: 16,
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(14),
-                      child: SizedBox(width: 110, height: 150, child: MediaImg('/artists/ama.jpg', cache: 220)),
-                    ),
-                  ),
-                  const Positioned(
-                    left: 16,
-                    top: 16,
-                    child: Chip(label: Text('WIREFRAME LOBBY'), backgroundColor: Color(0xCC07010D)),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          const Text('Camera, STUN and TURN will plug in here. This screen is the layout.', textAlign: TextAlign.center, style: TextStyle(color: muted)),
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              IconButton.filledTonal(onPressed: () {}, icon: const Icon(Icons.mic)),
-              const SizedBox(width: 8),
-              IconButton.filledTonal(onPressed: () {}, icon: const Icon(Icons.videocam)),
-              const SizedBox(width: 8),
-              IconButton.filled(onPressed: () => context.pop(), style: IconButton.styleFrom(backgroundColor: accent), icon: const Icon(Icons.call_end)),
-            ],
-          ),
-        ],
-      ),
-    );
+    return const ColoredBox(color: Colors.black, child: SizedBox.expand());
   }
 }
 
