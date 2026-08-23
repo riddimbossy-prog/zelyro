@@ -1,6 +1,6 @@
 import { getRequest } from "@tanstack/react-start/server";
 import { normalizeRegion, REGION_NAMES } from "./yt-charts";
-import type { ViewerGeo } from "./geo";
+import type { ViewerGeo } from "./types";
 
 const COUNTRY_HEADERS = [
   "cf-ipcountry",

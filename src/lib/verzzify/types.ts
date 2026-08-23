@@ -321,3 +321,10 @@ export type ChartBoard = {
   countries: { id: string; label: string }[];
   genres: { id: string; label: string }[];
 };
+
+export type ViewerGeo = {
+  region: string;
+  regionName: string;
+  city: string | null;
+  source: "header" | "ip" | "language" | "default";
+};
