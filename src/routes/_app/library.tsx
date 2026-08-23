@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { getLibrary } from "@/lib/zelyro/queries";
+import { getLibrary } from "@/lib/verzzify/queries";
 import { TrackRow } from "@/components/track-row";
 import { ArtistTile } from "@/components/cover-card";
 import { RedirectToSignIn } from "@/lib/auth/gates";

@@ -53,16 +53,16 @@ function embedUrl(id: string, play: boolean) {
 
 function ensureFrame() {
   if (wrap && frame) return;
-  wrap = document.getElementById("zelyro-yt-wrap") as HTMLDivElement | null;
+  wrap = document.getElementById("verzzify-yt-wrap") as HTMLDivElement | null;
   if (!wrap) {
     wrap = document.createElement("div");
-    wrap.id = "zelyro-yt-wrap";
+    wrap.id = "verzzify-yt-wrap";
     document.body.appendChild(wrap);
   }
   frame = wrap.querySelector("iframe");
   if (!frame) {
     frame = document.createElement("iframe");
-    frame.id = "zelyro-yt-frame";
+    frame.id = "verzzify-yt-frame";
     frame.title = "VerzZify player";
     frame.allow = "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share";
     frame.setAttribute("allowfullscreen", "true");
@@ -101,7 +101,7 @@ export function layoutYtFrame() {
     return;
   }
   wrap.style.display = "block";
-  const slot = document.getElementById("zelyro-cover-slot");
+  const slot = document.getElementById("verzzify-cover-slot");
   const expanded = useYtPlayer.getState().expanded;
   if (expanded && slot) {
     const r = slot.getBoundingClientRect();

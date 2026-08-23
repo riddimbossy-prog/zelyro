@@ -63,7 +63,7 @@ No published hard daily cap like YouTube’s 10,000 units. Still cache popular l
 ## Mapping
 
 ```
-Jamendo track id  →  zelyro id prefix  jm_{id}
+Jamendo track id  →  verzzify id prefix  jm_{id}
 audio             →  TrackCard.audioUrl
 audiodownload     →  Downloads blob (if allowed)
 image             →  coverUrl

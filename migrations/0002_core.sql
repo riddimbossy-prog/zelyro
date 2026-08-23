@@ -1,4 +1,4 @@
--- Zelyro core schema. Idempotent. No extensions (PGLite + Neon parity).
+-- VerzZify core schema. Idempotent. No extensions (PGLite + Neon parity).
 -- Money is integer minor units (pesewas / cents). Never trust client amounts.
 
 create table if not exists profiles (

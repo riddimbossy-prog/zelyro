@@ -90,7 +90,7 @@ insert into event_ticket_types (id, event_id, name, price_cents, currency, capac
 on conflict (id) do nothing;
 
 insert into live_events (id, artist_id, title, poster_url, description, starts_at, price_cents, is_free, capacity, status) values
-  ('live_nova','sys_nova','Glass Rain — Zelyro Live','/covers/seoul-glass.jpg','PPV from Seoul. Server-validated access.','2026-08-28 13:00:00+00',1200,false,800,'scheduled'),
+  ('live_nova','sys_nova','Glass Rain — VerzZify Live','/covers/seoul-glass.jpg','PPV from Seoul. Server-validated access.','2026-08-28 13:00:00+00',1200,false,800,'scheduled'),
   ('live_hana','sys_hana','Last Train — Tokyo','/covers/midnight-crossing.jpg','A free midnight set from Tokyo.','2026-08-30 15:00:00+00',0,true,null,'scheduled')
 on conflict (id) do nothing;
 
@@ -103,13 +103,13 @@ on conflict (artist_id) do nothing;
 
 insert into posts (id, user_id, body, image_url, track_id, like_count, created_at) values
   ('post_7','sys_hana','Midnight Crossing is out. If you are on the last train, this is the one.','/covers/midnight-crossing.jpg','trk_13',964, now() - interval '6 hours'),
-  ('post_8','sys_nova','Glass Rain, Seoul. PPV this week on Zelyro Live.','/covers/seoul-glass.jpg','trk_16',1502, now() - interval '12 hours'),
+  ('post_8','sys_nova','Glass Rain, Seoul. PPV this week on VerzZify Live.','/covers/seoul-glass.jpg','trk_16',1502, now() - interval '12 hours'),
   ('post_9','sys_mateo','Empty chair, full roof. CDMX Thursday.','/covers/rooftop-chair.jpg','trk_15',411, now() - interval '2 days'),
   ('post_10','sys_jade','Palm Shadow. Los Angeles does not owe you a sunset, but this one stayed.','/covers/palm-shadow.jpg','trk_21',733, now() - interval '4 hours')
 on conflict (id) do nothing;
 
 insert into articles (id, title, slug, category, excerpt, body, cover_url) values
-  ('art_3','A catalog with more than one city','catalog-more-than-one-city','Music','Tokyo, Seoul, Mexico City, Berlin, Lagos, London — same house.','Zelyro is not a regional streaming app. The point is ownership: an artist in Seoul can sell a file, an artist in Accra can sell a ticket, an artist in Los Angeles can promote an official YouTube without the catalog confusing the two. The cities are the catalog, not the brand.','/covers/seoul-glass.jpg')
+  ('art_3','A catalog with more than one city','catalog-more-than-one-city','Music','Tokyo, Seoul, Mexico City, Berlin, Lagos, London — same house.','VerzZify is not a regional streaming app. The point is ownership: an artist in Seoul can sell a file, an artist in Accra can sell a ticket, an artist in Los Angeles can promote an official YouTube without the catalog confusing the two. The cities are the catalog, not the brand.','/covers/seoul-glass.jpg')
 on conflict (id) do nothing;
 
 insert into wallets (user_id, currency) values
@@ -140,8 +140,8 @@ values (
   'Hana Mori — Midnight Crossing',
   'Osaka',
   true,
-  'https://youtube.com/@zelyro',
-  'kenji@zelyro.example'
+  'https://youtube.com/@verzzify',
+  'kenji@verzzify.com'
 ) on conflict (user_id) do nothing;
 
 update remote_config set value = 'USD,GBP,EUR,JPY,KRW,MXN,INR,GHS,NGN,ZAR,BRL'

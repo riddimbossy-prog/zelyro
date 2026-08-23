@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { copy } from "@/lib/zelyro/copy";
+import { copy } from "@/lib/verzzify/copy";
 import { getInfraStatus } from "@/lib/infra/status";
 import type { InfraStatus } from "@/lib/infra/types";
 
@@ -53,7 +53,7 @@ function Architecture() {
         </Section>
 
         <Section n="02" title="GitHub repository structure">
-          <pre className="overflow-x-auto rounded-3xl bg-card p-5 text-xs leading-6 text-muted-foreground">{`zelyro/
+          <pre className="overflow-x-auto rounded-3xl bg-card p-5 text-xs leading-6 text-muted-foreground">{`verzzify/
   src/                    web catalog (TanStack Start)
   migrations/             Postgres schema + seed
   infrastructure/supabase RLS policies

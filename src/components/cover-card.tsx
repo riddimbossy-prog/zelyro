@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { Play } from "lucide-react";
-import type { TrackCard } from "@/lib/zelyro/types";
-import { usePlayer } from "@/lib/zelyro/player";
+import type { TrackCard } from "@/lib/verzzify/types";
+import { usePlayer } from "@/lib/verzzify/player";
 import { cn } from "@/lib/utils";
 import { DownloadButton } from "@/components/download-button";
 import { FollowButton } from "@/components/follow-button";
@@ -37,14 +37,14 @@ export function CoverCard({
       <Link
         to="/track/$id"
         params={{ id: track.id }}
-        className="mt-2.5 block truncate text-sm font-medium text-foreground"
+        className="mt-2.5 block truncate text-base font-semibold leading-tight text-foreground"
       >
         {track.title}
       </Link>
       <Link
         to="/artist/$slug"
         params={{ slug: track.artistSlug }}
-        className="block truncate text-xs text-muted-foreground"
+        className="block truncate text-sm text-muted-foreground"
       >
         {subtitle ?? track.artistName}
       </Link>

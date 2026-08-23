@@ -230,10 +230,10 @@ export type YouTubePromotion = {
   impressions: number;
   clicks: number;
   video: YouTubeVideo;
-  zelyroArtistId: string;
-  zelyroArtistName: string;
-  zelyroArtistSlug: string;
-  zelyroArtistAvatar: string | null;
+  verzzifyArtistId: string;
+  verzzifyArtistName: string;
+  verzzifyArtistSlug: string;
+  verzzifyArtistAvatar: string | null;
   linkId: string;
   saved?: boolean;
 };

@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { Play } from "lucide-react";
-import type { ChartArtistEntry, ChartDelta, ChartTrackEntry } from "@/lib/zelyro/types";
-import { usePlayer } from "@/lib/zelyro/player";
+import type { ChartArtistEntry, ChartDelta, ChartTrackEntry } from "@/lib/verzzify/types";
+import { usePlayer } from "@/lib/verzzify/player";
 import { cn, formatCount } from "@/lib/utils";
 
 function Delta({ movement, delta }: { movement: ChartDelta; delta: number | null }) {

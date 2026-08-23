@@ -1,7 +1,7 @@
 import { useState, type MouseEvent } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { UserCheck, UserPlus } from "lucide-react";
-import { toggleFollow } from "@/lib/zelyro/queries";
+import { toggleFollow } from "@/lib/verzzify/queries";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";

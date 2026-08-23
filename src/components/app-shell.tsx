@@ -10,14 +10,14 @@ import {
   Trophy,
 } from "lucide-react";
 import { BrandMark } from "@/components/brand-mark";
-import { copy } from "@/lib/zelyro/copy";
+import { copy } from "@/lib/verzzify/copy";
 import { cn } from "@/lib/utils";
 import { FullPlayer, MiniPlayer } from "@/components/player";
-import { VerzZifySearch } from "@/components/zelyro-search";
+import { VerzZifySearch } from "@/components/verzzify-search";
 import { ShareSheet } from "@/components/share-sheet";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { UserButton } from "@/lib/auth/gates";
-import { useDownloads } from "@/lib/zelyro/downloads";
+import { useDownloads } from "@/lib/verzzify/downloads";
 import { useEffect } from "react";
 
 const nav = [
@@ -50,8 +50,8 @@ export function AppShell() {
   }
 
   return (
-    <div className="relative flex min-h-dvh bg-transparent text-foreground">
-      <aside className="glass sticky top-0 z-20 hidden h-dvh w-56 shrink-0 flex-col border-r-0 px-4 py-6 md:flex lg:w-60">
+    <div className="relative flex h-dvh overflow-hidden bg-transparent text-foreground">
+      <aside className="glass z-20 hidden h-full w-56 shrink-0 flex-col border-r-0 px-4 py-6 md:flex lg:w-60">
         <BrandMark />
         <p className="mt-1 px-2 text-[11px] tracking-[0.18em] text-primary uppercase">{copy.domain}</p>
         <p className="mt-1 px-2 text-xs text-muted-foreground">{copy.tagline}</p>
@@ -98,10 +98,10 @@ export function AppShell() {
           )}
         </div>
       </aside>
-      <div className="flex min-w-0 flex-1 flex-col">
-        <header className="glass sticky top-0 z-40 border-0 px-4 py-3 md:px-8">
-          <div className="flex items-start gap-3">
-            <BrandMark compact className="mt-1 md:hidden" />
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+        <header className="glass z-40 shrink-0 border-0 px-4 py-2.5 md:px-8">
+          <div className="flex items-center gap-3">
+            <BrandMark compact className="md:hidden" />
             {pathname.startsWith("/community") || pathname.startsWith("/search") ? (
               <div className="min-w-0 flex-1" />
             ) : (
@@ -109,7 +109,7 @@ export function AppShell() {
             )}
           </div>
         </header>
-        <main className="page-rise min-w-0 flex-1 px-4 pb-36 md:px-8 md:pb-28">
+        <main className="page-rise min-h-0 min-w-0 flex-1 overflow-y-auto px-4 pb-8 md:px-8">
           <Outlet />
           <footer className="mt-16 flex flex-wrap gap-4 pb-4 text-xs text-muted-foreground">
             <Link to="/welcome">About</Link>
@@ -124,7 +124,7 @@ export function AppShell() {
             <Link to="/library">Library</Link>
           </footer>
         </main>
-        <div className="sticky bottom-0 z-30">
+        <div className="z-30 shrink-0">
           <MiniPlayer />
           <nav className="glass flex items-end border-0 px-1 pt-1 pb-[max(0.25rem,env(safe-area-inset-bottom))] md:hidden">
             {tabs.map((item) => {

@@ -15,7 +15,7 @@ import {
 export type PutResult = { bucket: string; key: string };
 
 const globalRef = globalThis as typeof globalThis & {
-  __zelyroS3__?: import("@aws-sdk/client-s3").S3Client;
+  __verzzifyS3__?: import("@aws-sdk/client-s3").S3Client;
 };
 
 export function storageMode(): "aws" | "local" {
@@ -23,16 +23,16 @@ export function storageMode(): "aws" | "local" {
 }
 
 async function s3(): Promise<import("@aws-sdk/client-s3").S3Client> {
-  if (!globalRef.__zelyroS3__) {
+  if (!globalRef.__verzzifyS3__) {
     const { S3Client } = await import("@aws-sdk/client-s3");
     const endpoint = s3Endpoint();
-    globalRef.__zelyroS3__ = new S3Client({
+    globalRef.__verzzifyS3__ = new S3Client({
       region: awsRegion(),
       endpoint,
       forcePathStyle: Boolean(endpoint),
     });
   }
-  return globalRef.__zelyroS3__;
+  return globalRef.__verzzifyS3__;
 }
 
 function bucketName(kind: S3BucketKind): string {

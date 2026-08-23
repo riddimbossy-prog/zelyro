@@ -15,10 +15,10 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
-import { usePlayer, getSpectrum } from "@/lib/zelyro/player";
-import { layoutYtFrame, useYtPlayer } from "@/lib/zelyro/yt-player";
-import { toggleLike, purchaseTrack } from "@/lib/zelyro/queries";
-import { useShareSheet } from "@/lib/zelyro/share";
+import { usePlayer, getSpectrum } from "@/lib/verzzify/player";
+import { layoutYtFrame, useYtPlayer } from "@/lib/verzzify/yt-player";
+import { toggleLike, purchaseTrack } from "@/lib/verzzify/queries";
+import { useShareSheet } from "@/lib/verzzify/share";
 import { cn, formatMoney, formatTime } from "@/lib/utils";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -111,7 +111,7 @@ function CoverEmbed({ videoId }: { videoId: string }) {
   }, [videoId]);
   return (
     <div
-      id="zelyro-cover-slot"
+      id="verzzify-cover-slot"
       className="relative size-56 overflow-hidden rounded-full bg-black shadow-lg ring-4 ring-primary/40 sm:size-72"
     />
   );

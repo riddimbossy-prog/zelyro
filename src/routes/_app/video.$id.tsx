@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { getVideoSession } from "@/lib/zelyro/video-actions";
+import { getVideoSession } from "@/lib/verzzify/video-actions";
 import { VideoCallRoom } from "@/components/video-call-room";
 
 export const Route = createFileRoute("/_app/video/$id")({

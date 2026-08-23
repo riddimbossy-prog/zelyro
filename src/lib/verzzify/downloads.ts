@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import type { TrackCard } from "./types";
 
-const DB_NAME = "zelyro-downloads";
+const DB_NAME = "verzzify-downloads";
 const STORE = "files";
 
 export type DownloadMeta = {

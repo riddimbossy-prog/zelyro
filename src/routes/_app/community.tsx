@@ -1,9 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { createPost, getCommunity, getHomeData } from "@/lib/zelyro/queries";
-import { getActivePromotions } from "@/lib/zelyro/promotions";
-import { listOpenVideoRooms } from "@/lib/zelyro/video-actions";
-import { usePlayer } from "@/lib/zelyro/player";
+import { createPost, getCommunity, getHomeData } from "@/lib/verzzify/queries";
+import { getActivePromotions } from "@/lib/verzzify/promotions";
+import { listOpenVideoRooms } from "@/lib/verzzify/video-actions";
+import { usePlayer } from "@/lib/verzzify/player";
 import { Button } from "@/components/ui/button";
 import { useCurrentUser } from "@/lib/auth/use-current-user";
 import { useState } from "react";

@@ -1,12 +1,6 @@
-import { createServerFn } from "@tanstack/react-start";
+import { getRequest } from "@tanstack/react-start/server";
 import { normalizeRegion, REGION_NAMES } from "./yt-charts";
-
-export type ViewerGeo = {
-  region: string;
-  regionName: string;
-  city: string | null;
-  source: "header" | "ip" | "language" | "default";
-};
+import type { ViewerGeo } from "./geo";
 
 const COUNTRY_HEADERS = [
   "cf-ipcountry",
@@ -64,7 +58,6 @@ async function lookupIp(ip: string): Promise<{ region: string; city: string | nu
 export async function detectViewerGeo(): Promise<ViewerGeo> {
   let headers: Headers | null = null;
   try {
-    const { getRequest } = await import("@tanstack/react-start/server");
     headers = getRequest().headers;
   } catch {
     headers = null;
@@ -100,5 +93,3 @@ export async function detectViewerGeo(): Promise<ViewerGeo> {
 
   return { region: "US", regionName: REGION_NAMES.US, city: null, source: "default" };
 }
-
-export const getViewerGeo = createServerFn({ method: "GET" }).handler(async () => detectViewerGeo());

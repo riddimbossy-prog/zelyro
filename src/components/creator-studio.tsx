@@ -18,7 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn, formatMoney } from "@/lib/utils";
 import { toast } from "sonner";
-import { becomeArtist, publishTrack } from "@/lib/zelyro/queries";
+import { becomeArtist, publishTrack } from "@/lib/verzzify/queries";
 import {
   createAlbum,
   createLiveStream,
@@ -28,11 +28,11 @@ import {
   listVideoChatHistory,
   setCreatorAvailable,
   upsertVideoCall,
-} from "@/lib/zelyro/studio-actions";
+} from "@/lib/verzzify/studio-actions";
 import { StudioPromotions } from "@/components/studio-promotions";
 import { useCurrentUser } from "@/lib/auth/use-current-user";
 import { CoverCard } from "@/components/cover-card";
-import type { TrackCard } from "@/lib/zelyro/types";
+import type { TrackCard } from "@/lib/verzzify/types";
 import { uploadStudioAsset } from "@/lib/storage/browser";
 import { getInfraStatus } from "@/lib/infra/status";
 

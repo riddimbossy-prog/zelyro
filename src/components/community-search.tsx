@@ -3,7 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { ArtistTile } from "@/components/cover-card";
-import type { ArtistCard, PostCard, TrackCard } from "@/lib/zelyro/types";
+import type { ArtistCard, PostCard, TrackCard } from "@/lib/verzzify/types";
 
 type Room = {
   id: string;

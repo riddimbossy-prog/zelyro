@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { getAlbumPage } from "@/lib/zelyro/queries";
-import { usePlayer } from "@/lib/zelyro/player";
+import { getAlbumPage } from "@/lib/verzzify/queries";
+import { usePlayer } from "@/lib/verzzify/player";
 import { TrackRow } from "@/components/track-row";
 import { Button } from "@/components/ui/button";
 import { Play } from "lucide-react";

@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { getHomeData, getStudioOverview, getWallet, requestPayout, scanTicket } from "@/lib/zelyro/queries";
+import { getHomeData, getStudioOverview, getWallet, requestPayout, scanTicket } from "@/lib/verzzify/queries";
 import { RedirectToSignIn } from "@/lib/auth/gates";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { Button } from "@/components/ui/button";

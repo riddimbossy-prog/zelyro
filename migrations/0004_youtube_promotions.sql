@@ -132,8 +132,8 @@ values (
   'Kofi Blade — Night Market; Yaw Lion — Rooftop Fire',
   'New York',
   true,
-  'https://youtube.com/@zelyro',
-  'studio@zelyro.example'
+  'https://youtube.com/@verzzify',
+  'studio@verzzify.com'
 ) on conflict (user_id) do nothing;
 
 insert into studios (id, name, city, country, kind, description) values
@@ -144,7 +144,7 @@ insert into studios (id, name, city, country, kind, description) values
   ('st_kingston', 'Harbour Light', 'Kingston', 'JM', 'recording', 'Rooftop dancehall, no water.')
 on conflict (id) do nothing;
 
--- Official YouTube videos promoted inside Zelyro. Metadata is stored so the
+-- Official YouTube videos promoted inside VerzZify. Metadata is stored so the
 -- catalog works without a Data API key; playback always uses YouTube itself.
 insert into external_music_links (
   id, artist_id, provider, external_url, external_content_id, title, thumbnail_url,
@@ -156,7 +156,7 @@ insert into external_music_links (
     'Black Sherif - Kwaku the Traveller (Official Video)',
     'https://i.ytimg.com/vi/GIDiI5kyBDQ/hqdefault.jpg',
     'Black Sherif Music', 'UCKfrbVDBEq-wcYC4rUzEosA',
-    'Official video. Zelyro does not host this file.',
+    'Official video. VerzZify does not host this file.',
     213, 'music_video', true, true, true
   ),
   (
@@ -165,7 +165,7 @@ insert into external_music_links (
     'King Promise - Terminator feat. Young Jonn (Official Video)',
     'https://i.ytimg.com/vi/NPCC02SaJVg/hqdefault.jpg',
     'King Promise Official', 'UCHhS8FHRTxM7ysMKRUl3LHQ',
-    'Official video. Zelyro does not host this file.',
+    'Official video. VerzZify does not host this file.',
     244, 'music_video', true, true, true
   ),
   (
@@ -174,7 +174,7 @@ insert into external_music_links (
     'Burna Boy - Last Last [Official Music Video]',
     'https://i.ytimg.com/vi/421w1j87fEM/hqdefault.jpg',
     'Burna Boy', 'UCEzDdNqNkT-7rSfSGSr1hWg',
-    'Official video. Zelyro does not host this file.',
+    'Official video. VerzZify does not host this file.',
     174, 'music_video', true, true, true
   ),
   (
@@ -183,7 +183,7 @@ insert into external_music_links (
     'Uncle Waffles and Tony Duardo - Tanzania (Official Music Video)',
     'https://i.ytimg.com/vi/WvxADzZMkEI/hqdefault.jpg',
     'Uncle Waffles', 'UCDfH7E8iHkEjmZ6H9uQ5o1g',
-    'Official video. Zelyro does not host this file.',
+    'Official video. VerzZify does not host this file.',
     236, 'music_video', true, true, true
   ),
   (
@@ -192,7 +192,7 @@ insert into external_music_links (
     'Uncle Waffles and Tony Duardo - Tanzania (Official Music Video)',
     'https://i.ytimg.com/vi/WvxADzZMkEI/hqdefault.jpg',
     'Uncle Waffles', 'UCDfH7E8iHkEjmZ6H9uQ5o1g',
-    'Amapiano night, official YouTube. Zelyro does not host this file.',
+    'Amapiano night, official YouTube. VerzZify does not host this file.',
     236, 'performance', true, true, true
   ),
   (
@@ -228,7 +228,7 @@ insert into promotion_campaigns (
   ),
   (
     'camp_term', 'sys_kofi', 'youtube', 'eml_terminator',
-    'Terminator on Zelyro',
+    'Terminator on VerzZify',
     'London to the official clip.',
     'active', 8000, 800, 2100, 'GBP', '2026-08-10', '2026-09-10',
     'GB', 'Hip Hop', 'fans', false

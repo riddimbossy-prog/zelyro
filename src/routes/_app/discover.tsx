@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { getDiscover } from "@/lib/zelyro/queries";
+import { getDiscover } from "@/lib/verzzify/queries";
 import { CoverCard, ArtistTile } from "@/components/cover-card";
 import { SectionRail } from "@/components/section-rail";
 import { YouTubePromotionCard } from "@/components/youtube-promotion-card";

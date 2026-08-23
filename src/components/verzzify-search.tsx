@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Search, X } from "lucide-react";
-import { searchDiscover } from "@/lib/zelyro/promotions";
+import { searchDiscover } from "@/lib/verzzify/promotions";
 import { YtVideoCard } from "@/components/yt-video-card";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -71,7 +71,7 @@ export function VerzZifySearch({ autoFocus = false }: { autoFocus?: boolean }) {
           </button>
         )}
       </div>
-      <div className="mt-2 flex gap-1.5">
+      <div className={cn("mt-2 flex gap-1.5", !open && "hidden")}>
         {KINDS.map((k) => (
           <button
             key={k.id}

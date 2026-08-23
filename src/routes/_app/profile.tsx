@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { getMyProfile, updateMyProfile } from "@/lib/zelyro/queries";
+import { getMyProfile, updateMyProfile } from "@/lib/verzzify/queries";
 import { RedirectToSignIn } from "@/lib/auth/gates";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { MackProfileView } from "@/components/mack-profile";

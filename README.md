@@ -9,7 +9,7 @@ This repository ships:
 
 Production clients (Flutter iOS / Android / Web / foldables) and the NestJS API consume the same `/api/v1` contract described in [docs/architecture.md](docs/architecture.md).
 
-**Launch order:** Flutter Web MVP → real artists/listeners → native playback, downloads, notifications, billing → compile that project for Android/iOS → store submission. This TanStack catalog is the preview, not the store app.
+**Launch order:** Flutter Web MVP (`apps/flutter`) → real artists/listeners → native playback, downloads, notifications, billing → compile that project for Android/iOS → store submission. This TanStack catalog is the preview, not the store app.
 
 ## Product
 
@@ -26,7 +26,7 @@ Account types: Fan, Artist/Creator, Producer, Event Organizer, Admin, Super Admi
 ## Repository
 
 ```
-zelyro/
+verzzify/
   src/                 web catalog (TanStack Start)
   migrations/          Postgres schema + seed
   docs/                architecture, security, payments, streaming, …
@@ -39,8 +39,8 @@ Target production layout (Flutter + NestJS monorepo) is documented in `docs/arch
 ## Run the web catalog
 
 ```bash
-git clone https://github.com/riddimbossy-prog/zelyro.git
-cd zelyro
+git clone https://github.com/riddimbossy-prog/zelyro.git verzzify
+cd verzzify
 cp .env.example .env
 npm install
 npm run dev

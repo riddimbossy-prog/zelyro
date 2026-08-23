@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>VerzZify 1-1</title>
+  <style>
+    :root { color-scheme: dark; }
+    html, body { margin: 0; height: 100%; background: #07010d; color: #f6f0ff; font-family: system-ui, sans-serif; }
+    #stage { position: relative; height: calc(100% - 88px); background: #12081a; }
+    #remote { width: 100%; height: 100%; object-fit: cover; background: #1a1024; }
+    #local {
+      position: absolute; right: 16px; bottom: 16px; width: 28%; max-width: 220px;
+      aspect-ratio: 3/4; object-fit: cover; border-radius: 14px; background: #2a1638;
+      box-shadow: 0 8px 32px #0008; border: 1px solid #ffffff22;
+    }
+    #bar {
+      height: 88px; display: flex; align-items: center; justify-content: center; gap: 10px;
+      background: #0d0614;
+    }
+    button {
+      border: 0; border-radius: 999px; min-width: 48px; height: 48px; padding: 0 16px;
+      background: #2a1638; color: #fff; font-weight: 700; cursor: pointer;
+    }
+    button.danger { background: #c026d3; }
+    button.off { background: #5b1a2a; }
+    #status { position: absolute; left: 16px; top: 16px; font-size: 13px; letter-spacing: .04em;
+      background: #0008; padding: 8px 12px; border-radius: 999px; }
+  </style>
+</head>
+<body>
+  <div id="stage">
+    <video id="remote" autoplay playsinline></video>
+    <video id="local" autoplay muted playsinline></video>
+    <div id="status">Connecting camera…</div>
+  </div>
+  <div id="bar">
+    <button id="mic" title="Mute">Mic</button>
+    <button id="cam" title="Camera">Cam</button>
+    <button id="hang" class="danger">End</button>
+  </div>
+  <script>
+    const params = new URLSearchParams(location.search);
+    const room = (params.get("room") || "lobby").replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 64) || "lobby";
+    const self = ("p" + Math.random().toString(36).slice(2, 10)).slice(0, 64);
+    const name = (params.get("name") || "You").slice(0, 64);
+    let ice = [{ urls: ["stun:stun.l.google.com:19302", "stun:stun.cloudflare.com:3478"] }];
+    let iceTransportPolicy = "all";
+    const $ = (id) => document.getElementById(id);
+    const status = (t) => { $("status").textContent = t; };
+
+    let stream = null;
+    let pc = null;
+    let since = 0;
+    let makingOffer = false;
+    let ignoreOffer = false;
+    let polite = true;
+    let remoteId = null;
+    let pollTimer = 0;
+    let closed = false;
+    let pendingIce = [];
+    let queuedLocalIce = [];
+    let hasTurn = false;
+    let path = "gathering";
+
+    function toJson(desc) {
+      if (!desc) return null;
+      return { type: desc.type, sdp: desc.sdp };
+    }
+
+    async function loadIce() {
+      try {
+        const r = await fetch("/api/v1/ice", { cache: "no-store" });
+        const j = await r.json();
+        if (Array.isArray(j.iceServers) && j.iceServers.length) ice = j.iceServers;
+        iceTransportPolicy = j.iceTransportPolicy || "all";
+        hasTurn = Boolean(j.hasTurn);
+      } catch {}
+    }
+
+    async function signal(to, kind, payload) {
+      await fetch("/api/rtc", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ op: "signal", room, from: self, to, kind, payload }),
+      });
+    }
+
+    async function flushIce() {
+      if (!pc?.remoteDescription) return;
+      while (pendingIce.length) {
+        const c = pendingIce.shift();
+        try { await pc.addIceCandidate(c); } catch {}
+      }
+    }
+
+    async function readPath() {
+      if (!pc) return;
+      try {
+        const stats = await pc.getStats();
+        let pair;
+        stats.forEach((s) => {
+          if (s.type === "candidate-pair" && s.nominated && s.state === "succeeded") pair = s;
+        });
+        if (!pair) return;
+        let local;
+        stats.forEach((s) => { if (s.id === pair.localCandidateId) local = s; });
+        const type = local?.candidateType || "unknown";
+        path = type;
+        const label = { host: "LAN", srflx: "STUN (public NAT)", prflx: "peer-reflexive", relay: "TURN relay" }[type] || type;
+        status("Live · " + label);
+      } catch {}
+    }
+
+    function ensurePc() {
+      if (pc) return pc;
+      pc = new RTCPeerConnection({
+        iceServers: ice,
+        iceTransportPolicy,
+        iceCandidatePoolSize: 2,
+        bundlePolicy: "max-bundle",
+      });
+      if (stream) stream.getTracks().forEach((t) => pc.addTrack(t, stream));
+      pc.ontrack = (e) => {
+        $("remote").srcObject = e.streams[0] || new MediaStream([e.track]);
+        status("Connected");
+        setTimeout(readPath, 400);
+      };
+      pc.onicecandidate = (e) => {
+        if (!e.candidate) return;
+        if (remoteId) void signal(remoteId, "ice", e.candidate.toJSON());
+        else queuedLocalIce.push(e.candidate.toJSON());
+      };
+      pc.oniceconnectionstatechange = () => {
+        if (pc.iceConnectionState === "connected" || pc.iceConnectionState === "completed") readPath();
+        if (pc.iceConnectionState === "failed") {
+          status(hasTurn ? "ICE failed — retrying via TURN…" : "ICE failed — add a TURN server for hard NATs");
+          try { pc.restartIce(); } catch {}
+        }
+      };
+      pc.onconnectionstatechange = () => {
+        if (pc.connectionState === "connected") readPath();
+        if (pc.connectionState === "disconnected") status("Reconnecting…");
+        if (pc.connectionState === "failed") {
+          status("Peer failed");
+          try { pc.restartIce(); } catch {}
+        }
+      };
+      pc.onnegotiationneeded = async () => {
+        if (!remoteId) return;
+        try {
+          makingOffer = true;
+          await pc.setLocalDescription(await pc.createOffer());
+          await signal(remoteId, "offer", toJson(pc.localDescription));
+        } catch (err) {
+          console.warn(err);
+        } finally {
+          makingOffer = false;
+        }
+      };
+      return pc;
+    }
+
+    async function attachRemote(id) {
+      if (remoteId === id) return;
+      remoteId = id;
+      polite = self < remoteId;
+      ensurePc();
+      status(polite ? "Waiting for offer…" : "Calling…");
+      while (queuedLocalIce.length && remoteId) {
+        void signal(remoteId, "ice", queuedLocalIce.shift());
+      }
+      if (!polite) {
+        try {
+          makingOffer = true;
+          await pc.setLocalDescription(await pc.createOffer());
+          await signal(remoteId, "offer", toJson(pc.localDescription));
+        } finally {
+          makingOffer = false;
+        }
+      }
+    }
+
+    async function onSignal(s) {
+      ensurePc();
+      if (s.from && s.from !== remoteId) await attachRemote(s.from);
+      if (s.kind === "offer") {
+        const glare = makingOffer || pc.signalingState !== "stable";
+        ignoreOffer = !polite && glare;
+        if (ignoreOffer) return;
+        if (glare) await pc.setLocalDescription({ type: "rollback" });
+        await pc.setRemoteDescription(s.payload);
+        await flushIce();
+        await pc.setLocalDescription(await pc.createAnswer());
+        await signal(s.from, "answer", toJson(pc.localDescription));
+      } else if (s.kind === "answer") {
+        if (pc.signalingState === "have-local-offer") {
+          await pc.setRemoteDescription(s.payload);
+          await flushIce();
+        }
+      } else if (s.kind === "ice") {
+        if (!pc.remoteDescription) pendingIce.push(s.payload);
+        else {
+          try { await pc.addIceCandidate(s.payload); } catch {}
+        }
+      }
+    }
+
+    async function poll() {
+      if (closed) return;
+      try {
+        const r = await fetch(`/api/rtc?room=${encodeURIComponent(room)}&peer=${encodeURIComponent(self)}&name=${encodeURIComponent(name)}&since=${since}`);
+        const j = await r.json();
+        for (const s of j.signals || []) {
+          since = Math.max(since, Number(s.id) || since);
+          await onSignal(s);
+        }
+        const others = (j.peers || []).filter((p) => p.id !== self);
+        if (others[0] && others[0].id !== remoteId) await attachRemote(others[0].id);
+        if (!others.length) {
+          remoteId = null;
+          if (pc && pc.connectionState !== "connected") status("Waiting for the other person…");
+        }
+      } catch {
+        status("Signaling retry…");
+      }
+      pollTimer = setTimeout(poll, pc && pc.connectionState === "connected" ? 2000 : 500);
+    }
+
+    async function start() {
+      await loadIce();
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } },
+          audio: true,
+        });
+        $("local").srcObject = stream;
+        status(hasTurn ? "Ready (STUN + TURN)" : "Ready (STUN). Hard NATs need TURN.");
+      } catch {
+        status("Camera blocked — audio-only if the mic is allowed.");
+        try { stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false }); } catch {}
+      }
+      ensurePc();
+      poll();
+    }
+
+    $("mic").onclick = () => {
+      const t = stream?.getAudioTracks()[0];
+      if (!t) return;
+      t.enabled = !t.enabled;
+      $("mic").classList.toggle("off", !t.enabled);
+      $("mic").textContent = t.enabled ? "Mic" : "Muted";
+    };
+    $("cam").onclick = () => {
+      const t = stream?.getVideoTracks()[0];
+      if (!t) return;
+      t.enabled = !t.enabled;
+      $("cam").classList.toggle("off", !t.enabled);
+      $("cam").textContent = t.enabled ? "Cam" : "Cam off";
+    };
+    $("hang").onclick = () => {
+      closed = true;
+      clearTimeout(pollTimer);
+      stream?.getTracks().forEach((t) => t.stop());
+      pc?.close();
+      fetch("/api/rtc", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ op: "leave", room, peer: self }),
+        keepalive: true,
+      });
+      status("Ended");
+    };
+    window.addEventListener("pagehide", () => {
+      fetch("/api/rtc", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ op: "leave", room, peer: self }),
+        keepalive: true,
+      });
+    });
+
+    start();
+  </script>
+</body>
+</html>

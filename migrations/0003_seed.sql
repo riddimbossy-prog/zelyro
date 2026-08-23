@@ -19,7 +19,7 @@ insert into genres (id, name, slug) values
 on conflict (id) do nothing;
 
 insert into profiles (id, username, display_name, role, country, bio, avatar_url, banner_url, city) values
-  ('sys_zelyro','zelyro','Zelyro','admin','US','The Zelyro editorial desk.','/favicon.svg','/banners/hero.jpg','New York'),
+  ('sys_zelyro','verzzify','VerzZify','admin','US','The VerzZify editorial desk.','/favicon.svg','/banners/hero.jpg','New York'),
   ('sys_ama','ama-serwaa','Ama Serwaa','artist','GH','Highlife for the golden hour.','/artists/ama.jpg','/banners/accra.jpg','Accra'),
   ('sys_kofi','kofi-blade','Kofi Blade','artist','GB','UK rap from the Hackney night market.','/artists/kofi.jpg','/banners/accra.jpg','London'),
   ('sys_nia','nia-adaeze','Nia Adaeze','artist','NG','Afrobeats, rain, and rooftop marble.','/artists/nia.jpg','/banners/lagos.jpg','Lagos'),
@@ -110,7 +110,7 @@ insert into event_ticket_types (id, event_id, name, price_cents, currency, capac
 on conflict (id) do nothing;
 
 insert into live_events (id, artist_id, title, poster_url, description, starts_at, price_cents, is_free, capacity, status) values
-  ('live_nia','sys_nia','Terrace Lights — Zelyro Live','/events/rooftop.jpg','An intimate Lagos rooftop set. PPV access, server-validated.','2026-08-22 20:00:00+00',2500,false,500,'scheduled'),
+  ('live_nia','sys_nia','Terrace Lights — VerzZify Live','/events/rooftop.jpg','An intimate Lagos rooftop set. PPV access, server-validated.','2026-08-22 20:00:00+00',2500,false,500,'scheduled'),
   ('live_adwoa','sys_adwoa','Morning Mercy — Chapel Session','/covers/morning-mercy.jpg','A free Sunday livestream from Atlanta.','2026-08-23 09:00:00+00',0,true,null,'scheduled')
 on conflict (id) do nothing;
 
@@ -122,7 +122,7 @@ on conflict (artist_id) do nothing;
 
 insert into posts (id, user_id, body, image_url, track_id, like_count, created_at) values
   ('post_1','sys_ama','Gold Coast Evening is out. Brass, dusk, and the city below. Thank you for sitting with this one.','/covers/gold-coast.jpg','trk_01',842, now() - interval '2 days'),
-  ('post_2','sys_nia','Rooftop session this week on Zelyro Live. Bring a quiet evening.','/events/rooftop.jpg','trk_04',1204, now() - interval '1 day'),
+  ('post_2','sys_nia','Rooftop session this week on VerzZify Live. Bring a quiet evening.','/events/rooftop.jpg','trk_04',1204, now() - interval '1 day'),
   ('post_3','sys_wave','Warehouse 04. Doors 10. No phones on the booth.','/covers/warehouse.jpg','trk_07',511, now() - interval '18 hours'),
   ('post_4','sys_adwoa','If you need a Sunday that does not rush you, Morning Mercy is free to keep.','/covers/morning-mercy.jpg','trk_08',390, now() - interval '3 days'),
   ('post_5','sys_kofi','Night market never closed. New single in the library.','/covers/night-market.jpg','trk_03',276, now() - interval '8 hours'),
@@ -135,8 +135,8 @@ insert into comments (id, user_id, target_type, target_id, body) values
 on conflict (id) do nothing;
 
 insert into articles (id, title, slug, category, excerpt, body, cover_url) values
-  ('art_1','Highlife does not need to shout','highlife-does-not-shout','Music','Ama Serwaa and the quiet return of Accra brass.','Zelyro is not a copy of anyone’s catalog. The Gold Coast Evening sessions were tracked at dusk so the horns would have to compete with the city, not a click.','/covers/gold-coast.jpg'),
-  ('art_2','How artists keep the file','how-artists-keep-the-file','Artists','Why Zelyro sells downloads without selling the copyright.','A purchase on Zelyro is a license the artist wrote. Basic keeps the file in your account. Premium, when the artist allows it, is an authorized download with a receipt. Copyright does not move.','/covers/desk-light.jpg')
+  ('art_1','Highlife does not need to shout','highlife-does-not-shout','Music','Ama Serwaa and the quiet return of Accra brass.','VerzZify is not a copy of anyone’s catalog. The Gold Coast Evening sessions were tracked at dusk so the horns would have to compete with the city, not a click.','/covers/gold-coast.jpg'),
+  ('art_2','How artists keep the file','how-artists-keep-the-file','Artists','Why VerzZify sells downloads without selling the copyright.','A purchase on VerzZify is a license the artist wrote. Basic keeps the file in your account. Premium, when the artist allows it, is an authorized download with a receipt. Copyright does not move.','/covers/desk-light.jpg')
 on conflict (id) do nothing;
 
 insert into commission_rules (id, product_type, platform_bps, processor_bps, min_payout_cents, currency) values
@@ -147,14 +147,14 @@ insert into commission_rules (id, product_type, platform_bps, processor_bps, min
 on conflict (id) do nothing;
 
 insert into subscription_plans (id, name, price_cents, currency, interval, features) values
-  ('plan_free','Zelyro Free',0,'USD','month','Standard streaming, discovery, community'),
-  ('plan_plus','Zelyro Plus',999,'USD','month','Ad-free Zelyro-hosted audio, extra downloads, early live access')
+  ('plan_free','VerzZify Free',0,'USD','month','Standard streaming, discovery, community'),
+  ('plan_plus','VerzZify Plus',999,'USD','month','Ad-free VerzZify-hosted audio, extra downloads, early live access')
 on conflict (id) do nothing;
 
 insert into feature_flags (key, enabled, payload) values
   ('ENABLE_YOUTUBE',true,null),
   ('ENABLE_TICKETING',true,null),
-  ('ENABLE_ZELYRO_LIVE',true,null),
+  ('ENABLE_VERZZIFY_LIVE',true,null),
   ('ENABLE_VIDEO_CALLS',true,null),
   ('ENABLE_PREMIUM',true,null),
   ('ENABLE_NEARBY_ARTISTS',true,null)

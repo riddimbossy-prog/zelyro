@@ -1,8 +1,8 @@
 import { Heart, Play } from "lucide-react";
 import { Link } from "@tanstack/react-router";
-import type { TrackCard } from "@/lib/zelyro/types";
-import { usePlayer } from "@/lib/zelyro/player";
-import { toggleLike } from "@/lib/zelyro/queries";
+import type { TrackCard } from "@/lib/verzzify/types";
+import { usePlayer } from "@/lib/verzzify/player";
+import { toggleLike } from "@/lib/verzzify/queries";
 import { cn, formatCount, formatTime } from "@/lib/utils";
 import { toast } from "sonner";
 import { DownloadButton } from "@/components/download-button";
@@ -56,7 +56,7 @@ export function TrackRow({
           <Link
             to="/track/$id"
             params={{ id: track.id }}
-            className={cn("block truncate text-sm font-medium", active && "text-primary")}
+            className={cn("block truncate text-base font-semibold leading-tight", active && "text-primary")}
           >
             {track.title}
           </Link>
@@ -64,7 +64,7 @@ export function TrackRow({
             <Link
               to="/artist/$slug"
               params={{ slug: track.artistSlug }}
-              className="block truncate text-xs text-muted-foreground"
+              className="block truncate text-sm leading-tight text-muted-foreground"
             >
               {track.artistName}
             </Link>

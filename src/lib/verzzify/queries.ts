@@ -17,7 +17,7 @@ import type {
 } from "./types";
 import { loadActivePromotions, loadArtistYoutube, loadNearby, searchYoutubeCatalog } from "./promotions";
 import { loadYoutubeHome, normalizeRegion } from "./yt-charts";
-import { detectViewerGeo } from "./geo";
+import { detectViewerGeo } from "./geo.server";
 
 type TrackRow = {
   id: string;
@@ -177,12 +177,12 @@ export const getHomeData = createServerFn({ method: "GET" }).handler(async () =>
   try {
     return await loadHome();
   } catch (err) {
-    console.error("[zelyro] getHomeData", err);
+    console.error("[verzzify] getHomeData", err);
     throw err;
   }
 });
 
-async function loadHome() {
+export async function loadHome() {
   const sql = await getSql();
   const userId = await optionalUserId();
   if (userId) {
@@ -849,7 +849,7 @@ export const purchaseTrack = createServerFn({ method: "POST" })
     `;
     await sql`
       insert into payment_transactions (id, user_id, provider, amount_cents, currency, status, purpose)
-      values (${`${pid}_pay`}, ${context.userId}, 'zelyro_wallet_sim', ${gross}, ${t.currency}, 'completed', 'track_purchase')
+      values (${`${pid}_pay`}, ${context.userId}, 'verzzify_wallet_sim', ${gross}, ${t.currency}, 'completed', 'track_purchase')
     `;
     return { ok: true, already: false as const, purchaseId: pid, rights, licenseType };
   });

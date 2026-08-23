@@ -1,6 +1,6 @@
 import { Check, Download, LoaderCircle } from "lucide-react";
-import type { TrackCard } from "@/lib/zelyro/types";
-import { useDownloads } from "@/lib/zelyro/downloads";
+import type { TrackCard } from "@/lib/verzzify/types";
+import { useDownloads } from "@/lib/verzzify/downloads";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 

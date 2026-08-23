@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
-import { copy } from "@/lib/zelyro/copy";
+import { copy } from "@/lib/verzzify/copy";
 
 export function BrandMark({
   className,

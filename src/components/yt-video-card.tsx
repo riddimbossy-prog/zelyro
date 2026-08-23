@@ -1,6 +1,6 @@
 import { Play } from "lucide-react";
-import type { YouTubeVideo } from "@/lib/zelyro/types";
-import { useYtPlayer } from "@/lib/zelyro/yt-player";
+import type { YouTubeVideo } from "@/lib/verzzify/types";
+import { useYtPlayer } from "@/lib/verzzify/yt-player";
 import { cn, formatCount } from "@/lib/utils";
 import { toast } from "sonner";
 

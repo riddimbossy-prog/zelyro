@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { getAdminCampaigns, moderateCampaign } from "@/lib/zelyro/promotions";
+import { getAdminCampaigns, moderateCampaign } from "@/lib/verzzify/promotions";
 import { RedirectToSignIn } from "@/lib/auth/gates";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { Button } from "@/components/ui/button";
@@ -86,7 +86,7 @@ function AdminPromotions() {
                   {c.video.title} · {c.video.channelName}
                 </p>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  {c.zelyroArtistName} · {c.impressions} impressions · {c.clicks} clicks ·{" "}
+                  {c.verzzifyArtistName} · {c.impressions} impressions · {c.clicks} clicks ·{" "}
                   {formatMoney(c.spentCents)} / {formatMoney(c.budgetCents)}
                 </p>
               </div>

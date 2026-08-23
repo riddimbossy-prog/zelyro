@@ -1,0 +1,9 @@
+{
+  "name": "VerzZify",
+  "short_name": "VerzZify",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#07010D",
+  "theme_color": "#C026D3",
+  "description": "VerzZify music"
+}

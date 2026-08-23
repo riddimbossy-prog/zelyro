@@ -3,7 +3,7 @@ import { Check, Copy, Radio, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { useShareSheet } from "@/lib/zelyro/share";
+import { useShareSheet } from "@/lib/verzzify/share";
 
 export function ShareSheet() {
   const open = useShareSheet((s) => s.open);

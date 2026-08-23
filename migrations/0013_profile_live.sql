@@ -4,9 +4,9 @@ insert into live_events (id, artist_id, title, poster_url, description, starts_a
 values (
   'live_you_wire',
   'dev-user',
-  'Afterglow Wire — Zelyro Live',
+  'Afterglow Wire — VerzZify Live',
   '/banners/you.jpg',
-  'Lisbon rooftop, one take, coral mix. PPV on Zelyro Live.',
+  'Lisbon rooftop, one take, coral mix. PPV on VerzZify Live.',
   now() + interval '2 days',
   900,
   false,

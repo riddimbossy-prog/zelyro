@@ -1,12 +1,12 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { getArtistPage, purchaseTrack } from "@/lib/zelyro/queries";
-import { bookVideoCall } from "@/lib/zelyro/video-actions";
+import { getArtistPage, purchaseTrack } from "@/lib/verzzify/queries";
+import { bookVideoCall } from "@/lib/verzzify/video-actions";
 import { Button } from "@/components/ui/button";
 import { formatCount, formatMoney } from "@/lib/utils";
 import { toast } from "sonner";
 import { Play } from "lucide-react";
-import { useYtPlayer } from "@/lib/zelyro/yt-player";
+import { useYtPlayer } from "@/lib/verzzify/yt-player";
 import { MackProfileView } from "@/components/mack-profile";
 
 export const Route = createFileRoute("/_app/artist/$slug")({

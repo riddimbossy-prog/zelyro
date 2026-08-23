@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { getNews } from "@/lib/zelyro/queries";
+import { getNews } from "@/lib/verzzify/queries";
 
 export const Route = createFileRoute("/_app/news")({ component: News });
 

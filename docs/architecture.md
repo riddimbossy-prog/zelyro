@@ -24,7 +24,7 @@ DigitalOcean  NestJS  /api/v1
 
 **Rule:** Flutter never holds S3, payment, or service-role secrets. The API is the only privileged actor.
 
-This workspace ships a **web executable slice** of the same product (TanStack Start + Postgres) so discovery, player, studio, and geo home can be tried immediately. It is **not** the store client.
+This workspace ships a **web executable slice** of the same product (TanStack Start + Postgres) so discovery, player, studio, and geo home can be tried immediately. It is **not** the store client. The store client is [`apps/flutter`](../apps/flutter).
 
 ## Launch order
 
@@ -39,7 +39,7 @@ Do not ship this TanStack preview to the stores. Do not split into a separate na
 ## 2. GitHub structure
 
 ```
-zelyro/
+verzzify/
   apps/flutter
   apps/api            # NestJS
   apps/admin

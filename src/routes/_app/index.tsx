@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Play } from "lucide-react";
-import { getHomeData } from "@/lib/zelyro/queries";
-import { usePlayer } from "@/lib/zelyro/player";
+import { getHomeData } from "@/lib/verzzify/queries";
+import { usePlayer } from "@/lib/verzzify/player";
 import { CoverCard, ArtistTile } from "@/components/cover-card";
 import { TrackRow } from "@/components/track-row";
 import { SectionRail } from "@/components/section-rail";
@@ -35,11 +35,11 @@ function Home() {
                 Trending
                 {d.youtubeHome?.regionName ? ` · ${d.youtubeHome.regionName}` : ""}
               </p>
-              <h1 className="mt-2 font-display text-4xl font-semibold tracking-tight md:text-6xl">{hero.title}</h1>
+              <h1 className="mt-2 font-display text-4xl font-extrabold tracking-tight md:text-6xl">{hero.title}</h1>
               <Link
                 to="/artist/$slug"
                 params={{ slug: hero.artistSlug }}
-                className="mt-2 inline-block text-base text-white/80 hover:text-white"
+                className="mt-2 inline-block text-[15px] font-semibold text-white/80 hover:text-white"
               >
                 {hero.artistName}
               </Link>
@@ -89,7 +89,7 @@ function Home() {
 
       <section className="mt-10">
         <div className="mb-3 flex items-end justify-between">
-          <h2 className="font-display text-2xl font-semibold">Trending songs</h2>
+          <h2 className="font-display text-2xl font-extrabold tracking-tight">Trending songs</h2>
           <Link to="/charts" className="text-sm font-medium text-primary">
             See all
           </Link>

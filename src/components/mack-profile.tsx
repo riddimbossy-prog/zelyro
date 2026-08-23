@@ -12,10 +12,10 @@ import {
   Ticket,
   Video,
 } from "lucide-react";
-import type { AlbumCard, ArtistCard, LiveCard, PlaylistCard, PostCard, TrackCard } from "@/lib/zelyro/types";
-import { getSpectrum, usePlayer } from "@/lib/zelyro/player";
-import { useShareSheet } from "@/lib/zelyro/share";
-import { toggleLike, purchaseTrack } from "@/lib/zelyro/queries";
+import type { AlbumCard, ArtistCard, LiveCard, PlaylistCard, PostCard, TrackCard } from "@/lib/verzzify/types";
+import { getSpectrum, usePlayer } from "@/lib/verzzify/player";
+import { useShareSheet } from "@/lib/verzzify/share";
+import { toggleLike, purchaseTrack } from "@/lib/verzzify/queries";
 import { Button } from "@/components/ui/button";
 import { ArtistTile } from "@/components/cover-card";
 import { FollowButton } from "@/components/follow-button";

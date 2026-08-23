@@ -2,8 +2,8 @@
 @import "tw-animate-css";
 
 @theme {
-  --font-display: "Outfit", "Figtree", "Segoe UI", system-ui, sans-serif;
-  --font-sans: "Figtree", "Segoe UI", system-ui, sans-serif;
+  --font-display: "Montserrat", "Nunito Sans", "Segoe UI", system-ui, sans-serif;
+  --font-sans: "Nunito Sans", "Segoe UI", system-ui, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
 
   --color-background: var(--bg);
@@ -111,7 +111,7 @@ html.light {
 
 @layer base {
   html {
-    font-size: 18px;
+    font-size: 17px;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
@@ -124,7 +124,9 @@ html.light {
   }
   body {
     font-family: var(--font-sans);
-    line-height: 1.5;
+    font-size: 16px;
+    font-weight: 400;
+    line-height: 1.45;
     isolation: isolate;
     overflow-x: hidden;
   }
@@ -157,9 +159,10 @@ html.light {
   h3,
   .font-display {
     font-family: var(--font-display);
+    font-weight: 800;
     text-wrap: balance;
-    letter-spacing: -0.03em;
-    line-height: 1.15;
+    letter-spacing: -0.025em;
+    line-height: 1.1;
   }
   p {
     text-wrap: pretty;
@@ -180,7 +183,7 @@ html.light {
 
 @layer components {
   .glass {
-    background: var(--glass);
+    background: color-mix(in oklab, var(--bg) 72%, var(--glass));
     backdrop-filter: blur(22px) saturate(1.55);
     -webkit-backdrop-filter: blur(22px) saturate(1.55);
     box-shadow: var(--glass-shadow);

@@ -1,5 +1,5 @@
--- Zelyro Global 200: Billboard-style stream-equivalent units.
--- SEU = (paid downloads × 200) + streams. D2C sales on Zelyro count.
+-- VerzZify Global 200: Billboard-style stream-equivalent units.
+-- SEU = (paid downloads × 200) + streams. D2C sales on VerzZify count.
 
 create table if not exists chart_download_units (
   track_id text primary key references tracks(id) on delete cascade,

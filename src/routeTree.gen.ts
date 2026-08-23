@@ -36,6 +36,10 @@ import { Route as AppTrackIdRouteImport } from './routes/_app/track.$id'
 import { Route as AppVideoIdRouteImport } from './routes/_app/video.$id'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiStorageUploadRouteImport } from './routes/api/storage/upload'
+import { Route as ApiV1SplatRouteImport } from './routes/api/v1/$'
+import { Route as ApiV1HomeRouteImport } from './routes/api/v1/home'
+import { Route as ApiV1IceRouteImport } from './routes/api/v1/ice'
+import { Route as ApiV1YoutubeRouteImport } from './routes/api/v1/youtube'
 import { Route as ApiStorageMediaIdRouteImport } from './routes/api/storage/media.$id'
 
 const AppRoute = AppRouteImport.update({
@@ -172,6 +176,26 @@ const ApiStorageUploadRoute = ApiStorageUploadRouteImport.update({
   path: '/api/storage/upload',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiV1SplatRoute = ApiV1SplatRouteImport.update({
+  id: '/api/v1/$',
+  path: '/api/v1/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1HomeRoute = ApiV1HomeRouteImport.update({
+  id: '/api/v1/home',
+  path: '/api/v1/home',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1IceRoute = ApiV1IceRouteImport.update({
+  id: '/api/v1/ice',
+  path: '/api/v1/ice',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1YoutubeRoute = ApiV1YoutubeRouteImport.update({
+  id: '/api/v1/youtube',
+  path: '/api/v1/youtube',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiStorageMediaIdRoute = ApiStorageMediaIdRouteImport.update({
   id: '/api/storage/media/$id',
   path: '/api/storage/media/$id',
@@ -205,6 +229,10 @@ export interface FileRoutesByFullPath {
   '/video/$id': typeof AppVideoIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/storage/upload': typeof ApiStorageUploadRoute
+  '/api/v1/$': typeof ApiV1SplatRoute
+  '/api/v1/home': typeof ApiV1HomeRoute
+  '/api/v1/ice': typeof ApiV1IceRoute
+  '/api/v1/youtube': typeof ApiV1YoutubeRoute
   '/api/storage/media/$id': typeof ApiStorageMediaIdRoute
 }
 export interface FileRoutesByTo {
@@ -234,6 +262,10 @@ export interface FileRoutesByTo {
   '/video/$id': typeof AppVideoIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/storage/upload': typeof ApiStorageUploadRoute
+  '/api/v1/$': typeof ApiV1SplatRoute
+  '/api/v1/home': typeof ApiV1HomeRoute
+  '/api/v1/ice': typeof ApiV1IceRoute
+  '/api/v1/youtube': typeof ApiV1YoutubeRoute
   '/api/storage/media/$id': typeof ApiStorageMediaIdRoute
 }
 export interface FileRoutesById {
@@ -265,6 +297,10 @@ export interface FileRoutesById {
   '/_app/video/$id': typeof AppVideoIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/storage/upload': typeof ApiStorageUploadRoute
+  '/api/v1/$': typeof ApiV1SplatRoute
+  '/api/v1/home': typeof ApiV1HomeRoute
+  '/api/v1/ice': typeof ApiV1IceRoute
+  '/api/v1/youtube': typeof ApiV1YoutubeRoute
   '/api/storage/media/$id': typeof ApiStorageMediaIdRoute
 }
 export interface FileRouteTypes {
@@ -296,6 +332,10 @@ export interface FileRouteTypes {
     | '/video/$id'
     | '/api/auth/$'
     | '/api/storage/upload'
+    | '/api/v1/$'
+    | '/api/v1/home'
+    | '/api/v1/ice'
+    | '/api/v1/youtube'
     | '/api/storage/media/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -325,6 +365,10 @@ export interface FileRouteTypes {
     | '/video/$id'
     | '/api/auth/$'
     | '/api/storage/upload'
+    | '/api/v1/$'
+    | '/api/v1/home'
+    | '/api/v1/ice'
+    | '/api/v1/youtube'
     | '/api/storage/media/$id'
   id:
     | '__root__'
@@ -355,6 +399,10 @@ export interface FileRouteTypes {
     | '/_app/video/$id'
     | '/api/auth/$'
     | '/api/storage/upload'
+    | '/api/v1/$'
+    | '/api/v1/home'
+    | '/api/v1/ice'
+    | '/api/v1/youtube'
     | '/api/storage/media/$id'
   fileRoutesById: FileRoutesById
 }
@@ -369,6 +417,10 @@ export interface RootRouteChildren {
   ApiRtcRoute: typeof ApiRtcRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiStorageUploadRoute: typeof ApiStorageUploadRoute
+  ApiV1SplatRoute: typeof ApiV1SplatRoute
+  ApiV1HomeRoute: typeof ApiV1HomeRoute
+  ApiV1IceRoute: typeof ApiV1IceRoute
+  ApiV1YoutubeRoute: typeof ApiV1YoutubeRoute
   ApiStorageMediaIdRoute: typeof ApiStorageMediaIdRoute
 }
 
@@ -563,6 +615,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiStorageUploadRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v1/$': {
+      id: '/api/v1/$'
+      path: '/api/v1/$'
+      fullPath: '/api/v1/$'
+      preLoaderRoute: typeof ApiV1SplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/home': {
+      id: '/api/v1/home'
+      path: '/api/v1/home'
+      fullPath: '/api/v1/home'
+      preLoaderRoute: typeof ApiV1HomeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/ice': {
+      id: '/api/v1/ice'
+      path: '/api/v1/ice'
+      fullPath: '/api/v1/ice'
+      preLoaderRoute: typeof ApiV1IceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/youtube': {
+      id: '/api/v1/youtube'
+      path: '/api/v1/youtube'
+      fullPath: '/api/v1/youtube'
+      preLoaderRoute: typeof ApiV1YoutubeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/storage/media/$id': {
       id: '/api/storage/media/$id'
       path: '/api/storage/media/$id'
@@ -626,6 +706,10 @@ const rootRouteChildren: RootRouteChildren = {
   ApiRtcRoute: ApiRtcRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiStorageUploadRoute: ApiStorageUploadRoute,
+  ApiV1SplatRoute: ApiV1SplatRoute,
+  ApiV1HomeRoute: ApiV1HomeRoute,
+  ApiV1IceRoute: ApiV1IceRoute,
+  ApiV1YoutubeRoute: ApiV1YoutubeRoute,
   ApiStorageMediaIdRoute: ApiStorageMediaIdRoute,
 }
 export const routeTree = rootRouteImport

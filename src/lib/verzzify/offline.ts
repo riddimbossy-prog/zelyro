@@ -27,6 +27,6 @@ export const useSavedYt = create<SavedState>()(
       },
       has: (videoId) => get().items.some((x) => x.videoId === videoId),
     }),
-    { name: "zelyro-yt-saved" },
+    { name: "verzzify-yt-saved" },
   ),
 );

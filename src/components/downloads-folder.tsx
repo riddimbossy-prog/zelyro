@@ -1,7 +1,7 @@
 import { FolderDown, Play, Trash2 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
-import { useDownloads, formatBytes } from "@/lib/zelyro/downloads";
-import { usePlayer } from "@/lib/zelyro/player";
+import { useDownloads, formatBytes } from "@/lib/verzzify/downloads";
+import { usePlayer } from "@/lib/verzzify/player";
 import { Button } from "@/components/ui/button";
 import { formatTime } from "@/lib/utils";
 import { toast } from "sonner";

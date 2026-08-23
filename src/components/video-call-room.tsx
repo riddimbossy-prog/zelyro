@@ -15,9 +15,9 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn, formatMoney, formatTime } from "@/lib/utils";
-import { usePlayer } from "@/lib/zelyro/player";
-import { endVideoCall, startVideoCall, type VideoSession } from "@/lib/zelyro/video-actions";
-import { useVideoCall } from "@/lib/zelyro/use-video-call";
+import { usePlayer } from "@/lib/verzzify/player";
+import { endVideoCall, startVideoCall, type VideoSession } from "@/lib/verzzify/video-actions";
+import { useVideoCall } from "@/lib/verzzify/use-video-call";
 import { useCurrentUser } from "@/lib/auth/use-current-user";
 import { toast } from "sonner";
 

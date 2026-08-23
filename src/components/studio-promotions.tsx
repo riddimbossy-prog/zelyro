@@ -8,8 +8,8 @@ import {
   getMyCampaigns,
   pauseCampaign,
   validatePromotionLink,
-} from "@/lib/zelyro/promotions";
-import type { CampaignAnalytics, YouTubePromotion, YouTubeVideo } from "@/lib/zelyro/types";
+} from "@/lib/verzzify/promotions";
+import type { CampaignAnalytics, YouTubePromotion, YouTubeVideo } from "@/lib/verzzify/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -418,10 +418,10 @@ function YoutubeWizard({ onBack, onDone }: { onBack: () => void; onDone: () => v
               impressions: 0,
               clicks: 0,
               video,
-              zelyroArtistId: "",
-              zelyroArtistName: "You",
-              zelyroArtistSlug: "profile",
-              zelyroArtistAvatar: null,
+              verzzifyArtistId: "",
+              verzzifyArtistName: "You",
+              verzzifyArtistSlug: "profile",
+              verzzifyArtistAvatar: null,
               linkId: "preview",
             }}
           />

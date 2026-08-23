@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 import { Bookmark, Flag, Play, Share2, UserRound } from "lucide-react";
-import type { YouTubePromotion } from "@/lib/zelyro/types";
-import { useYtPlayer } from "@/lib/zelyro/yt-player";
-import { recordClick, recordImpression, reportPromotion, toggleSavePromotion } from "@/lib/zelyro/promotions";
+import type { YouTubePromotion } from "@/lib/verzzify/types";
+import { useYtPlayer } from "@/lib/verzzify/yt-player";
+import { recordClick, recordImpression, reportPromotion, toggleSavePromotion } from "@/lib/verzzify/promotions";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -93,8 +93,8 @@ export function YouTubePromotionCard({
         </p>
         <p className="mt-1 text-[11px] text-muted-foreground">
           Promoted by{" "}
-          <Link to="/artist/$slug" params={{ slug: promo.zelyroArtistSlug }} className="underline">
-            {promo.zelyroArtistName}
+          <Link to="/artist/$slug" params={{ slug: promo.verzzifyArtistSlug }} className="underline">
+            {promo.verzzifyArtistName}
           </Link>
         </p>
         <div className="mt-2 flex flex-wrap gap-1">
@@ -120,7 +120,7 @@ export function YouTubePromotionCard({
           </IconBtn>
           <Link
             to="/artist/$slug"
-            params={{ slug: promo.zelyroArtistSlug }}
+            params={{ slug: promo.verzzifyArtistSlug }}
             className="inline-flex h-8 items-center gap-1 rounded-full bg-secondary px-2.5 text-[11px] text-muted-foreground"
             onClick={() => void track("profile")}
           >

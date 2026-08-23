@@ -1,7 +1,7 @@
 -- Apply in the Supabase SQL editor AFTER migrations/*.sql.
 -- The API uses the service role / postgres user and bypasses RLS.
 -- These policies are defense in depth for the anon key: public catalog is
--- readable; writes are denied. Do not use auth.uid() — Zelyro sessions are
+-- readable; writes are denied. Do not use auth.uid() — VerzZify sessions are
 -- Better Auth, not Supabase Auth.
 
 alter table tracks enable row level security;

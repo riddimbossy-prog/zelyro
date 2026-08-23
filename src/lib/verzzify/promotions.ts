@@ -66,10 +66,10 @@ function mapPromotion(r: PromoRow): YouTubePromotion {
     impressions: Number(r.impressions) || 0,
     clicks: Number(r.clicks) || 0,
     video,
-    zelyroArtistId: String(r.creator_id),
-    zelyroArtistName: String(r.artist_name ?? r.display_name ?? "Creator"),
-    zelyroArtistSlug: String(r.artist_slug ?? ""),
-    zelyroArtistAvatar: (r.artist_avatar as string) ?? null,
+    verzzifyArtistId: String(r.creator_id),
+    verzzifyArtistName: String(r.artist_name ?? r.display_name ?? "Creator"),
+    verzzifyArtistSlug: String(r.artist_slug ?? ""),
+    verzzifyArtistAvatar: (r.artist_avatar as string) ?? null,
     linkId: String(r.link_id ?? r.external_music_link_id ?? ""),
   };
 }

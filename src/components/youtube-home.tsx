@@ -1,11 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { getYoutubeHome, REGION_LIST, REGION_NAMES, type YoutubeHomeData } from "@/lib/zelyro/yt-charts";
-import { getViewerGeo } from "@/lib/zelyro/geo";
+import { getYoutubeHome, REGION_LIST, REGION_NAMES, type YoutubeHomeData } from "@/lib/verzzify/yt-charts";
 import { YtVideoCard } from "@/components/yt-video-card";
-import { useYtPlayer } from "@/lib/zelyro/yt-player";
+import { useYtPlayer } from "@/lib/verzzify/yt-player";
 import { cn } from "@/lib/utils";
-import type { YtPlaylistCard } from "@/lib/zelyro/types";
+import type { YtPlaylistCard } from "@/lib/verzzify/types";
 
 export function YoutubeHome({
   initial,
@@ -14,12 +13,6 @@ export function YoutubeHome({
 }) {
   const [region, setRegion] = useState(initial.region);
   const openQueue = useYtPlayer((s) => s.openQueue);
-
-  useEffect(() => {
-    void getViewerGeo().then((geo) => {
-      if (geo.region) setRegion((cur) => (geo.region !== cur ? geo.region : cur));
-    });
-  }, []);
 
   const homeQ = useQuery({
     queryKey: ["yt-home", region],

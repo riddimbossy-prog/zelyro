@@ -34,7 +34,14 @@ artifacts/
 public/__grok/
 screenshots/
 
-# editor
+# Flutter / Dart
+.pub-cache/
+**/build/
+**/.dart_tool/
+
+# local screenshots / dumps
+attachments/
+
 .idea/
 .vscode/
 *.swp

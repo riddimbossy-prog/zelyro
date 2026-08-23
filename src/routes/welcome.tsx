@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { BrandMark } from "@/components/brand-mark";
-import { copy } from "@/lib/zelyro/copy";
+import { copy } from "@/lib/verzzify/copy";
 
 export const Route = createFileRoute("/welcome")({ component: Welcome });
 

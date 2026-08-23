@@ -1,8 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { searchCatalog } from "@/lib/zelyro/queries";
-import { searchDiscover } from "@/lib/zelyro/promotions";
+import { searchCatalog } from "@/lib/verzzify/queries";
+import { searchDiscover } from "@/lib/verzzify/promotions";
 import { ArtistTile } from "@/components/cover-card";
 import { TrackRow } from "@/components/track-row";
 import { Input } from "@/components/ui/input";

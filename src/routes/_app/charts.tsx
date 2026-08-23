@@ -1,9 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Play } from "lucide-react";
 import { z } from "zod";
-import { getCharts } from "@/lib/zelyro/charts";
+import { getCharts } from "@/lib/verzzify/charts";
 import { ChartArtistRow, ChartTrackRow } from "@/components/chart-row";
-import { usePlayer } from "@/lib/zelyro/player";
+import { usePlayer } from "@/lib/verzzify/player";
 import { Button } from "@/components/ui/button";
 import { cn, formatCount } from "@/lib/utils";
 

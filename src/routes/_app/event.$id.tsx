@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { buyTicket, getEventPage } from "@/lib/zelyro/queries";
+import { buyTicket, getEventPage } from "@/lib/verzzify/queries";
 import { Button } from "@/components/ui/button";
 import { formatMoney } from "@/lib/utils";
 import { toast } from "sonner";
