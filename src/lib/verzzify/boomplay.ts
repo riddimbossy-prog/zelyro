@@ -75,7 +75,7 @@ function mapSong(raw: Record<string, unknown>): BoomplaySong | null {
   return {
     musicId: id,
     title,
-    artist: str(artist.name, raw.artist, "Boomplay"),
+    artist: str(artist.name, raw.artist, "VerzZify"),
     artistId: str(artist.colID, artist.id, "boomplay"),
     album: str(album.name, raw.album),
     cover: str(raw.cover, album.smIconID, artist.smIconID, "/favicon.svg"),
@@ -175,20 +175,28 @@ const HOME_Q: Record<string, string> = {
   GB: "afrobeats",
 };
 
-const homeCache = new Map<string, { at: number; tracks: TrackCard[] }>();
-
-export async function loadBoomplayHome(region: string): Promise<TrackCard[]> {
+export async function loadBoomplayHome(region: string): Promise<{ region: string; popular: TrackCard[]; fresh: TrackCard[] }> {
   const code = region.toUpperCase();
   const hit = homeCache.get(code);
-  if (hit && Date.now() - hit.at < 30 * 60 * 1000) return hit.tracks;
-  if (!boomplayConfigured()) return [];
+  if (hit && Date.now() - hit.at < 30 * 60 * 1000) return hit.data;
+  if (!boomplayConfigured()) return { region: code, popular: [], fresh: [] };
   const q = HOME_Q[code] ?? "afrobeats";
   try {
-    const tracks = (await searchBoomplay(q, "music")).slice(0, 16).map(boomplayToTrack);
-    homeCache.set(code, { at: Date.now(), tracks });
-    return tracks;
+    const [popularRaw, freshRaw] = await Promise.all([
+      searchBoomplay(q, "music"),
+      searchBoomplay(`new ${q}`, "music"),
+    ]);
+    const popular = popularRaw.slice(0, 16).map(boomplayToTrack);
+    const seen = new Set(popular.map((t) => t.id));
+    const fresh = freshRaw
+      .map(boomplayToTrack)
+      .filter((t) => !seen.has(t.id))
+      .slice(0, 12);
+    const data = { region: code, popular, fresh };
+    homeCache.set(code, { at: Date.now(), data });
+    return data;
   } catch {
-    return [];
+    return { region: code, popular: [], fresh: [] };
   }
 }
 

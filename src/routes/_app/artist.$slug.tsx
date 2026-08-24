@@ -195,7 +195,7 @@ function YtThumb({
         </span>
       </button>
       <p className="mt-2 truncate text-sm">{title}</p>
-      <p className="truncate text-xs text-muted-foreground">{channel} · YouTube</p>
+      <p className="truncate text-xs text-muted-foreground">{channel} · VerzZify</p>
     </article>
   );
 }

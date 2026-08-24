@@ -328,9 +328,9 @@ function mapDataItem(v: {
   const id = v.id;
   return {
     videoId: id,
-    title: v.snippet?.title ?? "YouTube video",
+    title: v.snippet?.title ?? "VerzZify cut",
     thumbnailUrl: v.snippet?.thumbnails?.high?.url ?? `https://i.ytimg.com/vi/${id}/hqdefault.jpg`,
-    channelName: v.snippet?.channelTitle ?? "YouTube",
+    channelName: v.snippet?.channelTitle ?? "VerzZify",
     channelId: v.snippet?.channelId ?? null,
     channelUrl: v.snippet?.channelId ? `https://www.youtube.com/channel/${v.snippet.channelId}` : null,
     publishedAt: v.snippet?.publishedAt ?? null,
@@ -376,9 +376,9 @@ async function hydrateIds(ids: string[], key: string): Promise<YouTubeVideo[]> {
   return (json.items ?? []).map(mapDataItem);
 }
 
-async function searchRegionMusic(code: string, q: string, key: string): Promise<YouTubeVideo[]> {
+async function searchRegionMusic(code: string, q: string, key: string, order = "relevance"): Promise<YouTubeVideo[]> {
   try {
-    const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoCategoryId=10&regionCode=${encodeURIComponent(code)}&maxResults=12&q=${encodeURIComponent(q)}&key=${key}`;
+    const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoCategoryId=10&regionCode=${encodeURIComponent(code)}&maxResults=12&order=${order}&q=${encodeURIComponent(q)}&key=${key}`;
     const res = await fetch(url);
     if (!res.ok) return [];
     const json = (await res.json()) as { items?: Array<{ id?: { videoId?: string } }> };
@@ -475,10 +475,12 @@ export function searchLocalYoutube(q: string): YouTubeVideo[] {
   );
 }
 
-function playlistsFrom(code: string, regionName: string, videos: YouTubeVideo[]): YtPlaylistCard[] {
+function playlistsFrom(code: string, regionName: string, videos: YouTubeVideo[], extra: YouTubeVideo[] = []): YtPlaylistCard[] {
   const a = videos.slice(0, 8);
   const b = videos.slice(2, 10);
   const c = [...videos].reverse().slice(0, 8);
+  const n = extra.slice(0, 8);
+  const fresh = extra.slice(0, 10);
   const cover = (list: YouTubeVideo[]) => list[0]?.thumbnailUrl ?? "/covers/night-market.jpg";
   return [
     {
@@ -489,11 +491,25 @@ function playlistsFrom(code: string, regionName: string, videos: YouTubeVideo[])
       videos: a,
     },
     {
+      id: `new-${code}`,
+      title: `New in ${regionName}`,
+      subtitle: "Fresh cuts this week",
+      thumbnailUrl: cover(fresh.length ? fresh : a),
+      videos: fresh.length ? fresh : a,
+    },
+    {
       id: `drive-${code}`,
       title: `${regionName} drive mix`,
       subtitle: "Songs for the commute",
       thumbnailUrl: cover(b.length ? b : a),
       videos: b.length ? b : a,
+    },
+    {
+      id: `weekend-${code}`,
+      title: `${regionName} weekend`,
+      subtitle: "Playlists for the block",
+      thumbnailUrl: cover(n.length ? n : c),
+      videos: n.length ? n : c,
     },
     {
       id: `after-${code}`,
@@ -531,6 +547,7 @@ export type YoutubeHomeData = {
   regionName: string;
   city: string | null;
   videos: YouTubeVideo[];
+  newSongs: YouTubeVideo[];
   artists: YtArtistCard[];
   playlists: YtPlaylistCard[];
   nearby: NearbyScene[];
@@ -556,42 +573,65 @@ export async function loadYoutubeHome(region: string, city: string | null = null
     )
   ).filter((n) => n.videos.length);
   const neighborMix = nearby.flatMap((n) => n.videos).slice(0, 8);
-  const playlists = playlistsFrom(code, REGION_NAMES[code] ?? code, videos);
+  const name = REGION_NAMES[code] ?? code;
   const key = process.env.YOUTUBE_API_KEY?.trim();
+  let newSongs: YouTubeVideo[] = [];
   const rails: YoutubeHomeData["rails"] = [];
   if (key) {
-    const queries = (REGION_SEARCH[code] ?? [`${REGION_NAMES[code] ?? code} official music`]).slice(0, 3);
-    const found = await Promise.all(queries.map(async (q) => ({ q, videos: filterVideosForRegion(code, await searchRegionMusic(code, q, key)) })));
+    const [fresh, ...found] = await Promise.all([
+      searchRegionMusic(code, `${name} new song official 2026`, key, "date"),
+      ...(REGION_SEARCH[code] ?? [`${name} official music`]).slice(0, 3).map(async (q) => ({
+        q,
+        videos: filterVideosForRegion(code, await searchRegionMusic(code, q, key)),
+      })),
+    ]);
+    newSongs = dedupe(filterVideosForRegion(code, Array.isArray(fresh) ? fresh : [])).filter(
+      (v) => !videos.some((x) => x.videoId === v.videoId),
+    );
     for (const row of found) {
+      if (!row || Array.isArray(row)) continue;
       const list = dedupe(row.videos).filter((v) => !videos.some((x) => x.videoId === v.videoId));
       if (list.length >= 4) {
         rails.push({
           id: `${code}-${railLabel(row.q).toLowerCase().replace(/\s+/g, "-")}`,
           title: railLabel(row.q),
-          subtitle: `${REGION_NAMES[code] ?? code} catalog`,
+          subtitle: `${name} catalog`,
           videos: list,
         });
       }
     }
   }
+  const playlists = playlistsFrom(code, name, videos, newSongs);
   if (neighborMix.length) {
     playlists.push({
-      id: `neighbors-${code}`,
-      title: "From next door",
+      id: `region-${code}`,
+      title: "From the region",
       subtitle: nearby.map((n) => n.regionName).join(" · "),
       thumbnailUrl: neighborMix[0]?.thumbnailUrl ?? videos[0]?.thumbnailUrl ?? "",
       videos: neighborMix,
     });
   }
+  for (const n of nearby) {
+    if (n.videos.length >= 4) {
+      playlists.push({
+        id: `pl-${n.region}`,
+        title: `${n.regionName} mix`,
+        subtitle: "Next door on VerzZify",
+        thumbnailUrl: n.videos[0]?.thumbnailUrl ?? "",
+        videos: n.videos.slice(0, 10),
+      });
+    }
+  }
   return {
     region: code,
-    regionName: REGION_NAMES[code] ?? code,
+    regionName: name,
     city,
     videos,
+    newSongs,
     artists: artistsFromVideos(videos),
     playlists,
     nearby,
-    feed: mixFeed(videos, nearby),
+    feed: mixFeed(newSongs.length ? [...newSongs.slice(0, 6), ...videos] : videos, nearby),
     rails,
   };
 }

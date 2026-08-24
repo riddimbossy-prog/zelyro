@@ -57,9 +57,9 @@ export const Route = createFileRoute("/api/v1/boomplay")({
         }
 
         const region = url.searchParams.get("region") || (await getViewerGeo()).region;
-        const tracks = await loadBoomplayHome(region);
+        const pack = await loadBoomplayHome(region);
         return Response.json(
-          { region, tracks },
+          { region: pack.region, tracks: pack.popular, fresh: pack.fresh },
           { headers: { "access-control-allow-origin": "*", "cache-control": "public, max-age=180" } },
         );
       },

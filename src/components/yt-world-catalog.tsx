@@ -21,7 +21,7 @@ export function YtWorldCatalog({ initialRegion = "GH" }: { initialRegion?: strin
       <p className="text-xs tracking-[0.2em] text-sand uppercase">World catalog</p>
       <h2 className="font-display text-2xl md:text-3xl">Musicians by country & genre</h2>
       <p className="mt-1 max-w-xl text-sm text-muted-foreground">
-        Live YouTube music, grouped the way people listen. Tap a country, then a genre — plays in VerzZify.
+        Live music, grouped the way people listen. Tap a country, then a genre — plays in VerzZify.
       </p>
 
       <div className="mt-5 flex gap-2 overflow-x-auto pb-1">

@@ -98,7 +98,7 @@ export function VerzZifySearch({ autoFocus = false }: { autoFocus?: boolean }) {
           </p>
           {boomplay.length > 0 && (
             <div className="mb-3">
-              <p className="mb-1 text-[10px] font-extrabold tracking-widest text-primary uppercase">Boomplay</p>
+              <p className="mb-1 text-[10px] font-extrabold tracking-widest text-primary uppercase">On VerzZify</p>
               {boomplay.map((t, i) => (
                 <TrackRow key={t.id} track={t} queue={boomplay} index={i} />
               ))}

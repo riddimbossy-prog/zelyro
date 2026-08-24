@@ -411,7 +411,7 @@ export function youtubeVideoToTrack(v: YouTubeVideo): TrackCard {
     coverUrl: v.thumbnailUrl,
     audioUrl: `/api/v1/yt-mp3?videoId=${encodeURIComponent(v.videoId)}`,
     durationMs: (v.durationSeconds ?? 0) * 1000,
-    genre: "YouTube",
+    genre: "Music",
     distribution: "youtube",
     priceCents: 0,
     currency: "USD",
