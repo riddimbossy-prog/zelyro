@@ -38,6 +38,62 @@ let ctx: AudioContext | null = null;
 let listenedMs = 0;
 let lastTick = 0;
 let reported = false;
+let wakeLock: WakeLockSentinel | null = null;
+
+async function requestWake() {
+  try {
+    if (typeof navigator !== "undefined" && "wakeLock" in navigator && usePlayer.getState().isPlaying) {
+      wakeLock = await navigator.wakeLock.request("screen");
+      wakeLock.addEventListener("release", () => {
+        wakeLock = null;
+      });
+    }
+  } catch {
+    wakeLock = null;
+  }
+}
+
+function releaseWake() {
+  void wakeLock?.release().catch(() => undefined);
+  wakeLock = null;
+}
+
+function bindMediaSession(t: TrackCard | undefined) {
+  if (!navigator.mediaSession || !t) return;
+  navigator.mediaSession.metadata = new MediaMetadata({
+    title: t.title,
+    artist: t.artistName,
+    album: t.albumTitle ?? "VerzZify",
+    artwork: t.coverUrl
+      ? [
+          { src: t.coverUrl, sizes: "96x96", type: "image/jpeg" },
+          { src: t.coverUrl, sizes: "256x256", type: "image/jpeg" },
+          { src: t.coverUrl, sizes: "512x512", type: "image/jpeg" },
+        ]
+      : [],
+  });
+  navigator.mediaSession.setActionHandler("play", () => {
+    const a = audio();
+    if (!a) return;
+    void a.play().catch(() => undefined);
+  });
+  navigator.mediaSession.setActionHandler("pause", () => {
+    audio()?.pause();
+  });
+  navigator.mediaSession.setActionHandler("previoustrack", () => usePlayer.getState().prev());
+  navigator.mediaSession.setActionHandler("nexttrack", () => usePlayer.getState().next());
+  navigator.mediaSession.setActionHandler("seekto", (d) => {
+    if (typeof d.seekTime === "number") usePlayer.getState().seek(d.seekTime);
+  });
+  navigator.mediaSession.setActionHandler("seekbackward", (d) => {
+    const a = audio();
+    if (a) a.currentTime = Math.max(0, a.currentTime - (d.seekOffset ?? 10));
+  });
+  navigator.mediaSession.setActionHandler("seekforward", (d) => {
+    const a = audio();
+    if (a) a.currentTime = Math.min(a.duration || 0, a.currentTime + (d.seekOffset ?? 10));
+  });
+}
 
 function audio(): HTMLAudioElement | null {
   if (typeof window === "undefined") return null;
@@ -45,6 +101,9 @@ function audio(): HTMLAudioElement | null {
     el = new Audio();
     el.preload = "auto";
     el.crossOrigin = "anonymous";
+    // Keep element out of the way but in the DOM for some mobile browsers
+    el.setAttribute("playsinline", "true");
+    el.setAttribute("webkit-playsinline", "true");
     el.addEventListener("timeupdate", () => {
       const now = performance.now();
       if (lastTick) listenedMs += Math.min(now - lastTick, 500);
@@ -53,6 +112,17 @@ function audio(): HTMLAudioElement | null {
         position: el?.currentTime ?? 0,
         duration: Number.isFinite(el?.duration) ? el!.duration : 0,
       });
+      if (navigator.mediaSession && el) {
+        try {
+          navigator.mediaSession.setPositionState({
+            duration: Number.isFinite(el.duration) ? el.duration : 0,
+            playbackRate: el.playbackRate || 1,
+            position: el.currentTime || 0,
+          });
+        } catch {
+          /* Safari can throw if duration is NaN */
+        }
+      }
     });
     el.addEventListener("ended", () => {
       flushStream();
@@ -70,19 +140,14 @@ function audio(): HTMLAudioElement | null {
       setupAnalyser();
       void ctx?.resume();
       const t = usePlayer.getState().queue[usePlayer.getState().index];
-      if (t && navigator.mediaSession) {
-        navigator.mediaSession.metadata = new MediaMetadata({
-          title: t.title,
-          artist: t.artistName,
-          album: t.albumTitle ?? "VerzZify",
-          artwork: t.coverUrl ? [{ src: t.coverUrl, sizes: "800x800" }] : [],
-        });
-        navigator.mediaSession.playbackState = "playing";
-      }
+      bindMediaSession(t);
+      if (navigator.mediaSession) navigator.mediaSession.playbackState = "playing";
+      void requestWake();
     });
     el.addEventListener("pause", () => {
       usePlayer.setState({ isPlaying: false });
       if (navigator.mediaSession) navigator.mediaSession.playbackState = "paused";
+      releaseWake();
     });
   }
   return el;
@@ -131,6 +196,7 @@ function loadCurrent() {
   lastTick = 0;
   reported = false;
   const gen = ++loadGen;
+  bindMediaSession(t);
   void (async () => {
     const src = await resolvePlaybackUrl(t);
     if (gen !== loadGen) return;
@@ -153,15 +219,30 @@ function loadCurrent() {
     a.volume = s.muted ? 0 : s.volume;
     void a.play().catch(() => usePlayer.setState({ isPlaying: false }));
   })();
-  if (navigator.mediaSession) {
-    navigator.mediaSession.setActionHandler("play", () => usePlayer.getState().toggle());
-    navigator.mediaSession.setActionHandler("pause", () => usePlayer.getState().toggle());
-    navigator.mediaSession.setActionHandler("previoustrack", () => usePlayer.getState().prev());
-    navigator.mediaSession.setActionHandler("nexttrack", () => usePlayer.getState().next());
-    navigator.mediaSession.setActionHandler("seekto", (d) => {
-      if (typeof d.seekTime === "number") usePlayer.getState().seek(d.seekTime);
-    });
-  }
+}
+
+if (typeof window !== "undefined") {
+  // Stay playing when user switches tabs / apps. Do not auto-pause on hide.
+  document.addEventListener("visibilitychange", () => {
+    const a = el;
+    if (!a) return;
+    if (document.visibilityState === "visible") {
+      void ctx?.resume();
+      if (usePlayer.getState().isPlaying && a.paused) {
+        void a.play().catch(() => undefined);
+      }
+      if (usePlayer.getState().isPlaying) void requestWake();
+    }
+  });
+  window.addEventListener("pageshow", () => {
+    const a = el;
+    if (a && usePlayer.getState().isPlaying && a.paused) {
+      void a.play().catch(() => undefined);
+    }
+  });
+  window.addEventListener("focus", () => {
+    void ctx?.resume();
+  });
 }
 
 export const usePlayer = create<PlayerState>((set, get) => ({
