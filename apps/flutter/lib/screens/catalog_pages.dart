@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import '../api.dart';
 import '../call_dom.dart';
 import '../catalog.dart';
+import '../models.dart';
 import '../player_controller.dart';
 import '../theme.dart';
 import '../widgets.dart';
@@ -173,8 +175,54 @@ class TrackScreen extends StatelessWidget {
   }
 }
 
-class DiscoverScreen extends StatelessWidget {
+class DiscoverScreen extends StatefulWidget {
   const DiscoverScreen({super.key});
+  @override
+  State<DiscoverScreen> createState() => _DiscoverScreenState();
+}
+
+class _DiscoverScreenState extends State<DiscoverScreen> {
+  static const genres = [
+    'afrobeats', 'amapiano', 'highlife', 'hiphop', 'rnb', 'pop', 'dancehall', 'gospel',
+    'kpop', 'latin', 'reggaeton', 'drill', 'house', 'rock', 'bollywood', 'electronic',
+  ];
+  static const countries = ['GH', 'NG', 'ZA', 'KE', 'JM', 'US', 'GB', 'BR', 'MX', 'KR', 'JP', 'IN', 'FR', 'DE', 'PT'];
+  String region = 'GH';
+  String genre = 'afrobeats';
+  List<YtClip> videos = [];
+  List<({String name, String avatar, String videoId})> artists = [];
+  bool loading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() => loading = true);
+    try {
+      final raw = await VzApi.get('/api/v1/catalog?region=$region&genre=$genre');
+      final clips = (raw['videos'] as List? ?? []).whereType<Map>().map((e) => YtHome.clip({for (final k in e.keys) '$k': e[k]})).toList();
+      final arts = [
+        for (final e in (raw['artists'] as List? ?? []).whereType<Map>())
+          (
+            name: '${e['channelName'] ?? ''}',
+            avatar: '${e['avatarUrl'] ?? ''}',
+            videoId: '${e['sampleVideoId'] ?? ''}',
+          )
+      ];
+      if (!mounted) return;
+      setState(() {
+        videos = clips;
+        artists = arts;
+        loading = false;
+      });
+    } catch (_) {
+      if (mounted) setState(() => loading = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final player = context.read<PlayerController>();
@@ -184,29 +232,94 @@ class DiscoverScreen extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
           child: Text('Discover', style: Theme.of(context).textTheme.headlineLarge),
         ),
-        const SectionHead('New artists'),
+        const Padding(
+          padding: EdgeInsets.fromLTRB(20, 4, 20, 8),
+          child: Text('Musicians from YouTube, by country and genre.', style: TextStyle(color: muted)),
+        ),
         SizedBox(
-          height: 120,
+          height: 44,
           child: ListView(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 16),
             children: [
-              for (final a in artists)
+              for (final c in countries)
                 Padding(
-                  padding: const EdgeInsets.only(right: 16),
-                  child: InkWell(
-                    onTap: () => context.push('/artist/${a.slug}'),
-                    child: Column(children: [
-                      CircleAvatar(radius: 36, backgroundImage: NetworkImage(a.avatar)),
-                      const SizedBox(height: 8),
-                      Text(a.name.split(' ').first),
-                    ]),
+                  padding: const EdgeInsets.only(right: 8),
+                  child: ChoiceChip(
+                    label: Text(c),
+                    selected: region == c,
+                    onSelected: (_) {
+                      setState(() => region = c);
+                      _load();
+                    },
                   ),
                 ),
             ],
           ),
         ),
-        ...tracks.asMap().entries.map((e) => TrackLine(track: e.value, n: e.key + 1, onPlay: () => player.play(tracks, e.key))),
+        SizedBox(
+          height: 44,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            children: [
+              for (final g in genres)
+                Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: ChoiceChip(
+                    label: Text(g),
+                    selected: genre == g,
+                    onSelected: (_) {
+                      setState(() => genre = g);
+                      _load();
+                    },
+                  ),
+                ),
+            ],
+          ),
+        ),
+        if (loading) const Padding(padding: EdgeInsets.all(24), child: LinearProgressIndicator()),
+        if (artists.isNotEmpty) ...[
+          SectionHead('$genre artists', kicker: region),
+          SizedBox(
+            height: 118,
+            child: ListView.separated(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              scrollDirection: Axis.horizontal,
+              itemCount: artists.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 16),
+              itemBuilder: (_, i) {
+                final a = artists[i];
+                return InkWell(
+                  onTap: () {
+                    final idx = videos.indexWhere((v) => v.videoId == a.videoId);
+                    if (videos.isNotEmpty) player.playClips(videos, idx < 0 ? 0 : idx);
+                  },
+                  child: SizedBox(
+                    width: 84,
+                    child: Column(
+                      children: [
+                        CircleAvatar(radius: 36, backgroundImage: a.avatar.isEmpty ? null : NetworkImage(a.avatar)),
+                        const SizedBox(height: 8),
+                        Text(a.name.split(' ').first, maxLines: 1, overflow: TextOverflow.ellipsis),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+        ...videos.asMap().entries.map((e) => TrackLine(
+              track: e.value.asTrack(),
+              n: e.key + 1,
+              onPlay: () => player.playClips(videos, e.key),
+            )),
+        if (!loading && videos.isEmpty)
+          const Padding(
+            padding: EdgeInsets.all(20),
+            child: Text('No public music for that mix yet. Try another country or genre.', style: TextStyle(color: muted)),
+          ),
       ],
     );
   }

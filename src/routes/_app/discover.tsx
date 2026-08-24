@@ -3,6 +3,7 @@ import { getDiscover } from "@/lib/verzzify/queries";
 import { CoverCard, ArtistTile } from "@/components/cover-card";
 import { SectionRail } from "@/components/section-rail";
 import { YouTubePromotionCard } from "@/components/youtube-promotion-card";
+import { YtWorldCatalog } from "@/components/yt-world-catalog";
 
 export const Route = createFileRoute("/_app/discover")({
   loader: () => getDiscover(),
@@ -29,6 +30,7 @@ function Discover() {
       <p className="mt-2 max-w-xl text-sm text-muted-foreground">
         Charts, rooms, and catalogs — play everything in the VerzZify player.
       </p>
+      <YtWorldCatalog />
       <Link
         to="/charts"
         className="glass mt-5 flex items-center justify-between rounded-[28px] p-5 transition-transform duration-200 hover:-translate-y-1"
