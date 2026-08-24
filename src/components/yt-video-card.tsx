@@ -22,7 +22,9 @@ export function YtVideoCard({
       toast("Needs a connection. Download VerzZify tracks to play offline.");
       return;
     }
-    openQueue(queue, Math.max(0, queue.findIndex((v) => v.videoId === video.videoId)));
+    const idx = queue.findIndex((v) => v.videoId === video.videoId);
+    if (idx >= 0) openQueue(queue, idx);
+    else openQueue([video, ...queue], 0);
   }
 
   return (

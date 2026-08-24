@@ -37,7 +37,13 @@ export function HomeHero({
           <h1 className="mt-2 font-display text-4xl font-extrabold tracking-tight md:text-6xl">{v.title}</h1>
           <p className="mt-2 text-[15px] font-semibold text-white/80">{v.channelName}</p>
           <div className="mt-5 flex flex-wrap gap-3">
-            <Button size="lg" onClick={() => openQueue(slides, i)}>
+            <Button
+              size="lg"
+              onClick={() => {
+                const idx = slides.findIndex((s) => s.videoId === v.videoId);
+                openQueue(slides, idx >= 0 ? idx : 0);
+              }}
+            >
               <Play className="size-4 translate-x-px fill-current" />
               Play
             </Button>

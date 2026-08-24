@@ -42,6 +42,8 @@ let wrap: HTMLDivElement | null = null;
 let frame: HTMLIFrameElement | null = null;
 let chrome: HTMLDivElement | null = null;
 let radioToken = 0;
+let playGen = 0;
+let endedArmed = false;
 let floatPos: { x: number; y: number } | null = null;
 let dragging = false;
 let dragOffset = { x: 0, y: 0 };
@@ -93,7 +95,7 @@ function bindYtMediaSession() {
   navigator.mediaSession.setActionHandler("play", () => {
     const st = useYtPlayer.getState();
     if (st.videoId) {
-      startVideo(st.videoId, st.queue.map((v) => v.videoId));
+      startVideo(st.videoId);
       useYtPlayer.setState({ isPlaying: true });
     }
   });
@@ -116,7 +118,7 @@ function bindYtMediaSession() {
   }
 }
 
-function embedUrl(id: string, play: boolean, playlist: string[] = []) {
+function embedUrl(id: string, play: boolean) {
   const q = new URLSearchParams({
     autoplay: play ? "1" : "0",
     rel: "0",
@@ -125,8 +127,7 @@ function embedUrl(id: string, play: boolean, playlist: string[] = []) {
     enablejsapi: "1",
     origin: typeof window !== "undefined" ? window.location.origin : "https://verzzify.com",
   });
-  const rest = playlist.filter((x) => x && x !== id).slice(0, 20);
-  if (rest.length) q.set("playlist", rest.join(","));
+  // Play ONLY this video. Passing `playlist=` makes YouTube start the first queued id instead.
   return `https://www.youtube.com/embed/${encodeURIComponent(id)}?${q.toString()}`;
 }
 
@@ -265,12 +266,15 @@ function ensureFrame() {
   frame.style.background = "#000";
 }
 
-function startVideo(id: string, playlist: string[] = []) {
+/** Must run inside a click. Assigning src here is what allows unmuted autoplay. */
+function startVideo(id: string) {
   ensureFrame();
   if (!frame || !wrap) return;
+  playGen += 1;
+  endedArmed = false;
   const label = document.getElementById("verzzify-yt-label");
   if (label) label.textContent = "VerzZify player · drag";
-  frame.src = embedUrl(id, true, playlist);
+  frame.src = embedUrl(id, true);
   wrap.style.display = "block";
   requestAnimationFrame(layoutYtFrame);
   bindYtMediaSession();
@@ -355,7 +359,7 @@ export function layoutYtFrame() {
 function asVideo(video: YouTubeVideo, queue: YouTubeVideo[], index: number): Partial<YtState> {
   usePlayer.getState().pause();
   usePlayer.setState({ expanded: false, isPlaying: false });
-  startVideo(video.videoId, queue.map((v) => v.videoId));
+  startVideo(video.videoId);
   return {
     videoId: video.videoId,
     title: video.title,
@@ -420,13 +424,23 @@ if (typeof window !== "undefined") {
       return;
     }
     if (!payload) return;
-    if (payload.event === "onStateChange" && payload.info === 0) {
-      const s = useYtPlayer.getState();
-      if (s.repeat === "one" && s.videoId) {
-        startVideo(s.videoId, s.queue.map((v) => v.videoId));
-        return;
+    if (payload.event === "onStateChange") {
+      // 1 = playing, 0 = ended. Ignore ENDED until this load has actually started,
+      // otherwise swapping iframe src fires ENDED for the previous clip and skips ahead.
+      if (payload.info === 1) {
+        endedArmed = true;
+        useYtPlayer.setState({ isPlaying: true });
       }
-      s.next();
+      if (payload.info === 0 && endedArmed) {
+        endedArmed = false;
+        const gen = playGen;
+        const s = useYtPlayer.getState();
+        if (s.repeat === "one" && s.videoId) {
+          startVideo(s.videoId);
+          return;
+        }
+        if (gen === playGen) s.next();
+      }
     }
     if (payload.event === "infoDelivery" && payload.info && typeof payload.info === "object") {
       const info = payload.info as { currentTime?: number; duration?: number };
@@ -481,9 +495,12 @@ export const useYtPlayer = create<YtState>((set, get) => ({
     void fillArtistQueue(video);
   },
   openQueue: (videos, index = 0) => {
-    const video = videos[index];
+    const safe = videos.filter((v) => v?.videoId);
+    if (!safe.length) return;
+    const idx = Math.min(Math.max(0, index), safe.length - 1);
+    const video = safe[idx];
     if (!video?.videoId) return;
-    set(asVideo(video, videos, index));
+    set(asVideo(video, safe, idx));
     bindYtMediaSession();
     void fillArtistQueue(video);
   },
@@ -500,10 +517,11 @@ export const useYtPlayer = create<YtState>((set, get) => ({
     const live = Boolean(frame?.src && !frame.src.endsWith("blank") && !frame.src.endsWith("about:blank"));
     if (s.isPlaying && live) {
       stopVideo();
+      endedArmed = false;
       set({ isPlaying: false });
       bindYtMediaSession();
     } else {
-      startVideo(s.videoId, s.queue.map((v) => v.videoId));
+      startVideo(s.videoId);
       set({ isPlaying: true, expanded: true });
       bindYtMediaSession();
     }
@@ -565,6 +583,8 @@ export const useYtPlayer = create<YtState>((set, get) => ({
   },
   close: () => {
     radioToken += 1;
+    playGen += 1;
+    endedArmed = false;
     floatPos = null;
     dragging = false;
     minimized = false;
