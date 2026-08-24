@@ -19,6 +19,7 @@ import { ShareSheet } from "@/components/share-sheet";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { UserButton } from "@/lib/auth/gates";
 import { useDownloads } from "@/lib/verzzify/downloads";
+import { useLocalPlaylists } from "@/lib/verzzify/local-playlists";
 import { useEffect } from "react";
 
 const nav = [
@@ -50,6 +51,7 @@ export function AppShell() {
 
   useEffect(() => {
     void useDownloads.getState().hydrate();
+    void useLocalPlaylists.getState().hydrate();
   }, []);
 
   if (isCall) {
