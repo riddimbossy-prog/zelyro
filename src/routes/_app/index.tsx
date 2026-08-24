@@ -10,6 +10,7 @@ import { YouTubePromotionCard } from "@/components/youtube-promotion-card";
 import { YoutubeHome } from "@/components/youtube-home";
 import { DownloadsFolder } from "@/components/downloads-folder";
 import { TicketsRail } from "@/components/tickets-rail";
+import { BoomplayRail } from "@/components/boomplay-rail";
 
 export const Route = createFileRoute("/_app/")({
   loader: () => getHomeData(),
@@ -70,6 +71,8 @@ function Home() {
       </section>
 
       {d.youtubeHome && <YoutubeHome initial={d.youtubeHome} />}
+
+      <BoomplayRail />
 
       <TicketsRail />
 

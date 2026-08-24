@@ -34,6 +34,7 @@ function SearchPage() {
   });
   const data = catalog.data;
   const videos = discover.data?.videos ?? [];
+  const boomplay = discover.data?.boomplay ?? [];
 
   return (
     <div>
@@ -97,6 +98,15 @@ function SearchPage() {
               </p>
             )}
           </section>
+          {boomplay.length > 0 && (
+            <section>
+              <p className="text-xs tracking-widest text-sand uppercase">Boomplay</p>
+              <h2 className="mb-3 font-display text-xl">African catalog</h2>
+              {boomplay.map((t, i) => (
+                <TrackRow key={t.id} track={t} queue={boomplay} index={i} />
+              ))}
+            </section>
+          )}
           {data && (
             <>
               <section>

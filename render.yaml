@@ -116,8 +116,8 @@ services:
         value: concerts-artists-events-tracker.p.rapidapi.com
       - key: RAPIDAPI_EVENTS_SEARCH_HOST
         value: real-time-events-search.p.rapidapi.com
-      - key: TICKETMASTER_API_KEY
-        sync: false
+      - key: RAPIDAPI_BOOMPLAY_HOST
+        value: boomplay-api.p.rapidapi.com
 
       # --- Later ---
       - key: FCM_PROJECT_ID

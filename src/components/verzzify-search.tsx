@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Search, X } from "lucide-react";
 import { searchDiscover } from "@/lib/verzzify/promotions";
 import { YtVideoCard } from "@/components/yt-video-card";
+import { TrackRow } from "@/components/track-row";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
@@ -39,6 +40,7 @@ export function VerzZifySearch({ autoFocus = false }: { autoFocus?: boolean }) {
   });
   const videos = query.data?.videos ?? [];
   const promoted = query.data?.promoted ?? [];
+  const boomplay = query.data?.boomplay ?? [];
   const showPanel = open && debounced.length > 1;
 
   return (
@@ -92,8 +94,16 @@ export function VerzZifySearch({ autoFocus = false }: { autoFocus?: boolean }) {
       {showPanel && (
         <div className="glass absolute top-[calc(100%+0.5rem)] right-0 left-0 z-50 max-h-[min(28rem,70dvh)] overflow-y-auto rounded-2xl p-3 shadow-lg">
           <p className="mb-2 text-xs text-muted-foreground">
-            {query.isFetching ? "Searching…" : `${kind} · ${videos.length + promoted.length} results`}
+            {query.isFetching ? "Searching…" : `${kind} · ${videos.length + promoted.length + boomplay.length} results`}
           </p>
+          {boomplay.length > 0 && (
+            <div className="mb-3">
+              <p className="mb-1 text-[10px] font-extrabold tracking-widest text-primary uppercase">Boomplay</p>
+              {boomplay.map((t, i) => (
+                <TrackRow key={t.id} track={t} queue={boomplay} index={i} />
+              ))}
+            </div>
+          )}
           {promoted.length > 0 && (
             <ul className="mb-3 space-y-2">
               {promoted.map((p) => (
@@ -112,7 +122,8 @@ export function VerzZifySearch({ autoFocus = false }: { autoFocus?: boolean }) {
               ))}
             </ul>
           ) : (
-            !query.isFetching && <p className="py-6 text-center text-sm text-muted-foreground">No matches. Try another title.</p>
+            !query.isFetching &&
+            boomplay.length === 0 && <p className="py-6 text-center text-sm text-muted-foreground">No matches. Try another title.</p>
           )}
         </div>
       )}

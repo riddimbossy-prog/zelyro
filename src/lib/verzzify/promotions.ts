@@ -11,6 +11,7 @@ import type {
   YouTubePromotion,
   YouTubeVideo,
   YoutubeConnection,
+  TrackCard,
 } from "./types";
 import {
   getPublicVideoStats,
@@ -506,7 +507,17 @@ export const searchDiscover = createServerFn({ method: "GET" })
     if (!q) return { videos: [] as YouTubeVideo[], promoted: [] as YouTubePromotion[] };
     const extra =
       data.kind === "beats" ? " type beat instrumental" : data.kind === "albums" ? " full album" : " official audio";
-    return searchYoutubeCatalog(`${q}${extra}`);
+    const yt = await searchYoutubeCatalog(`${q}${extra}`);
+    let boomplay: TrackCard[] = [];
+    if (data.kind !== "beats") {
+      try {
+        const { searchBoomplayTracks } = await import("./boomplay");
+        boomplay = await searchBoomplayTracks({ data: q });
+      } catch {
+        boomplay = [];
+      }
+    }
+    return { ...yt, boomplay };
   });
 
 export const getMoreFromArtist = createServerFn({ method: "GET" })
