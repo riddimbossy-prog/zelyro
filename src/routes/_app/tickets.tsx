@@ -26,10 +26,11 @@ function TicketsMarket() {
 
   return (
     <div className="pb-16">
-      <p className="kicker">Doors open</p>
-      <h1 className="mt-1 font-display text-4xl font-extrabold">Nights</h1>
+      <p className="text-[11px] font-extrabold tracking-[0.22em] text-primary uppercase">Ticket market</p>
+      <h1 className="mt-1 font-display text-4xl font-extrabold">Live dates</h1>
       <p className="mt-2 max-w-xl text-sm text-muted-foreground">
-        Your city first. Only the rooms that matter worldwide — stadiums, arenas, names on the wave.
+        Shows in your country first. Only popular tours — stadiums, arenas, and global stars — go to the worldwide rail.
+        Live dates come from Google Events and Ticketmaster (the first RapidAPI concerts plan is out of quota).
       </p>
       {!data.live && (
         <p className="mt-3 text-xs text-amber-300">Live concert feed needs RAPIDAPI_KEY on Render. Showing the VerzZify starter board until then.</p>
@@ -56,8 +57,8 @@ function TicketsMarket() {
       </div>
 
       <section className="mt-8">
-        <p className="kicker">In {data.regionName}</p>
-        <h2 className="font-display text-2xl font-extrabold">Local doors</h2>
+        <p className="text-[11px] font-extrabold tracking-[0.18em] text-sand uppercase">In {data.regionName}</p>
+        <h2 className="font-display text-2xl font-extrabold">Local tickets</h2>
         <div className="mt-4 flex gap-3 overflow-x-auto pb-2">
           {data.local.map((t) => (
             <TicketCard key={t.id} t={t} />
@@ -66,9 +67,9 @@ function TicketsMarket() {
       </section>
 
       <section className="mt-10">
-        <p className="kicker">Worldwide</p>
+        <p className="text-[11px] font-extrabold tracking-[0.18em] text-sand uppercase">Worldwide</p>
         <h2 className="font-display text-2xl font-extrabold">Popular tickets</h2>
-        <p className="mt-1 text-sm text-muted-foreground">Stadium heat only — not every club flyer.</p>
+        <p className="mt-1 text-sm text-muted-foreground">Big rooms and global names only — not every club date.</p>
         <div className="mt-4 flex gap-3 overflow-x-auto pb-2">
           {data.global.map((t) => (
             <TicketCard key={t.id} t={t} />

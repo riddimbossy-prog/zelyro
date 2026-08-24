@@ -18,14 +18,14 @@ export function TicketsRail() {
   return (
     <>
       {local.length > 0 && (
-        <SectionRail title={`Nights in ${q.data?.regionName ?? "your city"}`} kicker="Doors" to="/tickets">
+        <SectionRail title={`Tickets in ${q.data?.regionName ?? "your country"}`} to="/tickets">
           {local.slice(0, 8).map((t) => (
             <TicketCard key={t.id} t={t} />
           ))}
         </SectionRail>
       )}
       {global.length > 0 && (
-        <SectionRail title="Popular tickets worldwide" kicker="Heat" to="/tickets">
+        <SectionRail title="Popular tickets worldwide" to="/tickets">
           {global.map((t) => (
             <TicketCard key={t.id} t={t} />
           ))}

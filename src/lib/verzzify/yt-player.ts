@@ -109,7 +109,7 @@ function ensureFrame() {
     label.id = "verzzify-yt-label";
     label.textContent = "VerzZify player · drag";
     label.style.cssText =
-      "flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:800 11px/1 Syne,Montserrat,system-ui,sans-serif;letter-spacing:.18em;text-transform:uppercase;color:#fff;opacity:.9";
+      "flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:700 11px/1 Montserrat,system-ui,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#fff;opacity:.9";
     const actions = document.createElement("div");
     actions.style.cssText = "display:flex;align-items:center;gap:6px;flex-shrink:0";
     const btnStyle =

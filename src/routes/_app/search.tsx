@@ -38,7 +38,7 @@ function SearchPage() {
 
   return (
     <div>
-      <h1 className="font-display text-3xl">Find</h1>
+      <h1 className="font-display text-3xl">Search</h1>
       <form
         className="mt-4"
         onSubmit={(e) => {
@@ -100,8 +100,8 @@ function SearchPage() {
           </section>
           {boomplay.length > 0 && (
             <section>
-              <p className="kicker">House cuts</p>
-              <h2 className="mb-3 font-display text-xl">African catalog</h2>
+              <p className="text-xs tracking-widest text-sand uppercase">Boomplay</p>
+              <h2 className="mb-3 font-display text-xl">Popular on Boomplay</h2>
               {boomplay.map((t, i) => (
                 <TrackRow key={t.id} track={t} queue={boomplay} index={i} />
               ))}

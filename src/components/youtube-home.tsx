@@ -33,10 +33,10 @@ export function YoutubeHome({
   return (
     <div className="mt-10">
       <div>
-        <p className="kicker">Around your streets</p>
+        <p className="text-xs tracking-[0.2em] text-sand uppercase">Around you</p>
         <h2 className="font-display text-2xl md:text-3xl">Popular in {place}</h2>
         <p className="mt-1 max-w-xl text-sm text-muted-foreground">
-          What the city is spinning — played only inside VerzZify.
+          Songs, artists, and playlists from your country — plus stars next door. Plays in VerzZify.
         </p>
       </div>
 
@@ -58,7 +58,7 @@ export function YoutubeHome({
 
       {data.feed.length > 0 && (
         <section className="mt-8">
-          <h3 className="mb-4 font-display text-xl md:text-2xl">Your street feed</h3>
+          <h3 className="mb-4 font-display text-xl md:text-2xl">Your feed</h3>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {data.feed.slice(0, 9).map((v) => (
               <YtVideoCard key={`feed-${v.videoId}`} video={v} queue={data.feed} />
@@ -68,7 +68,7 @@ export function YoutubeHome({
       )}
 
       <section className="mt-8">
-        <h3 className="mb-4 font-display text-xl md:text-2xl">Popular songs in {data.regionName}</h3>
+        <h3 className="mb-4 font-display text-xl md:text-2xl">Trending songs in {data.regionName}</h3>
         <div className="media-rail media-rail-wide">
           {data.videos.map((v) => (
             <YtVideoCard key={v.videoId} video={v} queue={data.videos} />

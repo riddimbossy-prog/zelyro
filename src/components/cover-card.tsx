@@ -22,7 +22,7 @@ export function CoverCard({
       <button
         type="button"
         onClick={() => play(queue, Math.max(index, 0))}
-        className="cover-shine zz-tick relative block w-full overflow-hidden rounded-2xl bg-secondary"
+        className="cover-shine relative block w-full overflow-hidden rounded-2xl bg-secondary"
         aria-label={`Play ${track.title}`}
       >
         <img

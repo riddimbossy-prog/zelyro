@@ -26,10 +26,9 @@ function Discover() {
   const nearby = d.nearby;
   return (
     <div>
-      <p className="kicker">The wave</p>
-      <h1 className="font-display text-3xl md:text-4xl">Ride it</h1>
+      <h1 className="font-display text-3xl md:text-4xl">Discover</h1>
       <p className="mt-2 max-w-xl text-sm text-muted-foreground">
-        Streets, rooms, and catalogs — everything plays in the house player.
+        Charts, rooms, and catalogs — play everything in the VerzZify player.
       </p>
       <YtWorldCatalog />
       <Link

@@ -104,7 +104,9 @@ export function AppShell() {
         <header className="glass z-40 shrink-0 border-0 px-4 py-2.5 md:px-8">
           <div className="flex items-center gap-3">
             <BrandMark compact className="md:hidden" />
-            <span className="kicker hidden sm:inline">{copy.kicker}</span>
+            <span className="hidden rounded-full bg-primary px-2.5 py-1 text-[10px] font-extrabold tracking-widest text-primary-foreground uppercase sm:inline">
+              Live preview
+            </span>
             {pathname.startsWith("/community") || pathname.startsWith("/search") ? (
               <div className="min-w-0 flex-1" />
             ) : (

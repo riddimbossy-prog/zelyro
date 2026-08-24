@@ -38,6 +38,7 @@ import { Route as AppVideoIdRouteImport } from './routes/_app/video.$id'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiStorageUploadRouteImport } from './routes/api/storage/upload'
 import { Route as ApiV1SplatRouteImport } from './routes/api/v1/$'
+import { Route as ApiV1BoomplayRouteImport } from './routes/api/v1/boomplay'
 import { Route as ApiV1CatalogRouteImport } from './routes/api/v1/catalog'
 import { Route as ApiV1HomeRouteImport } from './routes/api/v1/home'
 import { Route as ApiV1IceRouteImport } from './routes/api/v1/ice'
@@ -190,6 +191,11 @@ const ApiV1SplatRoute = ApiV1SplatRouteImport.update({
   path: '/api/v1/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiV1BoomplayRoute = ApiV1BoomplayRouteImport.update({
+  id: '/api/v1/boomplay',
+  path: '/api/v1/boomplay',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiV1CatalogRoute = ApiV1CatalogRouteImport.update({
   id: '/api/v1/catalog',
   path: '/api/v1/catalog',
@@ -255,6 +261,7 @@ export interface FileRoutesByFullPath {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/storage/upload': typeof ApiStorageUploadRoute
   '/api/v1/$': typeof ApiV1SplatRoute
+  '/api/v1/boomplay': typeof ApiV1BoomplayRoute
   '/api/v1/catalog': typeof ApiV1CatalogRoute
   '/api/v1/home': typeof ApiV1HomeRoute
   '/api/v1/ice': typeof ApiV1IceRoute
@@ -292,6 +299,7 @@ export interface FileRoutesByTo {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/storage/upload': typeof ApiStorageUploadRoute
   '/api/v1/$': typeof ApiV1SplatRoute
+  '/api/v1/boomplay': typeof ApiV1BoomplayRoute
   '/api/v1/catalog': typeof ApiV1CatalogRoute
   '/api/v1/home': typeof ApiV1HomeRoute
   '/api/v1/ice': typeof ApiV1IceRoute
@@ -331,6 +339,7 @@ export interface FileRoutesById {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/storage/upload': typeof ApiStorageUploadRoute
   '/api/v1/$': typeof ApiV1SplatRoute
+  '/api/v1/boomplay': typeof ApiV1BoomplayRoute
   '/api/v1/catalog': typeof ApiV1CatalogRoute
   '/api/v1/home': typeof ApiV1HomeRoute
   '/api/v1/ice': typeof ApiV1IceRoute
@@ -370,6 +379,7 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/api/storage/upload'
     | '/api/v1/$'
+    | '/api/v1/boomplay'
     | '/api/v1/catalog'
     | '/api/v1/home'
     | '/api/v1/ice'
@@ -407,6 +417,7 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/api/storage/upload'
     | '/api/v1/$'
+    | '/api/v1/boomplay'
     | '/api/v1/catalog'
     | '/api/v1/home'
     | '/api/v1/ice'
@@ -445,6 +456,7 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/api/storage/upload'
     | '/api/v1/$'
+    | '/api/v1/boomplay'
     | '/api/v1/catalog'
     | '/api/v1/home'
     | '/api/v1/ice'
@@ -466,6 +478,7 @@ export interface RootRouteChildren {
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiStorageUploadRoute: typeof ApiStorageUploadRoute
   ApiV1SplatRoute: typeof ApiV1SplatRoute
+  ApiV1BoomplayRoute: typeof ApiV1BoomplayRoute
   ApiV1CatalogRoute: typeof ApiV1CatalogRoute
   ApiV1HomeRoute: typeof ApiV1HomeRoute
   ApiV1IceRoute: typeof ApiV1IceRoute
@@ -680,6 +693,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1SplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v1/boomplay': {
+      id: '/api/v1/boomplay'
+      path: '/api/v1/boomplay'
+      fullPath: '/api/v1/boomplay'
+      preLoaderRoute: typeof ApiV1BoomplayRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/v1/catalog': {
       id: '/api/v1/catalog'
       path: '/api/v1/catalog'
@@ -788,6 +808,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiStorageUploadRoute: ApiStorageUploadRoute,
   ApiV1SplatRoute: ApiV1SplatRoute,
+  ApiV1BoomplayRoute: ApiV1BoomplayRoute,
   ApiV1CatalogRoute: ApiV1CatalogRoute,
   ApiV1HomeRoute: ApiV1HomeRoute,
   ApiV1IceRoute: ApiV1IceRoute,
