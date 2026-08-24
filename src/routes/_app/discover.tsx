@@ -4,6 +4,7 @@ import { CoverCard, ArtistTile } from "@/components/cover-card";
 import { SectionRail } from "@/components/section-rail";
 import { YouTubePromotionCard } from "@/components/youtube-promotion-card";
 import { YtWorldCatalog } from "@/components/yt-world-catalog";
+import { GenreChips } from "@/components/genre-chips";
 
 export const Route = createFileRoute("/_app/discover")({
   loader: () => getDiscover(),
@@ -13,23 +14,16 @@ export const Route = createFileRoute("/_app/discover")({
 function Discover() {
   const d = Route.useLoaderData();
   if (!d) return null;
-  const genres = [
-    { name: "Pop", img: "/covers/seoul-glass.jpg" },
-    { name: "Hip Hop", img: "/covers/desk-light.jpg" },
-    { name: "Latin", img: "/covers/rooftop-chair.jpg" },
-    { name: "Electronic", img: "/covers/berlin-strobe.jpg" },
-    { name: "City Pop", img: "/covers/midnight-crossing.jpg" },
-    { name: "R&B", img: "/covers/palm-shadow.jpg" },
-    { name: "Afrobeats", img: "/covers/terrace-lights.jpg" },
-    { name: "Indie", img: "/covers/beirut-dusk.jpg" },
-  ];
   const nearby = d.nearby;
   return (
     <div>
       <h1 className="font-display text-3xl md:text-4xl">Discover</h1>
       <p className="mt-2 max-w-xl text-sm text-muted-foreground">
-        Charts, rooms, and catalogs — play everything in the VerzZify player.
+        Pick a genre — VerzZify builds a home-style feed with popular artists and songs from your region.
       </p>
+
+      <GenreChips />
+
       <YtWorldCatalog />
       <Link
         to="/charts"
@@ -38,25 +32,12 @@ function Discover() {
         <div>
           <p className="text-xs tracking-[0.2em] text-sand uppercase">Live</p>
           <p className="glow-title mt-1 font-display text-2xl">VerzZify Global 200</p>
-          <p className="mt-1 text-sm text-muted-foreground">SEU from streams + paid downloads. Plus Global Excl. US.</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            SEU from streams + paid downloads. Plus Global Excl. US.
+          </p>
         </div>
         <span className="text-sm text-muted-foreground">Open</span>
       </Link>
-      <div className="mt-8 grid grid-cols-2 gap-3 md:grid-cols-4">
-        {genres.map((g) => (
-          <Link
-            key={g.name}
-            to="/search"
-            search={{ q: g.name }}
-            className="cover-shine relative overflow-hidden rounded-2xl"
-          >
-            <img src={g.img} alt="" className="aspect-[4/3] w-full object-cover" />
-            <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-background/90 to-transparent p-3 text-sm font-medium">
-              {g.name}
-            </span>
-          </Link>
-        ))}
-      </div>
 
       {d.promoted.length > 0 && (
         <section className="mt-10">
@@ -82,7 +63,14 @@ function Discover() {
             {nearby.artists
               .filter((a) => a.role === "artist")
               .map((a) => (
-                <ArtistTile key={a.id} id={a.id} slug={a.slug} name={a.name} avatarUrl={a.avatarUrl} verified={a.verified} />
+                <ArtistTile
+                  key={a.id}
+                  id={a.id}
+                  slug={a.slug}
+                  name={a.name}
+                  avatarUrl={a.avatarUrl}
+                  verified={a.verified}
+                />
               ))}
           </SectionRail>
           <SectionRail title="Producers nearby">
@@ -92,7 +80,14 @@ function Discover() {
           </SectionRail>
           <SectionRail title="Creators nearby">
             {nearby.artists.map((a) => (
-              <ArtistTile key={`c-${a.id}`} id={a.id} slug={a.slug} name={a.name} avatarUrl={a.avatarUrl} verified={a.verified} />
+              <ArtistTile
+                key={`c-${a.id}`}
+                id={a.id}
+                slug={a.slug}
+                name={a.name}
+                avatarUrl={a.avatarUrl}
+                verified={a.verified}
+              />
             ))}
           </SectionRail>
           {nearby.events.length > 0 && (
