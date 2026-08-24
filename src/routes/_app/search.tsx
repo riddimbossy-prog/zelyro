@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { searchCatalog } from "@/lib/verzzify/queries";
 import { searchDiscover } from "@/lib/verzzify/promotions";
 import { getViewerGeo } from "@/lib/verzzify/geo";
+import type { YouTubeVideo } from "@/lib/verzzify/types";
 import { ArtistTile } from "@/components/cover-card";
 import { TrackRow } from "@/components/track-row";
 import { Input } from "@/components/ui/input";
@@ -18,12 +19,21 @@ const LOCAL_CHIPS: Record<string, string[]> = {
   GH: ["Highlife", "Hiplife", "Ghana gospel", "Afrobeats Accra", "Black Sherif"],
   NG: ["Afrobeats", "Naija gospel", "Amapiano Lagos", "Burna Boy", "Asake"],
   ZA: ["Amapiano", "Gqom", "Johannesburg live", "Tyla"],
-  JM: ["Dancehall", "Reggae", "Kingston"],
+  JM: ["Dancehall", "Reggae", "Kingston", "Shenseea"],
   US: ["Hip Hop", "R&B", "Gospel choir", "Country"],
   GB: ["UK drill", "Grime", "Afrobeats UK"],
   KR: ["K-pop", "K hip hop"],
   FR: ["Rap français", "Amapiano Paris"],
 };
+
+async function fetchYoutubeSearch(q: string, region: string): Promise<YouTubeVideo[]> {
+  const res = await fetch(
+    `/api/v1/youtube?q=${encodeURIComponent(q)}&region=${encodeURIComponent(region)}`,
+  );
+  if (!res.ok) return [];
+  const json = (await res.json()) as { videos?: YouTubeVideo[] };
+  return json.videos ?? [];
+}
 
 export const Route = createFileRoute("/_app/search")({
   validateSearch: searchSchema,
@@ -51,25 +61,45 @@ function SearchPage() {
     return city ? [`${city} hits`, ...local] : local;
   }, [region, city]);
 
+  // Pure YouTube search (Data API) — same engine as youtube.com/results
+  const ytQuery = useMemo(() => {
+    const base = q.trim();
+    if (!base) return "";
+    if (kind === "beats") return `${base} type beat instrumental`;
+    if (kind === "albums") return `${base} full album`;
+    return base;
+  }, [q, kind]);
+
+  const youtube = useQuery({
+    queryKey: ["yt-search", ytQuery, region],
+    queryFn: () => fetchYoutubeSearch(ytQuery, region),
+    enabled: ytQuery.length > 0,
+    staleTime: 60_000,
+  });
+
   const catalog = useQuery({
     queryKey: ["search", q],
     queryFn: () => searchCatalog({ data: q }),
     enabled: q.trim().length > 0,
   });
+
+  // Secondary lane (promoted + boomplay) — does not replace YouTube results
   const discover = useQuery({
     queryKey: ["discover-page", kind, q, region],
-    queryFn: () => searchDiscover({ data: { q: `${q} ${region}`.trim(), kind } }),
+    queryFn: () => searchDiscover({ data: { q: q.trim(), kind } }),
     enabled: q.trim().length > 1,
   });
+
   const data = catalog.data;
-  const videos = discover.data?.videos ?? [];
+  const videos = youtube.data ?? [];
   const boomplay = discover.data?.boomplay ?? [];
 
   return (
     <div>
       <h1 className="font-display text-3xl">Search</h1>
       <p className="mt-1 text-sm text-muted-foreground">
-        Ranked with your region{city ? ` · ${city}` : ""} ({region}) in mind.
+        Live YouTube music results{city ? ` · ${city}` : ""} ({region}). Paste a YouTube link or type a song,
+        artist, or genre.
       </p>
       <form
         className="mt-4"
@@ -80,7 +110,7 @@ function SearchPage() {
         <Input
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="Songs, artists, genres, cities…"
+          placeholder="Search YouTube — songs, artists, or paste a link…"
           autoFocus
         />
       </form>
@@ -116,9 +146,11 @@ function SearchPage() {
       {q.trim().length > 0 && (
         <div className="mt-8 space-y-10">
           <section>
-            <p className="text-xs tracking-widest text-sand uppercase">Near you · {region}</p>
+            <p className="text-xs tracking-widest text-sand uppercase">YouTube · {region}</p>
             <h2 className="mb-3 font-display text-xl capitalize">{kind}</h2>
-            {videos.length > 0 ? (
+            {youtube.isFetching && videos.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Searching YouTube…</p>
+            ) : videos.length > 0 ? (
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {videos.map((v) => (
                   <YtVideoCard key={v.videoId} video={v} queue={videos} />
@@ -126,7 +158,9 @@ function SearchPage() {
               </div>
             ) : (
               <p className="text-sm text-muted-foreground">
-                {discover.isFetching ? "Searching your region…" : "No matches in that lane."}
+                {youtube.isError
+                  ? "YouTube search failed — check YOUTUBE_API_KEY on the server."
+                  : "No YouTube matches. Try another spelling or paste a video URL."}
               </p>
             )}
           </section>
