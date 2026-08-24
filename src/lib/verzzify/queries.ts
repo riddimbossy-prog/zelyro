@@ -1183,7 +1183,7 @@ function demoProfile(): MackProfileData {
     role: "artist",
     country: "GH",
     bio: "Preview profile. Sign-in is off for now — this is the Audiomack-style layout.",
-    avatarUrl: "/logo.png?v=3",
+    avatarUrl: "/icon-256.png?v=5",
     bannerUrl: "/covers/terrace-lights.jpg",
     city: "Accra",
     favoriteGenres: "Afrobeats, Hip Hop",

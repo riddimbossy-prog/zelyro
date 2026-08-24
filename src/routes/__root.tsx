@@ -31,10 +31,11 @@ export const Route = createRootRoute({
       { name: "mobile-web-app-capable", content: "yes" },
     ],
     links: [
-      { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
+      { rel: "icon", type: "image/png", href: "/favicon-64.png?v=5" },
+      { rel: "icon", type: "image/png", sizes: "192x192", href: "/icon-192.png?v=5" },
       { rel: "stylesheet", href: appCss },
       { rel: "manifest", href: "/manifest.webmanifest" },
-      { rel: "apple-touch-icon", href: "/icon-256.png" },
+      { rel: "apple-touch-icon", href: "/apple-touch-icon.png?v=5" },
       {
         rel: "stylesheet",
         href: "https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Nunito+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap",
