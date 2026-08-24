@@ -46,31 +46,13 @@ let floatPos: { x: number; y: number } | null = null;
 let dragging = false;
 let dragOffset = { x: 0, y: 0 };
 let minimized = false;
-let activePointer: number | null = null;
 
-const CHROME_H = 40;
+const FLOAT_W = 400;
+const CHROME_H = 36;
+const FLOAT_H = Math.round((FLOAT_W * 9) / 16) + CHROME_H;
 
-/** Responsive float size for phone, tablet, Z Fold, and desktop. */
-function floatSize() {
-  if (typeof window === "undefined") return { w: 320, h: Math.round((320 * 9) / 16) + CHROME_H };
-  const vw = window.innerWidth;
-  const vh = window.innerHeight;
-  // Keep a sensible max so it never covers the whole fold screen
-  const maxW = Math.min(420, Math.max(240, Math.floor(vw * 0.72)));
-  const maxH = Math.min(Math.round((maxW * 9) / 16) + CHROME_H, Math.floor(vh * 0.55));
-  const w = maxW;
-  const h = Math.min(Math.round((w * 9) / 16) + CHROME_H, maxH);
-  return { w, h };
-}
-
-function clampPos(x: number, y: number, w?: number, h?: number) {
-  const size = floatSize();
-  const ww = w ?? (minimized ? Math.min(size.w, 280) : size.w);
-  const hh = h ?? (minimized ? CHROME_H : size.h);
-  const pad = 6;
-  const maxX = Math.max(pad, window.innerWidth - ww - pad);
-  const maxY = Math.max(pad, window.innerHeight - hh - pad);
-  return { x: Math.min(maxX, Math.max(pad, x)), y: Math.min(maxY, Math.max(pad, y)) };
+function isDesktop() {
+  return typeof window !== "undefined" && window.matchMedia("(min-width: 768px)").matches;
 }
 
 function embedUrl(id: string, play: boolean, playlist: string[] = []) {
@@ -85,6 +67,12 @@ function embedUrl(id: string, play: boolean, playlist: string[] = []) {
   const rest = playlist.filter((x) => x && x !== id).slice(0, 20);
   if (rest.length) q.set("playlist", rest.join(","));
   return `https://www.youtube.com/embed/${encodeURIComponent(id)}?${q.toString()}`;
+}
+
+function clampPos(x: number, y: number) {
+  const maxX = Math.max(8, window.innerWidth - FLOAT_W - 8);
+  const maxY = Math.max(8, window.innerHeight - FLOAT_H - 8);
+  return { x: Math.min(maxX, Math.max(8, x)), y: Math.min(maxY, Math.max(8, y)) };
 }
 
 function ensureFrame() {
@@ -109,25 +97,23 @@ function ensureFrame() {
   wrap.style.boxShadow = "0 18px 50px rgba(0,0,0,0.55)";
   wrap.style.border = "1px solid rgba(255,255,255,0.16)";
   wrap.style.display = "none";
-  wrap.style.touchAction = "none";
-  wrap.style.transition =
-    "height .32s cubic-bezier(.22,1,.36,1), width .32s cubic-bezier(.22,1,.36,1), box-shadow .32s ease, border-radius .32s ease";
+  wrap.style.transition = "height .32s cubic-bezier(.22,1,.36,1), width .32s cubic-bezier(.22,1,.36,1), box-shadow .32s ease, border-radius .32s ease";
 
   chrome = wrap.querySelector("#verzzify-yt-chrome") as HTMLDivElement | null;
   if (!chrome) {
     chrome = document.createElement("div");
     chrome.id = "verzzify-yt-chrome";
     chrome.style.cssText =
-      "display:flex;align-items:center;justify-content:space-between;gap:8px;height:40px;padding:0 8px 0 12px;cursor:grab;background:linear-gradient(90deg,rgba(192,38,211,0.35),rgba(11,6,16,0.95));user-select:none;touch-action:none;-webkit-user-select:none;";
+      "display:flex;align-items:center;justify-content:space-between;gap:8px;height:36px;padding:0 8px 0 12px;cursor:move;background:linear-gradient(90deg,rgba(192,38,211,0.35),rgba(11,6,16,0.95));user-select:none;";
     const label = document.createElement("span");
     label.id = "verzzify-yt-label";
-    label.textContent = "VerzZify · drag anywhere";
+    label.textContent = "VerzZify player · drag";
     label.style.cssText =
-      "flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:700 11px/1 Montserrat,system-ui,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#fff;opacity:.9;pointer-events:none";
+      "flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:700 11px/1 Montserrat,system-ui,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#fff;opacity:.9";
     const actions = document.createElement("div");
     actions.style.cssText = "display:flex;align-items:center;gap:6px;flex-shrink:0";
     const btnStyle =
-      "width:32px;height:32px;border:0;border-radius:999px;background:rgba(255,255,255,0.12);color:#fff;font:700 16px/1 sans-serif;cursor:pointer;touch-action:manipulation";
+      "width:28px;height:28px;border:0;border-radius:999px;background:rgba(255,255,255,0.12);color:#fff;font:700 16px/1 sans-serif;cursor:pointer";
     const min = document.createElement("button");
     min.type = "button";
     min.id = "verzzify-yt-min";
@@ -141,7 +127,7 @@ function ensureFrame() {
       min.textContent = minimized ? "▢" : "–";
       min.setAttribute("aria-label", minimized ? "Restore player" : "Minimize player");
       const lab = document.getElementById("verzzify-yt-label");
-      if (lab) lab.textContent = minimized ? "VerzZify · drag to move · tap to restore" : "VerzZify · drag anywhere";
+      if (lab) lab.textContent = minimized ? "VerzZify · tap to restore" : "VerzZify player · drag";
       layoutYtFrame();
     });
     const close = document.createElement("button");
@@ -159,59 +145,45 @@ function ensureFrame() {
     chrome.append(label, actions);
     wrap.prepend(chrome);
 
-    const onPointerDown = (e: PointerEvent) => {
-      const t = e.target as HTMLElement;
-      if (t.id === "verzzify-yt-close" || t.id === "verzzify-yt-min" || t.closest("#verzzify-yt-close,#verzzify-yt-min")) {
+    chrome.addEventListener("pointerdown", (e) => {
+      const id = (e.target as HTMLElement).id;
+      if (id === "verzzify-yt-close" || id === "verzzify-yt-min") return;
+      if (minimized) {
+        minimized = false;
+        const minBtn = document.getElementById("verzzify-yt-min");
+        if (minBtn) {
+          minBtn.textContent = "–";
+          minBtn.setAttribute("aria-label", "Minimize player");
+        }
+        const lab = document.getElementById("verzzify-yt-label");
+        if (lab) lab.textContent = "VerzZify player · drag";
+        layoutYtFrame();
         return;
       }
-      if (minimized) {
-        // Still allow drag while minimized; double-tap chrome restores via min button
-      }
+      if (!isDesktop()) return;
       dragging = true;
-      activePointer = e.pointerId;
       const r = wrap!.getBoundingClientRect();
       dragOffset = { x: e.clientX - r.left, y: e.clientY - r.top };
-      try {
-        chrome!.setPointerCapture(e.pointerId);
-      } catch {
-        /* older browsers */
-      }
-      chrome!.style.cursor = "grabbing";
+      chrome!.setPointerCapture(e.pointerId);
       e.preventDefault();
-    };
-
-    const onPointerMove = (e: PointerEvent) => {
+    });
+    chrome.addEventListener("pointermove", (e) => {
       if (!dragging || !wrap) return;
-      if (activePointer != null && e.pointerId !== activePointer) return;
       wrap.style.transition = "none";
       floatPos = clampPos(e.clientX - dragOffset.x, e.clientY - dragOffset.y);
       wrap.style.left = `${floatPos.x}px`;
       wrap.style.top = `${floatPos.y}px`;
       useYtPlayer.setState({ expanded: false });
-    };
-
-    const endDrag = (e?: PointerEvent) => {
-      if (e && activePointer != null && e.pointerId !== activePointer) return;
+    });
+    const endDrag = () => {
       dragging = false;
-      activePointer = null;
-      if (chrome) chrome.style.cursor = "grab";
       if (wrap) {
         wrap.style.transition =
           "height .32s cubic-bezier(.22,1,.36,1), width .32s cubic-bezier(.22,1,.36,1), box-shadow .32s ease, border-radius .32s ease";
-        // Snap back inside safe bounds after fold / rotation
-        if (floatPos) {
-          floatPos = clampPos(floatPos.x, floatPos.y);
-          wrap.style.left = `${floatPos.x}px`;
-          wrap.style.top = `${floatPos.y}px`;
-        }
       }
     };
-
-    chrome.addEventListener("pointerdown", onPointerDown);
-    chrome.addEventListener("pointermove", onPointerMove);
     chrome.addEventListener("pointerup", endDrag);
     chrome.addEventListener("pointercancel", endDrag);
-    chrome.addEventListener("lostpointercapture", endDrag);
   }
 
   frame = wrap.querySelector("iframe");
@@ -219,8 +191,7 @@ function ensureFrame() {
     frame = document.createElement("iframe");
     frame.id = "verzzify-yt-frame";
     frame.title = "VerzZify player";
-    frame.allow =
-      "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share";
+    frame.allow = "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share";
     frame.setAttribute("allowfullscreen", "true");
     wrap.appendChild(frame);
   }
@@ -229,8 +200,6 @@ function ensureFrame() {
   frame.style.border = "0";
   frame.style.display = "block";
   frame.style.background = "#000";
-  // Prevent iframe from eating the first touch when starting a drag on chrome only
-  frame.style.pointerEvents = dragging ? "none" : "auto";
 }
 
 /** Must run inside a click. Assigning src here is what allows unmuted autoplay. */
@@ -238,7 +207,7 @@ function startVideo(id: string, playlist: string[] = []) {
   ensureFrame();
   if (!frame || !wrap) return;
   const label = document.getElementById("verzzify-yt-label");
-  if (label) label.textContent = "VerzZify · drag anywhere";
+  if (label) label.textContent = "VerzZify player · drag";
   frame.src = embedUrl(id, true, playlist);
   wrap.style.display = "block";
   requestAnimationFrame(layoutYtFrame);
@@ -258,38 +227,46 @@ export function layoutYtFrame() {
   wrap.style.display = "block";
   const expanded = useYtPlayer.getState().expanded;
   const slot = document.getElementById("verzzify-cover-slot");
-  const { w, h } = floatSize();
+  const desktop = isDesktop();
 
-  // Always show the drag chrome so phone / fold / tablet users can move it
-  if (chrome) chrome.style.display = "flex";
-
-  // Cover-slot dock only when user has never dragged and is on a small phone layout
-  const narrow = typeof window !== "undefined" && window.innerWidth < 640;
-  if (expanded && slot && !floatPos && narrow) {
+  if (expanded && slot) {
     const r = slot.getBoundingClientRect();
+    if (chrome) chrome.style.display = "none";
     wrap.style.left = `${Math.round(r.left)}px`;
     wrap.style.top = `${Math.round(r.top)}px`;
     wrap.style.width = `${Math.round(r.width)}px`;
     wrap.style.height = `${Math.round(r.height)}px`;
-    wrap.style.borderRadius = "16px";
-    if (frame) frame.style.height = "100%";
+    wrap.style.borderRadius = getComputedStyle(slot).borderRadius || "24px";
+    wrap.style.border = "none";
+    wrap.style.boxShadow = "none";
+    wrap.style.background = "#000";
+    wrap.style.zIndex = "70";
+    if (frame) {
+      frame.style.display = "block";
+      frame.style.opacity = "1";
+      frame.style.height = "100%";
+    }
     return;
   }
 
-  const fallback = clampPos(window.innerWidth - w - 16, window.innerHeight - h - 88, w, h);
-  const pos = floatPos ? clampPos(floatPos.x, floatPos.y, w, h) : fallback;
-  floatPos = pos;
+  if (chrome) chrome.style.display = "flex";
+  wrap.style.zIndex = "80";
+  wrap.style.border = "1px solid rgba(255,255,255,0.16)";
+  wrap.style.background = "#0b0610";
 
+  const w = desktop ? FLOAT_W : 280;
+  const h = desktop ? FLOAT_H : Math.round((280 * 9) / 16) + CHROME_H;
+  const fallback = clampPos(window.innerWidth - w - 24, window.innerHeight - h - 96);
+  const pos = floatPos ?? fallback;
   wrap.style.width = `${w}px`;
   wrap.style.height = `${h}px`;
   wrap.style.left = `${pos.x}px`;
   wrap.style.top = `${pos.y}px`;
   wrap.style.borderRadius = minimized ? "999px" : "16px";
   wrap.style.boxShadow = minimized ? "0 10px 28px rgba(0,0,0,0.4)" : "0 18px 50px rgba(0,0,0,0.55)";
-
   if (minimized) {
     wrap.style.height = `${CHROME_H}px`;
-    wrap.style.width = `${Math.min(w, 300)}px`;
+    wrap.style.width = `${Math.min(w, 280)}px`;
     if (frame) {
       frame.style.transition = "opacity .18s ease";
       frame.style.opacity = "0";
@@ -303,7 +280,6 @@ export function layoutYtFrame() {
     frame.style.display = "block";
     frame.style.transition = "opacity .22s ease .08s";
     frame.style.height = `calc(100% - ${CHROME_H}px)`;
-    frame.style.pointerEvents = "auto";
     requestAnimationFrame(() => {
       if (frame) frame.style.opacity = "1";
     });
@@ -357,23 +333,14 @@ async function fillArtistQueue(video: YouTubeVideo) {
 }
 
 if (typeof window !== "undefined") {
-  const onViewportChange = () => {
-    // Fold open/close, rotate, split-screen: keep player on-screen
-    if (floatPos) floatPos = clampPos(floatPos.x, floatPos.y);
-    layoutYtFrame();
-  };
-  window.addEventListener("resize", onViewportChange);
-  window.addEventListener("orientationchange", onViewportChange);
+  window.addEventListener("resize", () => layoutYtFrame());
   window.addEventListener("scroll", () => layoutYtFrame(), true);
   window.addEventListener("message", (event) => {
     const origin = String(event.origin || "");
     if (!origin.includes("youtube.com") && !origin.includes("youtube-nocookie.com")) return;
     let payload: { event?: string; info?: number | Record<string, unknown> } | null = null;
     try {
-      payload =
-        typeof event.data === "string"
-          ? (JSON.parse(event.data) as typeof payload)
-          : (event.data as typeof payload);
+      payload = typeof event.data === "string" ? (JSON.parse(event.data) as typeof payload) : (event.data as typeof payload);
     } catch {
       return;
     }
@@ -513,7 +480,6 @@ export const useYtPlayer = create<YtState>((set, get) => ({
     radioToken += 1;
     floatPos = null;
     dragging = false;
-    activePointer = null;
     minimized = false;
     stopVideo();
     if (wrap) wrap.style.display = "none";
