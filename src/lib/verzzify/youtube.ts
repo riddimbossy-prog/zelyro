@@ -111,9 +111,9 @@ function mapDataVideo(v: DataVideo): YouTubeVideo {
   const id = v.id;
   return {
     videoId: id,
-    title: v.snippet?.title ?? "YouTube video",
+    title: v.snippet?.title ?? "Track",
     thumbnailUrl: v.snippet?.thumbnails?.high?.url ?? getVideoThumbnail(id),
-    channelName: v.snippet?.channelTitle ?? "YouTube",
+    channelName: v.snippet?.channelTitle ?? "Artist",
     channelId: v.snippet?.channelId ?? null,
     channelUrl: v.snippet?.channelId ? `https://www.youtube.com/channel/${v.snippet.channelId}` : null,
     publishedAt: v.snippet?.publishedAt ?? null,
@@ -135,9 +135,9 @@ export async function getVideoDetails(videoId: string): Promise<YouTubeVideo | n
   if (!meta) return null;
   return {
     videoId,
-    title: meta.title ?? "YouTube video",
+    title: meta.title ?? "Track",
     thumbnailUrl: meta.thumbnail_url ?? getVideoThumbnail(videoId),
-    channelName: meta.author_name ?? "YouTube",
+    channelName: meta.author_name ?? "Artist",
     channelId: channelIdFromUrl(meta.author_url),
     channelUrl: meta.author_url ?? null,
     publishedAt: null,
@@ -330,11 +330,149 @@ export type YtSearchOpts = {
   order?: "relevance" | "viewCount" | "date";
 };
 
+function textOf(node: unknown): string {
+  if (!node) return "";
+  if (typeof node === "string") return node;
+  if (typeof node !== "object") return "";
+  const rec = node as Record<string, unknown>;
+  if (typeof rec.simpleText === "string") return rec.simpleText;
+  if (Array.isArray(rec.runs)) {
+    return rec.runs.map((r) => (r && typeof r === "object" && "text" in r ? String((r as { text?: string }).text ?? "") : "")).join("");
+  }
+  return "";
+}
+
+function walkVideoRenderers(node: unknown, out: YouTubeVideo[], seen: Set<string>, limit: number) {
+  if (!node || out.length >= limit) return;
+  if (Array.isArray(node)) {
+    for (const n of node) walkVideoRenderers(n, out, seen, limit);
+    return;
+  }
+  if (typeof node !== "object") return;
+  const rec = node as Record<string, unknown>;
+  const vr = (rec.videoRenderer ?? rec.compactVideoRenderer) as Record<string, unknown> | undefined;
+  const id = typeof vr?.videoId === "string" ? vr.videoId : "";
+  if (id && YT_ID.test(id) && !seen.has(id)) {
+    seen.add(id);
+    const owner = vr.ownerText ?? vr.shortBylineText;
+    const channelName = textOf(owner) || "Artist";
+    let channelId: string | null = null;
+    const runs = owner && typeof owner === "object" ? (owner as { runs?: Array<{ navigationEndpoint?: { browseEndpoint?: { browseId?: string } } }> }).runs : undefined;
+    channelId = runs?.[0]?.navigationEndpoint?.browseEndpoint?.browseId ?? null;
+    const thumbs = (vr.thumbnail as { thumbnails?: Array<{ url?: string }> } | undefined)?.thumbnails;
+    const length = textOf(vr.lengthText);
+    const parts = length.split(":").map(Number);
+    let durationSeconds: number | null = null;
+    if (parts.length === 3 && parts.every((n) => !Number.isNaN(n))) durationSeconds = parts[0] * 3600 + parts[1] * 60 + parts[2];
+    else if (parts.length === 2 && parts.every((n) => !Number.isNaN(n))) durationSeconds = parts[0] * 60 + parts[1];
+    const viewsRaw = textOf(vr.viewCountText).replace(/[^0-9]/g, "");
+    out.push({
+      videoId: id,
+      title: textOf(vr.title) || "Track",
+      thumbnailUrl: thumbs?.[thumbs.length - 1]?.url ?? getVideoThumbnail(id),
+      channelName,
+      channelId,
+      channelUrl: channelId ? `https://www.youtube.com/channel/${channelId}` : null,
+      publishedAt: textOf(vr.publishedTimeText) || null,
+      description: textOf(vr.descriptionSnippet) || null,
+      durationSeconds,
+      embeddable: true,
+      url: youtubeWatchUrl(id),
+      viewCount: viewsRaw ? Number(viewsRaw) : null,
+      likeCount: null,
+      source: "youtube",
+    });
+  }
+  for (const v of Object.values(rec)) {
+    if (out.length >= limit) return;
+    walkVideoRenderers(v, out, seen, limit);
+  }
+}
+
+async function innertubeSearch(q: string, limit = 24): Promise<YouTubeVideo[]> {
+  try {
+    const res = await fetch("https://www.youtube.com/youtubei/v1/search?prettyPrint=false", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        accept: "*/*",
+        "x-youtube-client-name": "1",
+        "x-youtube-client-version": "2.20240620.00.00",
+      },
+      body: JSON.stringify({
+        context: {
+          client: {
+            clientName: "WEB",
+            clientVersion: "2.20240620.00.00",
+            hl: "en",
+            gl: "US",
+          },
+        },
+        query: q,
+      }),
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!res.ok) return [];
+    const json: unknown = await res.json();
+    const out: YouTubeVideo[] = [];
+    walkVideoRenderers(json, out, new Set(), limit);
+    return out;
+  } catch {
+    return [];
+  }
+}
+
+const INVIDIOUS_HOSTS = ["https://inv.nadeko.net", "https://invidious.nerdvpn.de", "https://yt.artemislena.eu"];
+
+async function invidiousSearch(q: string, limit = 24): Promise<YouTubeVideo[]> {
+  for (const host of INVIDIOUS_HOSTS) {
+    try {
+      const res = await fetch(`${host}/api/v1/search?q=${encodeURIComponent(q)}&type=video`, {
+        headers: { accept: "application/json" },
+        signal: AbortSignal.timeout(5000),
+      });
+      if (!res.ok) continue;
+      const json = (await res.json()) as Array<Record<string, unknown>>;
+      if (!Array.isArray(json)) continue;
+      const out: YouTubeVideo[] = [];
+      const seen = new Set<string>();
+      for (const item of json) {
+        const id = typeof item.videoId === "string" ? item.videoId : "";
+        if (!id || !YT_ID.test(id) || seen.has(id)) continue;
+        seen.add(id);
+        const author = typeof item.author === "string" ? item.author : "Artist";
+        const authorId = typeof item.authorId === "string" ? item.authorId : null;
+        out.push({
+          videoId: id,
+          title: typeof item.title === "string" ? item.title : "Track",
+          thumbnailUrl: getVideoThumbnail(id),
+          channelName: author,
+          channelId: authorId,
+          channelUrl: authorId ? `https://www.youtube.com/channel/${authorId}` : null,
+          publishedAt: typeof item.publishedText === "string" ? item.publishedText : null,
+          description: typeof item.description === "string" ? item.description : null,
+          durationSeconds: typeof item.lengthSeconds === "number" ? item.lengthSeconds : null,
+          embeddable: true,
+          url: youtubeWatchUrl(id),
+          viewCount: typeof item.viewCount === "number" ? item.viewCount : null,
+          likeCount: null,
+          source: "youtube",
+        });
+        if (out.length >= limit) break;
+      }
+      if (out.length) return out;
+    } catch {
+      continue;
+    }
+  }
+  return [];
+}
+
 async function dataApiSearch(q: string, opts: YtSearchOpts = {}): Promise<YouTubeVideo[]> {
   const key = apiKey();
-  if (!key) return localSearch(q);
+  if (!key) return [];
 
-  // Paste a YouTube URL or 11-char id → resolve that video first
+  // Paste a video URL or 11-char id → resolve that video first
   const directId = extractVideoId(q);
   if (directId) {
     const detail = await getVideoDetails(directId);
@@ -348,12 +486,14 @@ async function dataApiSearch(q: string, opts: YtSearchOpts = {}): Promise<YouTub
     q,
     key,
     order: opts.order ?? "relevance",
+    safeSearch: "none",
   });
   if (opts.regionCode) params.set("regionCode", opts.regionCode);
-  if (opts.musicOnly !== false) params.set("videoCategoryId", "10");
+  // videoCategoryId=10 (Music) is notoriously empty for artist/song queries — only use when asked.
+  if (opts.musicOnly === true) params.set("videoCategoryId", "10");
 
   const res = await fetch(`https://www.googleapis.com/youtube/v3/search?${params}`);
-  if (!res.ok) return localSearch(q);
+  if (!res.ok) return [];
   const json = (await res.json()) as {
     items?: Array<{ id?: { videoId?: string }; snippet?: DataVideo["snippet"] }>;
   };
@@ -366,9 +506,9 @@ async function dataApiSearch(q: string, opts: YtSearchOpts = {}): Promise<YouTub
       if (!id) return null;
       return {
         videoId: id,
-        title: i.snippet?.title ?? "YouTube video",
+        title: i.snippet?.title ?? "Track",
         thumbnailUrl: i.snippet?.thumbnails?.high?.url ?? getVideoThumbnail(id),
-        channelName: i.snippet?.channelTitle ?? "YouTube",
+        channelName: i.snippet?.channelTitle ?? "Artist",
         channelId: i.snippet?.channelId ?? null,
         channelUrl: i.snippet?.channelId
           ? `https://www.youtube.com/channel/${i.snippet.channelId}`
@@ -445,22 +585,44 @@ export async function searchVideos(q: string, opts?: YtSearchOpts): Promise<YouT
   return dataApiSearch(q, { musicOnly: false, maxResults: 24, ...opts });
 }
 
-/** Primary music search used by Search page — live YouTube Data API. */
-export async function searchMusic(q: string, opts?: YtSearchOpts): Promise<YouTubeVideo[]> {
-  const region = opts?.regionCode;
-  const [live, broad, extra] = await Promise.all([
-    dataApiSearch(q, { regionCode: region, maxResults: 24, musicOnly: true, order: "relevance" }),
-    dataApiSearch(q, { regionCode: region, maxResults: 16, musicOnly: false, order: "relevance" }),
-    rapidKey() ? rapidSearch(q, 20) : Promise.resolve([] as YouTubeVideo[]),
-  ]);
+function mergeVideos(...lists: YouTubeVideo[][]): YouTubeVideo[] {
   const seen = new Set<string>();
   const out: YouTubeVideo[] = [];
-  for (const v of [...live, ...broad, ...extra]) {
-    if (!v.videoId || seen.has(v.videoId)) continue;
-    seen.add(v.videoId);
-    out.push(v);
+  for (const list of lists) {
+    for (const v of list) {
+      if (!v.videoId || seen.has(v.videoId)) continue;
+      seen.add(v.videoId);
+      out.push(v);
+    }
   }
-  return out.slice(0, 36);
+  return out;
+}
+
+/** Primary music search used by Search — live catalog, no YouTube chrome. */
+export async function searchMusic(q: string, opts?: YtSearchOpts): Promise<YouTubeVideo[]> {
+  const region = opts?.regionCode;
+  const max = opts?.maxResults ?? 36;
+  const needle = q.trim();
+  if (!needle) return [];
+
+  const live = await dataApiSearch(needle, {
+    regionCode: region,
+    maxResults: 32,
+    musicOnly: false,
+    order: "relevance",
+  });
+  if (live.length >= 8) return live.slice(0, max);
+
+  const [unregioned, innertube, extra] = await Promise.all([
+    region
+      ? dataApiSearch(needle, { maxResults: 24, musicOnly: false, order: "relevance" })
+      : Promise.resolve([] as YouTubeVideo[]),
+    innertubeSearch(needle, 24),
+    rapidKey() ? rapidSearch(needle, 20) : Promise.resolve([] as YouTubeVideo[]),
+  ]);
+  let out = mergeVideos(live, unregioned, innertube, extra);
+  if (out.length === 0) out = mergeVideos(await invidiousSearch(needle, 24), localSearch(needle));
+  return out.slice(0, max);
 }
 
 export function youtubeVideoToTrack(v: YouTubeVideo): TrackCard {

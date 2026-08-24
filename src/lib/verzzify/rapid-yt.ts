@@ -99,7 +99,7 @@ export async function rapidMp3(watchUrl: string): Promise<RapidMp3> {
     if (res.ok && audio && /^https?:\/\//i.test(audio)) {
       const id = extractId(watchUrl);
       return {
-        title: str(nested, "title", "name") || "YouTube audio",
+        title: str(nested, "title", "name") || "Track",
         thumbnail: str(nested, "thumbnail", "thumb", "image") || (id ? `https://i.ytimg.com/vi/${id}/hqdefault.jpg` : ""),
         url: audio,
       };
@@ -125,9 +125,9 @@ export async function rapidSearch(q: string, limit = 20): Promise<YouTubeVideo[]
     seen.add(id);
     out.push({
       videoId: id,
-      title: str(rec, "title", "name") || "YouTube video",
+      title: str(rec, "title", "name") || "Track",
       thumbnailUrl: str(rec, "thumbnail", "thumb", "image", "thumbnailUrl") || `https://i.ytimg.com/vi/${id}/hqdefault.jpg`,
-      channelName: str(rec, "channel", "channelName", "author", "uploader", "artist") || "YouTube",
+      channelName: str(rec, "channel", "channelName", "author", "uploader", "artist") || "Artist",
       channelId: str(rec, "channelId", "channel_id") || null,
       channelUrl: null,
       publishedAt: str(rec, "publishedAt", "upload_date") || null,

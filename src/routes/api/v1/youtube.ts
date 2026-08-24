@@ -18,10 +18,10 @@ export const Route = createFileRoute("/api/v1/youtube")({
           const videos = await searchMusic(q.slice(0, 120), {
             regionCode: region,
             maxResults: 36,
-            musicOnly: true,
+            musicOnly: false,
           });
           return Response.json(
-            { query: q, region, source: "youtube", videos },
+            { query: q, region, source: "verzzify", videos },
             {
               headers: {
                 "access-control-allow-origin": "*",

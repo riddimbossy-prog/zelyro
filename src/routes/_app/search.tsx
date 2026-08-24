@@ -30,7 +30,7 @@ async function fetchYoutubeSearch(q: string, region: string): Promise<YouTubeVid
   const res = await fetch(
     `/api/v1/youtube?q=${encodeURIComponent(q)}&region=${encodeURIComponent(region)}`,
   );
-  if (!res.ok) return [];
+  if (!res.ok) throw new Error("search failed");
   const json = (await res.json()) as { videos?: YouTubeVideo[] };
   return json.videos ?? [];
 }
@@ -61,7 +61,7 @@ function SearchPage() {
     return city ? [`${city} hits`, ...local] : local;
   }, [region, city]);
 
-  // Pure YouTube search (Data API) — same engine as youtube.com/results
+  // Live catalog search — same engine as the header overlay
   const ytQuery = useMemo(() => {
     const base = q.trim();
     if (!base) return "";
@@ -98,8 +98,7 @@ function SearchPage() {
     <div>
       <h1 className="font-display text-3xl">Search</h1>
       <p className="mt-1 text-sm text-muted-foreground">
-        Live YouTube music results{city ? ` · ${city}` : ""} ({region}). Paste a YouTube link or type a song,
-        artist, or genre.
+        Songs, artists, and albums{city ? ` around ${city}` : ""} ({region}). Type a name or paste a link.
       </p>
       <form
         className="mt-4"
@@ -110,7 +109,7 @@ function SearchPage() {
         <Input
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="Search YouTube — songs, artists, or paste a link…"
+          placeholder="Search songs, artists, albums, or paste a link…"
           autoFocus
         />
       </form>
@@ -146,10 +145,10 @@ function SearchPage() {
       {q.trim().length > 0 && (
         <div className="mt-8 space-y-10">
           <section>
-            <p className="text-xs tracking-widest text-sand uppercase">YouTube · {region}</p>
+            <p className="text-xs tracking-widest text-sand uppercase">VerzZify · {region}</p>
             <h2 className="mb-3 font-display text-xl capitalize">{kind}</h2>
             {youtube.isFetching && videos.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Searching YouTube…</p>
+              <p className="text-sm text-muted-foreground">Searching…</p>
             ) : videos.length > 0 ? (
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {videos.map((v) => (
@@ -159,8 +158,8 @@ function SearchPage() {
             ) : (
               <p className="text-sm text-muted-foreground">
                 {youtube.isError
-                  ? "YouTube search failed — check YOUTUBE_API_KEY on the server."
-                  : "No YouTube matches. Try another spelling or paste a video URL."}
+                  ? "Search could not load. Try again in a moment."
+                  : "No matches. Try another spelling or paste a link."}
               </p>
             )}
           </section>

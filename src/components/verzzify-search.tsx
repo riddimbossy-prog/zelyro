@@ -21,7 +21,7 @@ async function fetchYoutube(q: string, region: string): Promise<YouTubeVideo[]> 
   const res = await fetch(
     `/api/v1/youtube?q=${encodeURIComponent(q)}&region=${encodeURIComponent(region)}`,
   );
-  if (!res.ok) return [];
+  if (!res.ok) throw new Error("search failed");
   const json = (await res.json()) as { videos?: YouTubeVideo[] };
   return json.videos ?? [];
 }
@@ -154,9 +154,9 @@ export function VerzZifySearch({ autoFocus = false }: { autoFocus?: boolean }) {
           onKeyDown={(e) => {
             if (e.key === "Enter" && q.trim()) setOpen(true);
           }}
-          placeholder="Search songs, artists…"
+          placeholder="Search songs, artists, albums…"
           className="h-11 rounded-full border border-white/15 bg-[#1a0b2e] pr-10 pl-9 text-foreground"
-          aria-label="Search YouTube on VerzZify"
+          aria-label="Search VerzZify"
         />
         {q && (
           <button
@@ -218,7 +218,7 @@ export function VerzZifySearch({ autoFocus = false }: { autoFocus?: boolean }) {
                     : `${total} result${total === 1 ? "" : "s"}`}
                 </p>
                 <p className="text-[11px] text-muted-foreground">
-                  YouTube · {region} · {kind}
+                  VerzZify · {region} · {kind}
                 </p>
               </div>
               <div className="flex items-center gap-2">
@@ -245,7 +245,7 @@ export function VerzZifySearch({ autoFocus = false }: { autoFocus?: boolean }) {
               {videos.length > 0 && (
                 <div className="mb-2">
                   <p className="px-2 py-1 text-[10px] font-bold tracking-widest text-primary uppercase">
-                    YouTube
+                    Songs
                   </p>
                   {videos.map((v, i) => (
                     <ResultRow key={v.videoId} video={v} queue={videos} index={i} />
@@ -256,7 +256,7 @@ export function VerzZifySearch({ autoFocus = false }: { autoFocus?: boolean }) {
               {boomplay.length > 0 && (
                 <div className="border-t border-white/10 pt-2">
                   <p className="px-2 py-1 text-[10px] font-bold tracking-widest text-muted-foreground uppercase">
-                    On VerzZify
+                    More on VerzZify
                   </p>
                   {boomplay.map((t, i) => (
                     <TrackRow key={t.id} track={t} queue={boomplay} index={i} />
