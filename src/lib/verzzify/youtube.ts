@@ -1,4 +1,5 @@
-import type { YouTubeVideo } from "./types";
+import { rapidKey, rapidSearch } from "./rapid-yt";
+import type { TrackCard, YouTubeVideo } from "./types";
 import { ALL_YT_VIDEOS, searchLocalYoutube } from "./yt-charts";
 
 const YT_ID = /^[a-zA-Z0-9_-]{11}$/;
@@ -384,7 +385,53 @@ export async function searchVideos(q: string): Promise<YouTubeVideo[]> {
 }
 
 export async function searchMusic(q: string): Promise<YouTubeVideo[]> {
-  return dataApiSearch(q, "&videoCategoryId=10");
+  const [live, extra] = await Promise.all([
+    dataApiSearch(q, "&videoCategoryId=10"),
+    rapidKey() ? rapidSearch(q, 20) : Promise.resolve([] as YouTubeVideo[]),
+  ]);
+  const seen = new Set<string>();
+  const out: YouTubeVideo[] = [];
+  for (const v of [...extra, ...live]) {
+    if (!v.videoId || seen.has(v.videoId)) continue;
+    seen.add(v.videoId);
+    out.push(v);
+  }
+  return out;
+}
+
+export function youtubeVideoToTrack(v: YouTubeVideo): TrackCard {
+  const slug =
+    v.channelName
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "") || "artist";
+  return {
+    id: `yt_${v.videoId}`,
+    title: v.title,
+    coverUrl: v.thumbnailUrl,
+    audioUrl: `/api/v1/yt-mp3?videoId=${encodeURIComponent(v.videoId)}`,
+    durationMs: (v.durationSeconds ?? 0) * 1000,
+    genre: "YouTube",
+    distribution: "youtube",
+    priceCents: 0,
+    currency: "USD",
+    playCount: v.viewCount ?? 0,
+    likeCount: v.likeCount ?? 0,
+    albumId: null,
+    albumTitle: null,
+    lyrics: null,
+    explicit: false,
+    featuredArtists: null,
+    producer: null,
+    songwriter: null,
+    copyrightOwner: null,
+    country: null,
+    artistId: v.channelId ?? slug,
+    artistName: v.channelName,
+    artistSlug: slug,
+    artistAvatar: v.thumbnailUrl,
+    verified: false,
+  };
 }
 
 export async function searchArtists(q: string): Promise<YouTubeVideo[]> {
@@ -438,4 +485,5 @@ export const YouTubeService = {
   getPlaylistDetails,
   youtubeWatchUrl,
   youtubeEmbedUrl,
+  youtubeVideoToTrack,
 };

@@ -156,7 +156,11 @@ export const useDownloads = create<DownloadsState>((set, get) => ({
     if (get().items.some((x) => x.id === track.id)) return;
     set((s) => ({ progress: { ...s.progress, [track.id]: 1 } }));
     try {
-      const audio = await fetchBlob(track.audioUrl, (pct) =>
+      const src =
+        track.id.startsWith("yt_") && (!track.audioUrl || track.audioUrl.startsWith("https://www.youtube"))
+          ? `/api/v1/yt-mp3?videoId=${encodeURIComponent(track.id.slice(3))}`
+          : track.audioUrl;
+      const audio = await fetchBlob(src, (pct) =>
         set((s) => ({ progress: { ...s.progress, [track.id]: pct } })),
       );
       let cover: Blob | undefined;

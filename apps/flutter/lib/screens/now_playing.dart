@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:web/web.dart' as web;
 import '../catalog.dart';
 import '../player_controller.dart';
 import '../theme.dart';
@@ -59,7 +60,11 @@ class NowPlayingScreen extends StatelessWidget {
             if (t.isYoutube) return;
           }),
           _Act(Icons.playlist_add, 'Playlist', () {}),
-          _Act(Icons.download_outlined, 'Download', () {}),
+          _Act(Icons.download_outlined, 'Download', () {
+            final id = t.videoId;
+            if (id == null || id.isEmpty) return;
+            web.window.open('/api/v1/yt-mp3?videoId=${Uri.encodeComponent(id)}', '_blank');
+          }),
           _Act(Icons.send_outlined, 'Share', () => showShareSheet(context, cover: t.cover, title: t.title, artist: t.artist)),
         ]),
         const SizedBox(height: 12),

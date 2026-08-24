@@ -108,6 +108,10 @@ services:
         sync: false
       - key: JAMENDO_CLIENT_ID
         sync: false
+      - key: RAPIDAPI_KEY
+        sync: false
+      - key: RAPIDAPI_YT_HOST
+        value: yt-search-and-download-mp3.p.rapidapi.com
 
       # --- Later ---
       - key: FCM_PROJECT_ID

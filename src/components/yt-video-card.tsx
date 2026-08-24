@@ -1,6 +1,8 @@
 import { Play } from "lucide-react";
 import type { YouTubeVideo } from "@/lib/verzzify/types";
 import { useYtPlayer } from "@/lib/verzzify/yt-player";
+import { youtubeVideoToTrack } from "@/lib/verzzify/youtube";
+import { DownloadButton } from "@/components/download-button";
 import { cn, formatCount } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -50,6 +52,9 @@ export function YtVideoCard({
           {video.channelName}
           {video.viewCount ? ` · ${formatCount(video.viewCount)} views` : ""}
         </p>
+        <div className="mt-2">
+          <DownloadButton track={youtubeVideoToTrack(video)} />
+        </div>
       </div>
     </article>
   );
