@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Search, X } from "lucide-react";
 import { searchDiscover } from "@/lib/verzzify/promotions";
+import type { YouTubeVideo } from "@/lib/verzzify/types";
 import { YtVideoCard } from "@/components/yt-video-card";
 import { TrackRow } from "@/components/track-row";
 import { Input } from "@/components/ui/input";
@@ -13,17 +14,42 @@ const KINDS = [
   { id: "albums" as const, label: "Albums" },
 ];
 
+async function fetchYoutube(q: string, region: string): Promise<YouTubeVideo[]> {
+  const res = await fetch(
+    `/api/v1/youtube?q=${encodeURIComponent(q)}&region=${encodeURIComponent(region)}`,
+  );
+  if (!res.ok) return [];
+  const json = (await res.json()) as { videos?: YouTubeVideo[] };
+  return json.videos ?? [];
+}
+
+function buildYtQuery(q: string, kind: (typeof KINDS)[number]["id"]): string {
+  const base = q.trim();
+  if (!base) return "";
+  if (kind === "beats") return `${base} type beat instrumental`;
+  if (kind === "albums") return `${base} full album`;
+  return base;
+}
+
 export function VerzZifySearch({ autoFocus = false }: { autoFocus?: boolean }) {
   const [q, setQ] = useState("");
   const [kind, setKind] = useState<(typeof KINDS)[number]["id"]>("songs");
   const [debounced, setDebounced] = useState("");
   const [open, setOpen] = useState(false);
+  const [region, setRegion] = useState("US");
   const wrap = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const t = window.setTimeout(() => setDebounced(q.trim()), 320);
     return () => window.clearTimeout(t);
   }, [q]);
+
+  useEffect(() => {
+    void import("@/lib/verzzify/geo")
+      .then(({ getViewerGeo }) => getViewerGeo())
+      .then((g) => setRegion(g.region))
+      .catch(() => undefined);
+  }, []);
 
   useEffect(() => {
     function onDoc(e: MouseEvent) {
@@ -33,15 +59,28 @@ export function VerzZifySearch({ autoFocus = false }: { autoFocus?: boolean }) {
     return () => document.removeEventListener("mousedown", onDoc);
   }, []);
 
-  const query = useQuery({
-    queryKey: ["discover", kind, debounced],
+  const ytQ = buildYtQuery(debounced, kind);
+
+  // Primary: live YouTube Data API (same as youtube.com search)
+  const youtube = useQuery({
+    queryKey: ["header-yt", ytQ, region],
+    queryFn: () => fetchYoutube(ytQ, region),
+    enabled: ytQ.length > 1,
+    staleTime: 60_000,
+  });
+
+  // Secondary: promoted + Boomplay catalog
+  const extra = useQuery({
+    queryKey: ["header-discover", kind, debounced],
     queryFn: () => searchDiscover({ data: { q: debounced, kind } }),
     enabled: debounced.length > 1,
   });
-  const videos = query.data?.videos ?? [];
-  const promoted = query.data?.promoted ?? [];
-  const boomplay = query.data?.boomplay ?? [];
+
+  const videos = youtube.data ?? [];
+  const promoted = extra.data?.promoted ?? [];
+  const boomplay = extra.data?.boomplay ?? [];
   const showPanel = open && debounced.length > 1;
+  const total = videos.length + promoted.length + boomplay.length;
 
   return (
     <div ref={wrap} className="relative min-w-0 flex-1">
@@ -55,9 +94,9 @@ export function VerzZifySearch({ autoFocus = false }: { autoFocus?: boolean }) {
             setOpen(true);
           }}
           onFocus={() => setOpen(true)}
-          placeholder="Search songs, beats, albums"
+          placeholder="Search YouTube — songs, artists, or paste a link"
           className="h-11 rounded-full pr-10 pl-9"
-          aria-label="Search VerzZify"
+          aria-label="Search YouTube on VerzZify"
         />
         {q && (
           <button
@@ -94,36 +133,56 @@ export function VerzZifySearch({ autoFocus = false }: { autoFocus?: boolean }) {
       {showPanel && (
         <div className="glass absolute top-[calc(100%+0.5rem)] right-0 left-0 z-50 max-h-[min(28rem,70dvh)] overflow-y-auto rounded-2xl p-3 shadow-lg">
           <p className="mb-2 text-xs text-muted-foreground">
-            {query.isFetching ? "Searching…" : `${kind} · ${videos.length + promoted.length + boomplay.length} results`}
+            {youtube.isFetching && videos.length === 0
+              ? "Searching YouTube…"
+              : `${kind} · ${total} results · ${region}`}
           </p>
-          {boomplay.length > 0 && (
+
+          {videos.length > 0 && (
             <div className="mb-3">
-              <p className="mb-1 text-[10px] font-extrabold tracking-widest text-primary uppercase">On VerzZify</p>
+              <p className="mb-1 text-[10px] font-extrabold tracking-widest text-primary uppercase">
+                YouTube
+              </p>
+              <ul className="space-y-2">
+                {videos.map((v) => (
+                  <li key={v.videoId}>
+                    <YtVideoCard video={v} queue={videos} compact />
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {promoted.length > 0 && (
+            <div className="mb-3">
+              <p className="mb-1 text-[10px] font-extrabold tracking-widest text-sand uppercase">
+                Promoted
+              </p>
+              <ul className="space-y-2">
+                {promoted.map((p) => (
+                  <li key={p.campaignId}>
+                    <YtVideoCard video={p.video} queue={[p.video, ...videos]} compact />
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {boomplay.length > 0 && (
+            <div className="mb-1">
+              <p className="mb-1 text-[10px] font-extrabold tracking-widest text-muted-foreground uppercase">
+                On VerzZify
+              </p>
               {boomplay.map((t, i) => (
                 <TrackRow key={t.id} track={t} queue={boomplay} index={i} />
               ))}
             </div>
           )}
-          {promoted.length > 0 && (
-            <ul className="mb-3 space-y-2">
-              {promoted.map((p) => (
-                <li key={p.campaignId}>
-                  <YtVideoCard video={p.video} queue={[p.video, ...videos]} compact />
-                </li>
-              ))}
-            </ul>
-          )}
-          {videos.length > 0 ? (
-            <ul className="space-y-2">
-              {videos.map((v) => (
-                <li key={v.videoId}>
-                  <YtVideoCard video={v} queue={videos} compact />
-                </li>
-              ))}
-            </ul>
-          ) : (
-            !query.isFetching &&
-            boomplay.length === 0 && <p className="py-6 text-center text-sm text-muted-foreground">No matches. Try another title.</p>
+
+          {!youtube.isFetching && total === 0 && (
+            <p className="py-6 text-center text-sm text-muted-foreground">
+              No YouTube matches. Try another title or paste a video URL.
+            </p>
           )}
         </div>
       )}
