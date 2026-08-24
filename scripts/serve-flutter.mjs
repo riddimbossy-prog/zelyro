@@ -59,7 +59,7 @@ createServer(async (req, res) => {
   if (!existsSync(file) || statSync(file).isDirectory()) file = join(root, "index.html");
   const ext = extname(file).toLowerCase();
   res.setHeader("Content-Type", types[ext] || "application/octet-stream");
-  res.setHeader("Cache-Control", ext === ".html" ? "no-cache" : "public, max-age=86400");
+  res.setHeader("Cache-Control", "no-store, max-age=0");
   res.setHeader("Permissions-Policy", "autoplay=*, fullscreen=*, picture-in-picture=*");
   const gzip = gzipExt.has(ext) && (req.headers["accept-encoding"] || "").includes("gzip");
   if (gzip) {

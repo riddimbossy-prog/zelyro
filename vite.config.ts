@@ -18,6 +18,19 @@ process.env.VITE_AUTH_ENABLED = "false";
  * async `configureServer` hooks. Production: `src/lib/db` kicks `ensureDbReady`
  * on import.
  */
+function noStorePreviewPlugin(): Plugin {
+  return {
+    name: "verzzify:no-store",
+    apply: "serve",
+    configureServer(server) {
+      server.middlewares.use((_req, res, next) => {
+        res.setHeader("Cache-Control", "no-store, max-age=0, must-revalidate");
+        next();
+      });
+    },
+  };
+}
+
 function pgliteBootstrapPlugin(): Plugin {
   return {
     name: "app-builder:pglite-bootstrap",
@@ -57,6 +70,7 @@ function authPopupPlugin(): Plugin {
       // TanStack Start / the SPA HTML fallback. A model-authored
       // `src/routes/auth/popup.tsx` React page must never win this path.
       server.middlewares.use(async (req, res, next) => {
+        res.setHeader("Cache-Control", "no-store, max-age=0, must-revalidate");
         try {
           const rawUrl = req.url ?? "";
           const pathOnly = rawUrl.split("?", 1)[0] ?? "";
@@ -145,6 +159,7 @@ export default defineConfig(({ command, isPreview }) => ({
   },
   resolve: { tsconfigPaths: true },
   plugins: [
+    noStorePreviewPlugin(),
     pgliteBootstrapPlugin(),
     // Before tanstackStart so /auth/popup never falls through to the SPA.
     authPopupPlugin(),

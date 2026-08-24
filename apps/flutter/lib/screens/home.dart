@@ -8,6 +8,7 @@ import '../models.dart';
 import '../player_controller.dart';
 import '../theme.dart';
 import '../widgets.dart';
+import '../yt_fallback.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -16,25 +17,19 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  YtHome yt = const YtHome(
+  YtHome yt = YtHome(
     region: 'GH',
     regionName: 'Ghana',
-    videos: fallbackClips,
-    feed: fallbackClips,
+    videos: worldClips,
+    feed: worldClips,
     artists: [],
     playlists: [],
     nearby: [],
   );
   String region = 'GH';
+  String genre = 'Afrobeats';
+  List<YtClip> genreHits = worldClips;
   String? loadError;
-
-  static const fallbackClips = [
-    YtClip(videoId: 'GIDiI5kyBDQ', title: 'Black Sherif - Kwaku the Traveller (Official Video)', artist: 'Black Sherif', cover: 'https://i.ytimg.com/vi/GIDiI5kyBDQ/hqdefault.jpg'),
-    YtClip(videoId: 'NPCC02SaJVg', title: 'King Promise - Terminator feat. Young Jonn', artist: 'King Promise', cover: 'https://i.ytimg.com/vi/NPCC02SaJVg/hqdefault.jpg'),
-    YtClip(videoId: '421w1j87fEM', title: 'Burna Boy - Last Last', artist: 'Burna Boy', cover: 'https://i.ytimg.com/vi/421w1j87fEM/hqdefault.jpg'),
-    YtClip(videoId: 'tQiNQL-FEgU', title: 'Free Mind', artist: 'Tems', cover: 'https://i.ytimg.com/vi/tQiNQL-FEgU/hqdefault.jpg'),
-    YtClip(videoId: 'pRpeEdMmmQ0', title: 'Shakira - Waka Waka (This Time for Africa)', artist: 'Shakira', cover: 'https://i.ytimg.com/vi/pRpeEdMmmQ0/hqdefault.jpg'),
-  ];
 
   @override
   void initState() {
@@ -47,9 +42,9 @@ class _HomeScreenState extends State<HomeScreen> {
     YtHome? parsed;
     String? err;
     for (final url in [
-      '/feed.json',
       '/api/v1/youtube?region=$want',
       '/api/v1/home',
+      '/feed.json',
     ]) {
       try {
         final raw = await VzApi.get(url);
@@ -75,6 +70,19 @@ class _HomeScreenState extends State<HomeScreen> {
         loadError = err;
       }
     });
+    _loadGenre();
+  }
+
+  Future<void> _loadGenre() async {
+    final g = genre.toLowerCase().replaceAll('&', '').replaceAll(' ', '');
+    try {
+      final raw = await VzApi.get('/api/v1/catalog?region=$region&genre=$g');
+      final clips = (raw['videos'] as List? ?? []).whereType<Map>().map((e) => YtHome.clip({for (final k in e.keys) '$k': e[k]})).toList();
+      if (!mounted) return;
+      setState(() => genreHits = clips.isNotEmpty ? clips : worldClips);
+    } catch (_) {
+      if (mounted) setState(() => genreHits = worldClips);
+    }
   }
 
   @override
@@ -114,7 +122,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [
-                          Text('POPULAR IN ${place.toUpperCase()}', style: const TextStyle(color: accent, fontWeight: FontWeight.w800, letterSpacing: 1.8, fontSize: 11)),
+                          Text('WORLD CATALOG · ${place.toUpperCase()}', style: const TextStyle(color: accent, fontWeight: FontWeight.w800, letterSpacing: 1.8, fontSize: 11)),
                           const SizedBox(height: 6),
                           Text(heroTrack.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.headlineLarge),
                           Text(heroTrack.artist, style: const TextStyle(color: Colors.white70, fontSize: 16, fontWeight: FontWeight.w600)),
@@ -136,19 +144,66 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
         SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+            child: Glass(
+              tone: GlassTone.accent,
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('WORLD CATALOG', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, letterSpacing: 1.6, fontSize: 12)),
+                        SizedBox(height: 4),
+                        Text('50 countries · 24 genres · play in VerzZify', style: TextStyle(color: Colors.white70, fontSize: 14)),
+                      ],
+                    ),
+                  ),
+                  FilledButton(onPressed: () => context.go('/discover'), child: const Text('Open')),
+                ],
+              ),
+            ),
+          ),
+        ),
+        SliverToBoxAdapter(
           child: SizedBox(
             height: 48,
             child: ListView(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
               children: [
-                for (final code in ['GH', 'NG', 'ZA', 'KE', 'JM', 'US', 'GB', 'BR', 'MX', 'KR', 'IN', 'FR', 'PT'])
+                for (final c in catalogCountries)
                   Padding(
                     padding: const EdgeInsets.only(right: 8),
                     child: ChoiceChip(
-                      label: Text(code),
-                      selected: region == code,
-                      onSelected: (_) => _load(code),
+                      label: Text(c.$2),
+                      selected: region == c.$1,
+                      onSelected: (_) => _load(c.$1),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+        SliverToBoxAdapter(
+          child: SizedBox(
+            height: 48,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+              children: [
+                for (final g in catalogGenres)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: ChoiceChip(
+                      label: Text(g),
+                      selected: genre == g,
+                      onSelected: (_) {
+                        setState(() => genre = g);
+                        _loadGenre();
+                      },
                     ),
                   ),
               ],
@@ -157,6 +212,9 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         if (popular.isNotEmpty)
           _ytRail(context, 'For you in $place', popular, player, kicker: 'Catalog mix from your country'),
+        if (genreHits.isNotEmpty)
+          _ytRail(context, '$genre · $place', genreHits, player, kicker: 'World catalog'),
+        _ytRail(context, 'Global hits', worldClips, player, kicker: 'Play anywhere'),
         if (yt.artists.isNotEmpty)
           SliverToBoxAdapter(
             child: Column(

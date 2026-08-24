@@ -190,6 +190,14 @@ const INDEX: Record<string, YouTubeVideo> = Object.fromEntries(
     vid("RgKAFK5djSk", "Wiz Khalifa - See You Again ft. Charlie Puth", "Wiz Khalifa Music"),
     vid("j5-yKhDd64s", "Eminem - Not Afraid", "EminemVEVO"),
     vid("YVkUvmDQ3HY", "Eminem - Without Me (Official Music Video)", "EminemVEVO"),
+    vid("RJMpeYwifEU", "Magic System - 1er Gaou", "Magic System"),
+    vid("Q8KzMH0RstM", "Magic System - 1er Gaou (Original)", "Magic System"),
+    vid("hOCBK373mJo", "DJ Arafat - Kpangor", "DJ Arafat"),
+    vid("5RXimtgpLb8", "DJ Arafat - Kpangor", "DJ Arafat"),
+    vid("jNPdBP_4dyc", "Alpha Blondy - Cocody Rock", "Alpha Blondy"),
+    vid("lvCCqkkweyw", "Serge Beynaud - C'est Dosé", "Serge Beynaud"),
+    vid("LoL_PSDSoh0", "Meiway - 200% Zoblazo", "Meiway"),
+    vid("fFoThCFlD3c", "Tiken Jah Fakoly - Plus rien ne m'étonne", "Tiken Jah Fakoly"),
   ].map((v) => [v.videoId, v]),
 );
 
@@ -214,14 +222,93 @@ const REGION_IDS: Record<string, string[]> = {
   AU: ["hT_nvWreIhg", "fKopy74weus", "JGwWNGJdvx8", "H5v3kku4y6Q", "OPf0YbXqDm0"],
   JM: ["uxpDa-c-4Mc", "pRpeEdMmmQ0", "421w1j87fEM", "OPf0YbXqDm0"],
   SN: ["tQiNQL-FEgU", "421w1j87fEM", "pRpeEdMmmQ0", "WvxADzZMkEI"],
+  CI: ["RJMpeYwifEU", "Q8KzMH0RstM", "hOCBK373mJo", "lvCCqkkweyw", "LoL_PSDSoh0", "jNPdBP_4dyc", "fFoThCFlD3c"],
 };
 
 function curatedIds(code: string): string[] {
-  if (REGION_IDS[code]?.length) return REGION_IDS[code];
-  for (const n of NEARBY_REGIONS[code] ?? []) {
-    if (REGION_IDS[n]?.length) return REGION_IDS[n];
+  return REGION_IDS[code] ?? [];
+}
+
+/** Artist / scene words that belong to a country. Used to stop neighbor leak. */
+const LOCAL_MARKERS: Record<string, string[]> = {
+  GH: ["black sherif", "king promise", "sarkodie", "stonebwoy", "shatta wale", "kuami eugene", "gyakie", "accra", "ghana"],
+  NG: ["burna boy", "wizkid", "davido", "rema", "tems", "asake", "lagos", "nigeria"],
+  CI: [
+    "dj arafat",
+    "magic system",
+    "serge beynaud",
+    "alpha blondy",
+    "tiken jah",
+    "meiway",
+    "mix premier",
+    "roseline layo",
+    "didi b",
+    "debordo",
+    "kedjevara",
+    "kiff no beat",
+    "suspect 95",
+    "coupe decale",
+    "coupé-décalé",
+    "zouglou",
+    "abidjan",
+    "ivoir",
+    "cocody",
+  ],
+  SN: ["youssou", "mbalax", "dakar", "senegal"],
+  ZA: ["amapiano", "uncle waffles", "tyla", "johannesburg", "south africa"],
+};
+
+function blobOf(v: YouTubeVideo): string {
+  return `${v.title} ${v.channelName} ${v.description ?? ""}`.toLowerCase();
+}
+
+const ARTIST_DISPLAY: Array<[string, string]> = [
+  ["dj arafat", "DJ Arafat"],
+  ["magic system", "Magic System"],
+  ["serge beynaud", "Serge Beynaud"],
+  ["alpha blondy", "Alpha Blondy"],
+  ["tiken jah", "Tiken Jah Fakoly"],
+  ["meiway", "Meiway"],
+  ["mix premier", "Mix Premier"],
+  ["roseline layo", "Roseline Layo"],
+  ["didi b", "Didi B"],
+  ["debordo", "Debordo Leekunfa"],
+  ["kedjevara", "Kedjevara"],
+  ["kiff no beat", "Kiff No Beat"],
+  ["suspect 95", "Suspect 95"],
+  ["black sherif", "Black Sherif"],
+  ["king promise", "King Promise"],
+];
+
+export function prettyArtistName(raw: string): string {
+  const stripped = raw
+    .replace(/\s*(- ?topic|vevo|officiel|official|music)\s*/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  const key = stripped.toLowerCase();
+  for (const [needle, name] of ARTIST_DISPLAY) {
+    if (key.includes(needle)) return name;
   }
-  return REGION_IDS.US;
+  return stripped;
+}
+
+export function filterVideosForRegion(code: string, videos: YouTubeVideo[]): YouTubeVideo[] {
+  const local = LOCAL_MARKERS[code] ?? [];
+  const neighborMarks = (NEARBY_REGIONS[code] ?? [])
+    .filter((n) => n !== code)
+    .flatMap((n) => LOCAL_MARKERS[n] ?? []);
+  const exclude = code === "CI" ? ["francis mercier"] : [];
+  const renamed = videos.map((v) => ({ ...v, channelName: prettyArtistName(v.channelName) }));
+  if (!local.length && !neighborMarks.length && !exclude.length) return renamed;
+  const kept = renamed.filter((v) => {
+    const blob = blobOf(v);
+    if (exclude.some((m) => blob.includes(m))) return false;
+    const hitsLocal = local.some((m) => blob.includes(m));
+    const hitsNeighbor = neighborMarks.some((m) => blob.includes(m));
+    if (hitsNeighbor && !hitsLocal) return false;
+    return true;
+  });
+  return kept.length ? kept : renamed.filter((v) => !neighborMarks.some((m) => blobOf(v).includes(m)));
 }
 
 function mapDataItem(v: {
@@ -263,7 +350,7 @@ const REGION_SEARCH: Record<string, string[]> = {
   ZA: ["amapiano south africa official", "south africa house music"],
   KE: ["kenya music official", "genge kapuka"],
   SN: ["mbalax senegal", "afrobeats senegal"],
-  CI: ["coupe decale official", "afrobeats cote divoire"],
+  CI: ["coupe decale abidjan", "DJ Arafat Magic System Serge Beynaud", "zouglou ivoire official"],
   JM: ["dancehall jamaica official", "reggae jamaica official"],
   US: ["hip hop official video", "rnb official 2024"],
   GB: ["uk drill official", "uk afrobeats official"],
@@ -335,7 +422,7 @@ const TTL = 20 * 60 * 1000;
 
 export async function getPopularMusicByCountry(region: string): Promise<YouTubeVideo[]> {
   const code = normalizeRegion(region);
-  const hit = cache.get(code);
+  const hit = cache.get(`v3:${code}`);
   if (hit && Date.now() - hit.at < TTL) return hit.videos;
 
   const key = process.env.YOUTUBE_API_KEY?.trim();
@@ -345,9 +432,9 @@ export async function getPopularMusicByCountry(region: string): Promise<YouTubeV
       const res = await fetch(url);
       if (res.ok) {
         const json = (await res.json()) as { items?: Parameters<typeof mapDataItem>[0][] };
-        const videos = (json.items ?? []).map(mapDataItem);
+        const videos = filterVideosForRegion(code, (json.items ?? []).map(mapDataItem));
         if (videos.length) {
-          cache.set(code, { at: Date.now(), videos });
+          cache.set(`v3:${code}`, { at: Date.now(), videos });
           return videos;
         }
       }
@@ -356,8 +443,11 @@ export async function getPopularMusicByCountry(region: string): Promise<YouTubeV
     }
   }
 
-  const videos = curatedIds(code).map((id) => INDEX[id]).filter(Boolean);
-  cache.set(code, { at: Date.now(), videos });
+  const videos = filterVideosForRegion(
+    code,
+    curatedIds(code).map((id) => INDEX[id]).filter(Boolean),
+  );
+  cache.set(`v3:${code}`, { at: Date.now(), videos });
   return videos;
 }
 
@@ -368,7 +458,7 @@ export function artistsFromVideos(videos: YouTubeVideo[]): YtArtistCard[] {
     if (seen.has(key)) continue;
     seen.set(key, {
       channelId: key,
-      channelName: v.channelName,
+      channelName: prettyArtistName(v.channelName),
       avatarUrl: v.thumbnailUrl,
       channelUrl: v.channelUrl,
       sampleVideoId: v.videoId,
@@ -471,7 +561,7 @@ export async function loadYoutubeHome(region: string, city: string | null = null
   const rails: YoutubeHomeData["rails"] = [];
   if (key) {
     const queries = (REGION_SEARCH[code] ?? [`${REGION_NAMES[code] ?? code} official music`]).slice(0, 3);
-    const found = await Promise.all(queries.map(async (q) => ({ q, videos: await searchRegionMusic(code, q, key) })));
+    const found = await Promise.all(queries.map(async (q) => ({ q, videos: filterVideosForRegion(code, await searchRegionMusic(code, q, key)) })));
     for (const row of found) {
       const list = dedupe(row.videos).filter((v) => !videos.some((x) => x.videoId === v.videoId));
       if (list.length >= 4) {

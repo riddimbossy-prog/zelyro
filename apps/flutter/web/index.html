@@ -20,6 +20,15 @@
   </head>
   <body>
     <div id="boot">VERZZIFY</div>
+    <script>
+      if (navigator.serviceWorker) {
+        navigator.serviceWorker.getRegistrations().then((regs) => regs.forEach((r) => r.unregister()));
+      }
+      window.addEventListener("flutter-first-frame", () => {
+        document.getElementById("boot")?.remove();
+      });
+      setTimeout(() => document.getElementById("boot")?.remove(), 1800);
+    </script>
     <script src="flutter_bootstrap.js" async></script>
   </body>
 </html>

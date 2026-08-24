@@ -75,6 +75,7 @@ export type EventCard = {
   startsAt: string;
   description: string | null;
   organizerName: string;
+  ticketUrl?: string | null;
 };
 
 export type TicketType = {

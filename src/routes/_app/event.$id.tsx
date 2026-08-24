@@ -23,6 +23,13 @@ function EventPage() {
           {event.venue} · {event.city} · {new Date(event.startsAt).toLocaleString()}
         </p>
         <p className="mt-4 max-w-xl text-sm leading-relaxed">{event.description}</p>
+        {event.ticketUrl ? (
+          <Button className="mt-6" asChild>
+            <a href={event.ticketUrl} target="_blank" rel="noreferrer">
+              Get tickets
+            </a>
+          </Button>
+        ) : null}
         <ul className="mt-8 space-y-3">
           {types.map((t) => (
             <li key={t.id} className="flex items-center justify-between rounded-2xl bg-card p-4">

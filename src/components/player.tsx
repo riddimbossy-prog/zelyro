@@ -17,8 +17,11 @@ import {
 import { Link } from "@tanstack/react-router";
 import { usePlayer, getSpectrum } from "@/lib/verzzify/player";
 import { layoutYtFrame, useYtPlayer } from "@/lib/verzzify/yt-player";
+import { prettyArtistName } from "@/lib/verzzify/yt-charts";
 import { toggleLike, purchaseTrack } from "@/lib/verzzify/queries";
 import { useShareSheet } from "@/lib/verzzify/share";
+import { useDownloads } from "@/lib/verzzify/downloads";
+import { youtubeVideoToTrack } from "@/lib/verzzify/youtube";
 import { cn, formatMoney, formatTime } from "@/lib/utils";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -161,6 +164,7 @@ export function FullPlayer() {
   const ytCycleRepeat = useYtPlayer((s) => s.cycleRepeat);
   const setYtExpanded = useYtPlayer((s) => s.setExpanded);
   const openYtQueue = useYtPlayer((s) => s.openQueue);
+  const playYtAt = useYtPlayer((s) => s.playAt);
   const radioLoading = useYtPlayer((s) => s.radioLoading);
 
   const showShare = useShareSheet((s) => s.show);
@@ -344,10 +348,18 @@ export function FullPlayer() {
             icon={<Download className="size-5" />}
             label="Download"
             onClick={async () => {
-              if (isYt || !track) {
-                toast("VerzZify originals can be saved in Downloads");
+              if (isYt && videoId) {
+                const current = ytQueue[ytIndex];
+                if (!current) return;
+                try {
+                  await useDownloads.getState().saveTrack(youtubeVideoToTrack(current));
+                  toast("Saved to Downloads — plays in VerzZify offline");
+                } catch {
+                  toast("Could not save this track");
+                }
                 return;
               }
+              if (!track) return;
               if (!canDownload && (track.distribution === "paid_download" || track.distribution === "premium")) {
                 try {
                   await purchaseTrack({
@@ -444,48 +456,130 @@ export function FullPlayer() {
         )}
         {related.length > 0 && (
           <div className="mt-10 w-full">
-            <p className="mb-2 font-display text-lg">{isYt ? `More from ${ytChannel}` : "Related Songs"}</p>
-            {isYt && radioLoading && <p className="mb-2 text-xs text-muted-foreground">Finding songs…</p>}
-            <ul className="space-y-1">
-              {related.slice(0, 8).map((q) => {
-                if (isYt && "videoId" in q) {
-                  return (
+            <div className="mb-4 flex items-end justify-between gap-3">
+              <div>
+                <p className="text-[11px] font-extrabold tracking-[0.22em] text-primary uppercase">
+                  {isYt ? "Artist radio" : "Up next"}
+                </p>
+                <p className="font-display text-2xl">{isYt ? `More from ${prettyArtistName(ytChannel ?? "")}` : "Related Songs"}</p>
+              </div>
+              {isYt && ytQueue.length > 1 && (
+                <button
+                  type="button"
+                  className="rounded-full bg-white px-3 py-1.5 text-xs font-bold text-black"
+                  onClick={next}
+                >
+                  Play next
+                </button>
+              )}
+            </div>
+            {isYt && radioLoading && <p className="mb-3 text-xs text-muted-foreground">Loading the rest of the set…</p>}
+            <ul className="space-y-2">
+              {isYt
+                ? ytQueue.map((q, i) => (
                     <li key={q.videoId}>
-                      <button
-                        type="button"
-                        onClick={() => openYtQueue(ytQueue, ytQueue.findIndex((v) => v.videoId === q.videoId))}
-                        className="flex w-full items-center gap-3 rounded-xl px-1 py-1.5 text-left"
-                      >
-                        <img src={q.thumbnailUrl} alt="" className="size-10 rounded-lg object-cover" />
-                        <span className="min-w-0 flex-1">
-                          <span className="block truncate text-sm">{q.title}</span>
-                          <span className="block truncate text-xs text-muted-foreground">{q.channelName}</span>
-                        </span>
-                      </button>
+                      <MoreRow
+                        n={i + 1}
+                        active={i === ytIndex}
+                        playing={i === ytIndex && isPlaying}
+                        cover={q.thumbnailUrl}
+                        title={q.title}
+                        subtitle={prettyArtistName(q.channelName)}
+                        onPlay={() => playYtAt(i)}
+                        onDownload={async () => {
+                          try {
+                            await useDownloads.getState().saveTrack(youtubeVideoToTrack(q));
+                            toast("Saved to Downloads");
+                          } catch {
+                            toast("Download failed");
+                          }
+                        }}
+                      />
                     </li>
-                  );
-                }
-                if (!("id" in q)) return null;
-                return (
-                  <li key={q.id}>
-                    <button
-                      type="button"
-                      onClick={() => usePlayer.getState().play(audioQueue, audioQueue.findIndex((x) => x.id === q.id))}
-                      className="flex w-full items-center gap-3 rounded-xl px-1 py-1.5 text-left"
-                    >
-                      <img src={q.coverUrl} alt="" className="size-10 rounded-lg object-cover" />
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate text-sm">{q.title}</span>
-                        <span className="block truncate text-xs text-muted-foreground">{q.artistName}</span>
-                      </span>
-                    </button>
-                  </li>
-                );
-              })}
+                  ))
+                : related.map((q, i) => {
+                    if (!("id" in q)) return null;
+                    return (
+                      <li key={q.id}>
+                        <MoreRow
+                          n={i + 1}
+                          active={q.id === track?.id}
+                          playing={q.id === track?.id && isPlaying}
+                          cover={q.coverUrl}
+                          title={q.title}
+                          subtitle={q.artistName}
+                          onPlay={() => usePlayer.getState().play(audioQueue, audioQueue.findIndex((x) => x.id === q.id))}
+                          onDownload={async () => {
+                            try {
+                              await useDownloads.getState().saveTrack(q);
+                              toast("Saved to Downloads");
+                            } catch {
+                              toast("Download failed");
+                            }
+                          }}
+                        />
+                      </li>
+                    );
+                  })}
             </ul>
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function MoreRow({
+  n,
+  active,
+  playing,
+  cover,
+  title,
+  subtitle,
+  onPlay,
+  onDownload,
+}: {
+  n: number;
+  active: boolean;
+  playing: boolean;
+  cover: string;
+  title: string;
+  subtitle: string;
+  onPlay: () => void;
+  onDownload: () => void;
+}) {
+  return (
+    <div
+      className={cn(
+        "flex items-center gap-3 rounded-2xl px-2 py-2 ring-1",
+        active ? "bg-primary/20 ring-primary/50" : "bg-white/5 ring-white/10",
+      )}
+    >
+      <button type="button" onClick={onPlay} className="flex min-w-0 flex-1 items-center gap-3 text-left">
+        <span className="w-5 text-center text-xs tabular text-muted-foreground">{n}</span>
+        <span className="relative size-12 shrink-0">
+          <img src={cover} alt="" className="size-12 rounded-full object-cover ring-2 ring-white/20" />
+          <span className="absolute inset-0 grid place-items-center rounded-full bg-black/45">
+            {playing ? <Pause className="size-4 fill-white text-white" /> : <Play className="size-4 translate-x-px fill-white text-white" />}
+          </span>
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className={cn("block truncate text-sm font-semibold", active && "text-primary")}>{title}</span>
+          <span className="block truncate text-xs text-muted-foreground">{subtitle}</span>
+        </span>
+      </button>
+      <button
+        type="button"
+        className="grid size-10 shrink-0 place-items-center rounded-full bg-white/10"
+        aria-label={`Download ${title}`}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          onDownload();
+        }}
+      >
+        <Download className="size-4" />
+      </button>
     </div>
   );
 }

@@ -14,6 +14,11 @@ export function PreviewHostBridge() {
   const router = useRouter();
 
   useEffect(() => {
+    if (typeof navigator !== "undefined" && navigator.serviceWorker) {
+      void navigator.serviceWorker.getRegistrations().then((regs) => {
+        for (const r of regs) void r.unregister();
+      });
+    }
     return installPreviewHostBridge({
       navigate: (path) => {
         router.history.push(path);

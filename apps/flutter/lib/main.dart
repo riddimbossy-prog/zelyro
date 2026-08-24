@@ -77,11 +77,12 @@ class _Shell extends StatelessWidget {
 
   static const dests = [
     ('/', Icons.home_rounded, 'Home'),
+    ('/discover', Icons.public_rounded, 'Catalog'),
     ('/search', Icons.search_rounded, 'Search'),
+    ('/studio', Icons.mic_rounded, 'Studio'),
     ('/library', Icons.download_rounded, 'Library'),
     ('/community', Icons.groups_rounded, 'Community'),
     ('/charts', Icons.emoji_events_rounded, 'Charts'),
-    ('/studio', Icons.mic_rounded, 'Studio'),
     ('/profile', Icons.person_rounded, 'You'),
   ];
 

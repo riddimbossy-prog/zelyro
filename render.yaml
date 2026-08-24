@@ -112,6 +112,8 @@ services:
         sync: false
       - key: RAPIDAPI_YT_HOST
         value: yt-search-and-download-mp3.p.rapidapi.com
+      - key: RAPIDAPI_EVENTS_HOST
+        value: concerts-artists-events-tracker.p.rapidapi.com
 
       # --- Later ---
       - key: FCM_PROJECT_ID

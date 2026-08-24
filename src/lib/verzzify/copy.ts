@@ -12,6 +12,7 @@ export const copy = {
     studio: "Studio",
     search: "Search",
     charts: "Charts",
+    tickets: "Tickets",
   },
   auth: {
     signIn: "Sign in",

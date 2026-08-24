@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import type { YouTubeVideo, YtArtistCard } from "./types";
-import { artistsFromVideos, normalizeRegion, REGION_NAMES } from "./yt-charts";
+import { artistsFromVideos, filterVideosForRegion, normalizeRegion, REGION_NAMES } from "./yt-charts";
 
 export const MUSIC_GENRES = [
   { id: "pop", label: "Pop", q: "pop official music video" },
@@ -26,7 +26,8 @@ export const MUSIC_GENRES = [
   { id: "jazz", label: "Jazz", q: "jazz official" },
   { id: "drill", label: "Drill", q: "drill official" },
   { id: "funk", label: "Funk", q: "brazilian funk official" },
-  { id: "salsa", label: "Salsa", q: "salsa official" },
+  { id: "coupedecale", label: "Coupé-décalé", q: "coupe decale official" },
+  { id: "zouglou", label: "Zouglou", q: "zouglou official" },
 ] as const;
 
 export type GenreId = (typeof MUSIC_GENRES)[number]["id"];
@@ -126,17 +127,39 @@ export function catalogTaxonomy() {
   return { countries: CATALOG_COUNTRIES, genres: MUSIC_GENRES.map(({ id, label }) => ({ id, label })) };
 }
 
+const SCENE_QUERY: Record<string, Record<string, string>> = {
+  CI: {
+    afrobeats: "coupe decale abidjan DJ Arafat Serge Beynaud",
+    amapiano: "coupe decale ivoire",
+    highlife: "zouglou magic system ivoire",
+    pop: "magic system 1er gaou",
+    hiphop: "rap ivoire Didi B Kiff No Beat",
+    dancehall: "coupe decale DJ Arafat",
+    reggae: "alpha blondy tiken jah fakoly",
+    coupedecale: "coupe decale DJ Arafat Mix Premier",
+    zouglou: "zouglou magic system ivoire",
+  },
+  GH: {
+    afrobeats: "ghana afrobeats black sherif king promise",
+    highlife: "highlife ghana official",
+  },
+};
+
 export async function loadCountryGenre(region: string, genreId: string): Promise<CountryGenreCatalog> {
   const code = normalizeRegion(region);
   const genre = MUSIC_GENRES.find((g) => g.id === genreId) ?? MUSIC_GENRES[0];
-  const cacheKey = `${code}:${genre.id}`;
+  const cacheKey = `v3:${code}:${genre.id}`;
   const hit = cache.get(cacheKey);
   if (hit && Date.now() - hit.at < TTL) return hit.data;
 
   const key = process.env.YOUTUBE_API_KEY?.trim();
   const country = REGION_NAMES[code] ?? code;
-  const q = `${genre.q} ${country}`;
-  const videos = key ? await searchSlice(code, q, key) : [];
+  const q = SCENE_QUERY[code]?.[genre.id] ?? `${genre.q} ${country}`;
+  let videos = key ? filterVideosForRegion(code, await searchSlice(code, q, key)) : [];
+  if (!videos.length) {
+    const { getPopularMusicByCountry } = await import("./yt-charts");
+    videos = filterVideosForRegion(code, await getPopularMusicByCountry(code));
+  }
   const artists = key ? await hydrateArtists(videos, key) : artistsFromVideos(videos);
   const data: CountryGenreCatalog = {
     region: code,

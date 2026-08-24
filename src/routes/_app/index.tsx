@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { YouTubePromotionCard } from "@/components/youtube-promotion-card";
 import { YoutubeHome } from "@/components/youtube-home";
 import { DownloadsFolder } from "@/components/downloads-folder";
+import { TicketsRail } from "@/components/tickets-rail";
 
 export const Route = createFileRoute("/_app/")({
   loader: () => getHomeData(),
@@ -69,6 +70,8 @@ function Home() {
       </section>
 
       {d.youtubeHome && <YoutubeHome initial={d.youtubeHome} />}
+
+      <TicketsRail />
 
       {d.promoted.length > 0 && (
         <section className="mt-10">

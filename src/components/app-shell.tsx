@@ -8,6 +8,7 @@ import {
   UserRound,
   Mic2,
   Trophy,
+  Ticket,
 } from "lucide-react";
 import { BrandMark } from "@/components/brand-mark";
 import { copy } from "@/lib/verzzify/copy";
@@ -24,6 +25,7 @@ const nav = [
   { to: "/", label: copy.nav.home, icon: House },
   { to: "/discover", label: copy.nav.discover, icon: Compass },
   { to: "/charts", label: copy.nav.charts, icon: Trophy },
+  { to: "/tickets", label: copy.nav.tickets, icon: Ticket },
   { to: "/library", label: copy.nav.library, icon: FolderDown },
   { to: "/community", label: copy.nav.community, icon: Users },
   { to: "/studio", label: copy.nav.studio, icon: Mic2 },
@@ -102,6 +104,9 @@ export function AppShell() {
         <header className="glass z-40 shrink-0 border-0 px-4 py-2.5 md:px-8">
           <div className="flex items-center gap-3">
             <BrandMark compact className="md:hidden" />
+            <span className="hidden rounded-full bg-primary px-2.5 py-1 text-[10px] font-extrabold tracking-widest text-primary-foreground uppercase sm:inline">
+              Live preview
+            </span>
             {pathname.startsWith("/community") || pathname.startsWith("/search") ? (
               <div className="min-w-0 flex-1" />
             ) : (

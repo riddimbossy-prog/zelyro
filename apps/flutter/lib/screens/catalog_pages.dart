@@ -5,6 +5,7 @@ import '../api.dart';
 import '../call_dom.dart';
 import '../catalog.dart';
 import '../models.dart';
+import '../yt_fallback.dart';
 import '../player_controller.dart';
 import '../theme.dart';
 import '../widgets.dart';
@@ -189,7 +190,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
   static const countries = ['GH', 'NG', 'ZA', 'KE', 'JM', 'US', 'GB', 'BR', 'MX', 'KR', 'JP', 'IN', 'FR', 'DE', 'PT'];
   String region = 'GH';
   String genre = 'afrobeats';
-  List<YtClip> videos = [];
+  List<YtClip> videos = worldClips;
   List<({String name, String avatar, String videoId})> artists = [];
   bool loading = false;
 
@@ -214,7 +215,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
       ];
       if (!mounted) return;
       setState(() {
-        videos = clips;
+        videos = clips.isNotEmpty ? clips : worldClips;
         artists = arts;
         loading = false;
       });

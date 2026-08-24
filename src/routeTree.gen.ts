@@ -24,6 +24,7 @@ import { Route as AppNewsRouteImport } from './routes/_app/news'
 import { Route as AppProfileRouteImport } from './routes/_app/profile'
 import { Route as AppSearchRouteImport } from './routes/_app/search'
 import { Route as AppStudioRouteImport } from './routes/_app/studio'
+import { Route as AppTicketsRouteImport } from './routes/_app/tickets'
 import { Route as ApiHealthRouteImport } from './routes/api/health'
 import { Route as ApiInfraRouteImport } from './routes/api/infra'
 import { Route as ApiRtcRouteImport } from './routes/api/rtc'
@@ -37,9 +38,12 @@ import { Route as AppVideoIdRouteImport } from './routes/_app/video.$id'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiStorageUploadRouteImport } from './routes/api/storage/upload'
 import { Route as ApiV1SplatRouteImport } from './routes/api/v1/$'
+import { Route as ApiV1CatalogRouteImport } from './routes/api/v1/catalog'
 import { Route as ApiV1HomeRouteImport } from './routes/api/v1/home'
 import { Route as ApiV1IceRouteImport } from './routes/api/v1/ice'
+import { Route as ApiV1TicketsRouteImport } from './routes/api/v1/tickets'
 import { Route as ApiV1YoutubeRouteImport } from './routes/api/v1/youtube'
+import { Route as ApiV1YtMp3RouteImport } from './routes/api/v1/yt-mp3'
 import { Route as ApiStorageMediaIdRouteImport } from './routes/api/storage/media.$id'
 
 const AppRoute = AppRouteImport.update({
@@ -116,6 +120,11 @@ const AppStudioRoute = AppStudioRouteImport.update({
   path: '/studio',
   getParentRoute: () => AppRoute,
 } as any)
+const AppTicketsRoute = AppTicketsRouteImport.update({
+  id: '/tickets',
+  path: '/tickets',
+  getParentRoute: () => AppRoute,
+} as any)
 const ApiHealthRoute = ApiHealthRouteImport.update({
   id: '/api/health',
   path: '/api/health',
@@ -181,6 +190,11 @@ const ApiV1SplatRoute = ApiV1SplatRouteImport.update({
   path: '/api/v1/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiV1CatalogRoute = ApiV1CatalogRouteImport.update({
+  id: '/api/v1/catalog',
+  path: '/api/v1/catalog',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiV1HomeRoute = ApiV1HomeRouteImport.update({
   id: '/api/v1/home',
   path: '/api/v1/home',
@@ -191,9 +205,19 @@ const ApiV1IceRoute = ApiV1IceRouteImport.update({
   path: '/api/v1/ice',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiV1TicketsRoute = ApiV1TicketsRouteImport.update({
+  id: '/api/v1/tickets',
+  path: '/api/v1/tickets',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiV1YoutubeRoute = ApiV1YoutubeRouteImport.update({
   id: '/api/v1/youtube',
   path: '/api/v1/youtube',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1YtMp3Route = ApiV1YtMp3RouteImport.update({
+  id: '/api/v1/yt-mp3',
+  path: '/api/v1/yt-mp3',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiStorageMediaIdRoute = ApiStorageMediaIdRouteImport.update({
@@ -217,6 +241,7 @@ export interface FileRoutesByFullPath {
   '/profile': typeof AppProfileRoute
   '/search': typeof AppSearchRoute
   '/studio': typeof AppStudioRoute
+  '/tickets': typeof AppTicketsRoute
   '/api/health': typeof ApiHealthRoute
   '/api/infra': typeof ApiInfraRoute
   '/api/rtc': typeof ApiRtcRoute
@@ -230,9 +255,12 @@ export interface FileRoutesByFullPath {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/storage/upload': typeof ApiStorageUploadRoute
   '/api/v1/$': typeof ApiV1SplatRoute
+  '/api/v1/catalog': typeof ApiV1CatalogRoute
   '/api/v1/home': typeof ApiV1HomeRoute
   '/api/v1/ice': typeof ApiV1IceRoute
+  '/api/v1/tickets': typeof ApiV1TicketsRoute
   '/api/v1/youtube': typeof ApiV1YoutubeRoute
+  '/api/v1/yt-mp3': typeof ApiV1YtMp3Route
   '/api/storage/media/$id': typeof ApiStorageMediaIdRoute
 }
 export interface FileRoutesByTo {
@@ -249,6 +277,7 @@ export interface FileRoutesByTo {
   '/profile': typeof AppProfileRoute
   '/search': typeof AppSearchRoute
   '/studio': typeof AppStudioRoute
+  '/tickets': typeof AppTicketsRoute
   '/api/health': typeof ApiHealthRoute
   '/api/infra': typeof ApiInfraRoute
   '/api/rtc': typeof ApiRtcRoute
@@ -263,9 +292,12 @@ export interface FileRoutesByTo {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/storage/upload': typeof ApiStorageUploadRoute
   '/api/v1/$': typeof ApiV1SplatRoute
+  '/api/v1/catalog': typeof ApiV1CatalogRoute
   '/api/v1/home': typeof ApiV1HomeRoute
   '/api/v1/ice': typeof ApiV1IceRoute
+  '/api/v1/tickets': typeof ApiV1TicketsRoute
   '/api/v1/youtube': typeof ApiV1YoutubeRoute
+  '/api/v1/yt-mp3': typeof ApiV1YtMp3Route
   '/api/storage/media/$id': typeof ApiStorageMediaIdRoute
 }
 export interface FileRoutesById {
@@ -284,6 +316,7 @@ export interface FileRoutesById {
   '/_app/profile': typeof AppProfileRoute
   '/_app/search': typeof AppSearchRoute
   '/_app/studio': typeof AppStudioRoute
+  '/_app/tickets': typeof AppTicketsRoute
   '/api/health': typeof ApiHealthRoute
   '/api/infra': typeof ApiInfraRoute
   '/api/rtc': typeof ApiRtcRoute
@@ -298,9 +331,12 @@ export interface FileRoutesById {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/storage/upload': typeof ApiStorageUploadRoute
   '/api/v1/$': typeof ApiV1SplatRoute
+  '/api/v1/catalog': typeof ApiV1CatalogRoute
   '/api/v1/home': typeof ApiV1HomeRoute
   '/api/v1/ice': typeof ApiV1IceRoute
+  '/api/v1/tickets': typeof ApiV1TicketsRoute
   '/api/v1/youtube': typeof ApiV1YoutubeRoute
+  '/api/v1/yt-mp3': typeof ApiV1YtMp3Route
   '/api/storage/media/$id': typeof ApiStorageMediaIdRoute
 }
 export interface FileRouteTypes {
@@ -320,6 +356,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/search'
     | '/studio'
+    | '/tickets'
     | '/api/health'
     | '/api/infra'
     | '/api/rtc'
@@ -333,9 +370,12 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/api/storage/upload'
     | '/api/v1/$'
+    | '/api/v1/catalog'
     | '/api/v1/home'
     | '/api/v1/ice'
+    | '/api/v1/tickets'
     | '/api/v1/youtube'
+    | '/api/v1/yt-mp3'
     | '/api/storage/media/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -352,6 +392,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/search'
     | '/studio'
+    | '/tickets'
     | '/api/health'
     | '/api/infra'
     | '/api/rtc'
@@ -366,9 +407,12 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/api/storage/upload'
     | '/api/v1/$'
+    | '/api/v1/catalog'
     | '/api/v1/home'
     | '/api/v1/ice'
+    | '/api/v1/tickets'
     | '/api/v1/youtube'
+    | '/api/v1/yt-mp3'
     | '/api/storage/media/$id'
   id:
     | '__root__'
@@ -386,6 +430,7 @@ export interface FileRouteTypes {
     | '/_app/profile'
     | '/_app/search'
     | '/_app/studio'
+    | '/_app/tickets'
     | '/api/health'
     | '/api/infra'
     | '/api/rtc'
@@ -400,9 +445,12 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/api/storage/upload'
     | '/api/v1/$'
+    | '/api/v1/catalog'
     | '/api/v1/home'
     | '/api/v1/ice'
+    | '/api/v1/tickets'
     | '/api/v1/youtube'
+    | '/api/v1/yt-mp3'
     | '/api/storage/media/$id'
   fileRoutesById: FileRoutesById
 }
@@ -418,9 +466,12 @@ export interface RootRouteChildren {
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiStorageUploadRoute: typeof ApiStorageUploadRoute
   ApiV1SplatRoute: typeof ApiV1SplatRoute
+  ApiV1CatalogRoute: typeof ApiV1CatalogRoute
   ApiV1HomeRoute: typeof ApiV1HomeRoute
   ApiV1IceRoute: typeof ApiV1IceRoute
+  ApiV1TicketsRoute: typeof ApiV1TicketsRoute
   ApiV1YoutubeRoute: typeof ApiV1YoutubeRoute
+  ApiV1YtMp3Route: typeof ApiV1YtMp3Route
   ApiStorageMediaIdRoute: typeof ApiStorageMediaIdRoute
 }
 
@@ -531,6 +582,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppStudioRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/tickets': {
+      id: '/_app/tickets'
+      path: '/tickets'
+      fullPath: '/tickets'
+      preLoaderRoute: typeof AppTicketsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/api/health': {
       id: '/api/health'
       path: '/api/health'
@@ -622,6 +680,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1SplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v1/catalog': {
+      id: '/api/v1/catalog'
+      path: '/api/v1/catalog'
+      fullPath: '/api/v1/catalog'
+      preLoaderRoute: typeof ApiV1CatalogRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/v1/home': {
       id: '/api/v1/home'
       path: '/api/v1/home'
@@ -636,11 +701,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1IceRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v1/tickets': {
+      id: '/api/v1/tickets'
+      path: '/api/v1/tickets'
+      fullPath: '/api/v1/tickets'
+      preLoaderRoute: typeof ApiV1TicketsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/v1/youtube': {
       id: '/api/v1/youtube'
       path: '/api/v1/youtube'
       fullPath: '/api/v1/youtube'
       preLoaderRoute: typeof ApiV1YoutubeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/yt-mp3': {
+      id: '/api/v1/yt-mp3'
+      path: '/api/v1/yt-mp3'
+      fullPath: '/api/v1/yt-mp3'
+      preLoaderRoute: typeof ApiV1YtMp3RouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/storage/media/$id': {
@@ -663,6 +742,7 @@ interface AppRouteChildren {
   AppProfileRoute: typeof AppProfileRoute
   AppSearchRoute: typeof AppSearchRoute
   AppStudioRoute: typeof AppStudioRoute
+  AppTicketsRoute: typeof AppTicketsRoute
   AppIndexRoute: typeof AppIndexRoute
   AppAlbumIdRoute: typeof AppAlbumIdRoute
   AppArtistSlugRoute: typeof AppArtistSlugRoute
@@ -683,6 +763,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppProfileRoute: AppProfileRoute,
   AppSearchRoute: AppSearchRoute,
   AppStudioRoute: AppStudioRoute,
+  AppTicketsRoute: AppTicketsRoute,
   AppIndexRoute: AppIndexRoute,
   AppAlbumIdRoute: AppAlbumIdRoute,
   AppArtistSlugRoute: AppArtistSlugRoute,
@@ -707,9 +788,12 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiStorageUploadRoute: ApiStorageUploadRoute,
   ApiV1SplatRoute: ApiV1SplatRoute,
+  ApiV1CatalogRoute: ApiV1CatalogRoute,
   ApiV1HomeRoute: ApiV1HomeRoute,
   ApiV1IceRoute: ApiV1IceRoute,
+  ApiV1TicketsRoute: ApiV1TicketsRoute,
   ApiV1YoutubeRoute: ApiV1YoutubeRoute,
+  ApiV1YtMp3Route: ApiV1YtMp3Route,
   ApiStorageMediaIdRoute: ApiStorageMediaIdRoute,
 }
 export const routeTree = rootRouteImport

@@ -657,7 +657,30 @@ export const getEventPage = createServerFn({ method: "GET" })
        where e.id = $1 limit 1`,
       [id],
     );
-    if (!rows[0]) return null;
+    if (!rows[0]) {
+      const { getMarketTicket, loadTicketMarket } = await import("./tickets-market");
+      let rapid = getMarketTicket(id);
+      if (!rapid && id.startsWith("rap_")) {
+        await loadTicketMarket("GH");
+        rapid = getMarketTicket(id);
+      }
+      if (!rapid) return null;
+      return {
+        event: {
+          id: rapid.id,
+          title: rapid.title,
+          posterUrl: rapid.posterUrl,
+          venue: rapid.venue,
+          city: rapid.city,
+          country: rapid.country,
+          startsAt: rapid.startsAt,
+          description: `${rapid.artist} · ${rapid.venue}. ${rapid.popular ? "Popular global date." : "Local date."}`,
+          organizerName: rapid.artist,
+          ticketUrl: rapid.ticketUrl,
+        },
+        types: [] as TicketType[],
+      };
+    }
     const types = await sql<TicketType>`
       select id, name, price_cents as "priceCents", currency, capacity, sold
       from event_ticket_types where event_id = ${id}
