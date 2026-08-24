@@ -11,6 +11,7 @@ import { YoutubeHome } from "@/components/youtube-home";
 import { DownloadsFolder } from "@/components/downloads-folder";
 import { TicketsRail } from "@/components/tickets-rail";
 import { BoomplayRail } from "@/components/boomplay-rail";
+import { HomeHero } from "@/components/home-hero";
 
 export const Route = createFileRoute("/_app/")({
   loader: () => getHomeData(),
@@ -23,48 +24,17 @@ function Home() {
   if (!d) {
     return <p className="py-16 text-muted-foreground">The catalog could not load. Refresh to try again.</p>;
   }
-  const hero = d.trending[0];
+  const heroVideos = d.youtubeHome
+    ? [...(d.youtubeHome.newSongs ?? []).slice(0, 4), ...d.youtubeHome.videos].filter(
+        (v, i, all) => all.findIndex((x) => x.videoId === v.videoId) === i,
+      )
+    : [];
 
   return (
     <div>
-      {hero && (
-        <section className="relative overflow-hidden rounded-2xl md:rounded-3xl">
-          <img src={hero.coverUrl} alt="" className="absolute inset-0 size-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-r from-black via-black/75 to-black/20" />
-          <div className="relative flex min-h-[240px] flex-col justify-end gap-4 p-5 md:min-h-[320px] md:flex-row md:items-end md:justify-between md:p-8">
-            <div className="max-w-xl">
-              <p className="text-[11px] font-semibold tracking-[0.2em] text-primary uppercase">
-                Trending
-                {d.youtubeHome?.regionName ? ` · ${d.youtubeHome.regionName}` : ""}
-              </p>
-              <h1 className="mt-2 font-display text-4xl font-extrabold tracking-tight md:text-6xl">{hero.title}</h1>
-              <Link
-                to="/artist/$slug"
-                params={{ slug: hero.artistSlug }}
-                className="mt-2 inline-block text-[15px] font-semibold text-white/80 hover:text-white"
-              >
-                {hero.artistName}
-              </Link>
-              <div className="mt-5 flex flex-wrap gap-3">
-                <Button size="lg" onClick={() => play(d.trending, 0)}>
-                  <Play className="size-4 translate-x-px fill-current" />
-                  Play
-                </Button>
-                <Button variant="outline" size="lg" asChild>
-                  <Link to="/track/$id" params={{ id: hero.id }}>
-                    Open song
-                  </Link>
-                </Button>
-              </div>
-            </div>
-            <img
-              src={hero.coverUrl}
-              alt=""
-              className="hidden size-36 rounded-xl object-cover shadow-lg ring-1 ring-white/15 md:block md:size-44"
-            />
-          </div>
-        </section>
-      )}
+      {heroVideos.length > 0 ? (
+        <HomeHero videos={heroVideos} regionName={d.youtubeHome?.regionName ?? d.country} />
+      ) : null}
 
       <section className="mt-10">
         <DownloadsFolder compact />
