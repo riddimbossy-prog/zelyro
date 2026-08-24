@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Check, Copy, Radio, X } from "lucide-react";
+import { Check, Copy, Radio, X } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";

@@ -1,4 +1,4 @@
-import { Heart, Play } from "lucide-react";
+import { Heart, Play } from "@/components/icons";
 import { Link } from "@tanstack/react-router";
 import type { TrackCard } from "@/lib/verzzify/types";
 import { usePlayer } from "@/lib/verzzify/player";

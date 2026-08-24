@@ -14,7 +14,7 @@ import {
   Volume2,
   VolumeX,
   ChevronDown,
-} from "lucide-react";
+} from "@/components/icons";
 import { Link } from "@tanstack/react-router";
 import { usePlayer } from "@/lib/verzzify/player";
 import { layoutYtFrame, useYtPlayer } from "@/lib/verzzify/yt-player";

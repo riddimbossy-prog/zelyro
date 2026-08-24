@@ -1,5 +1,5 @@
 import type { ErrorComponentProps } from "@tanstack/react-router";
-import { TriangleAlert } from "lucide-react";
+import { TriangleAlert } from "@/components/icons";
 
 export function AppErrorComponent({ error }: ErrorComponentProps) {
   return (

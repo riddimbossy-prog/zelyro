@@ -1,4 +1,4 @@
-import { Check, Download, LoaderCircle } from "lucide-react";
+import { Check, Download, LoaderCircle } from "@/components/icons";
 import type { TrackCard } from "@/lib/verzzify/types";
 import { useDownloads } from "@/lib/verzzify/downloads";
 import { cn } from "@/lib/utils";

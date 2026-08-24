@@ -11,7 +11,7 @@ import {
   ShoppingBag,
   Ticket,
   Video,
-} from "lucide-react";
+} from "@/components/icons";
 import type { AlbumCard, ArtistCard, LiveCard, PlaylistCard, PostCard, TrackCard } from "@/lib/verzzify/types";
 import { getSpectrum, usePlayer } from "@/lib/verzzify/player";
 import { useShareSheet, shareTrackUrl } from "@/lib/verzzify/share";

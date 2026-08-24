@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { Search } from "lucide-react";
+import { Search } from "@/components/icons";
 import { Input } from "@/components/ui/input";
 import { ArtistTile } from "@/components/cover-card";
 import type { ArtistCard, PostCard, TrackCard } from "@/lib/verzzify/types";

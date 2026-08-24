@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Play } from "lucide-react";
+import { Play } from "@/components/icons";
 import type { ChartArtistEntry, ChartDelta, ChartTrackEntry } from "@/lib/verzzify/types";
 import { usePlayer } from "@/lib/verzzify/player";
 import { cn, formatCount } from "@/lib/utils";

@@ -4,7 +4,7 @@ import { getAlbumPage } from "@/lib/verzzify/queries";
 import { usePlayer } from "@/lib/verzzify/player";
 import { TrackRow } from "@/components/track-row";
 import { Button } from "@/components/ui/button";
-import { Play } from "lucide-react";
+import { Play } from "@/components/icons";
 
 export const Route = createFileRoute("/_app/album/$id")({ component: AlbumPage });
 

@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Play } from "lucide-react";
+import { Play } from "@/components/icons";
 import { z } from "zod";
 import { getCharts } from "@/lib/verzzify/charts";
 import { ChartArtistRow, ChartTrackRow } from "@/components/chart-row";

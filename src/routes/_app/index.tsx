@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Play } from "lucide-react";
+import { Play } from "@/components/icons";
 import { getHomeData } from "@/lib/verzzify/queries";
 import { usePlayer } from "@/lib/verzzify/player";
 import { CoverCard, ArtistTile } from "@/components/cover-card";

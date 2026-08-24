@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { Play, Search, X } from "lucide-react";
+import { Play, Search, X } from "@/components/icons";
 import { searchDiscover } from "@/lib/verzzify/promotions";
 import type { YouTubeVideo } from "@/lib/verzzify/types";
 import { useYtPlayer } from "@/lib/verzzify/yt-player";

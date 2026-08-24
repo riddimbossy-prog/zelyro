@@ -1,4 +1,4 @@
-import { Play } from "lucide-react";
+import { Play } from "@/components/icons";
 import type { YouTubeVideo } from "@/lib/verzzify/types";
 import { useYtPlayer } from "@/lib/verzzify/yt-player";
 import { youtubeVideoToTrack } from "@/lib/verzzify/youtube";

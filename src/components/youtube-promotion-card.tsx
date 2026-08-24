@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
-import { Bookmark, Flag, Play, Share2, UserRound } from "lucide-react";
+import { Bookmark, Flag, Play, Share2, UserRound } from "@/components/icons";
 import type { YouTubePromotion } from "@/lib/verzzify/types";
 import { useYtPlayer } from "@/lib/verzzify/yt-player";
 import { shareWatchUrl, useShareSheet } from "@/lib/verzzify/share";

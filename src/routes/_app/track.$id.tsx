@@ -6,7 +6,7 @@ import { TrackRow } from "@/components/track-row";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { formatMoney } from "@/lib/utils";
-import { Play } from "lucide-react";
+import { Play } from "@/components/icons";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useCurrentUser } from "@/lib/auth/use-current-user";

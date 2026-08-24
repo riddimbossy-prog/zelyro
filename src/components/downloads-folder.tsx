@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { FolderDown, ListMusic, Play, Trash2, Check } from "lucide-react";
+import { FolderDown, ListMusic, Play, Trash2, Check } from "@/components/icons";
 import { Link } from "@tanstack/react-router";
 import { useDownloads, formatBytes } from "@/lib/verzzify/downloads";
 import { useLocalPlaylists } from "@/lib/verzzify/local-playlists";

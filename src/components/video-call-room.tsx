@@ -8,7 +8,7 @@ import {
   VideoOff,
   SwitchCamera,
   ArrowLeft,
-} from "lucide-react";
+} from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { cn, formatMoney, formatTime } from "@/lib/utils";
 import { usePlayer } from "@/lib/verzzify/player";

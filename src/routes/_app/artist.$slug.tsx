@@ -5,7 +5,7 @@ import { bookVideoCall } from "@/lib/verzzify/video-actions";
 import { Button } from "@/components/ui/button";
 import { formatCount, formatMoney } from "@/lib/utils";
 import { toast } from "sonner";
-import { Play } from "lucide-react";
+import { Play } from "@/components/icons";
 import { useYtPlayer } from "@/lib/verzzify/yt-player";
 import { MackProfileView } from "@/components/mack-profile";
 

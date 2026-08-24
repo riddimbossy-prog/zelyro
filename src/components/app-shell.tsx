@@ -9,7 +9,7 @@ import {
   Mic2,
   Trophy,
   Ticket,
-} from "lucide-react";
+} from "@/components/icons";
 import { BrandMark } from "@/components/brand-mark";
 import { copy } from "@/lib/verzzify/copy";
 import { cn } from "@/lib/utils";

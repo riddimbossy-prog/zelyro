@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { useCurrentUser } from "@/lib/auth/use-current-user";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Play, Video } from "lucide-react";
+import { Play, Video } from "@/components/icons";
 import { YouTubePromotionCard } from "@/components/youtube-promotion-card";
 import { CreatorStudio } from "@/components/creator-studio";
 import { CommunitySearch } from "@/components/community-search";
