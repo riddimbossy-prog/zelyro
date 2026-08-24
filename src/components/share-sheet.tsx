@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import {
+  SHARE_DESIGNS,
   nestedFrame,
   renderShareCard,
   shareCaption,
@@ -18,11 +19,11 @@ export function ShareSheet() {
   const open = useShareSheet((s) => s.open);
   const payload = useShareSheet((s) => s.payload);
   const close = useShareSheet((s) => s.close);
-  const [tpl, setTpl] = useState<ShareTemplate>("card");
+  const [tpl, setTpl] = useState<ShareTemplate>("classic");
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    setTpl("card");
+    setTpl("classic");
   }, [payload?.url]);
 
   useEffect(() => {
@@ -180,27 +181,26 @@ export function ShareSheet() {
         </div>
 
         <div className="px-5 pb-2">
-          <p className="mb-3 text-sm font-semibold">VerzZify card</p>
-          <div className="flex gap-3">
-            {(
-              [
-                ["card", "Square"],
-                ["story", "Story"],
-                ["now", "Now playing"],
-              ] as const
-            ).map(([id, label]) => (
+          <p className="mb-3 text-sm font-semibold">Design</p>
+          <div className="-mx-1 flex gap-3 overflow-x-auto pb-2">
+            {SHARE_DESIGNS.map((d) => (
               <button
-                key={id}
+                key={d.id}
                 type="button"
-                onClick={() => setTpl(id)}
-                className={cn(
-                  "flex-1 rounded-2xl border px-2 py-3 text-center text-xs font-semibold",
-                  tpl === id
-                    ? "border-primary bg-primary/20 text-white"
-                    : "border-white/10 bg-white/5 text-muted-foreground",
-                )}
+                onClick={() => setTpl(d.id)}
+                className="w-[4.6rem] shrink-0 text-center"
               >
-                {label}
+                <span
+                  className={cn(
+                    "block overflow-hidden rounded-xl ring-offset-2 ring-offset-[#11081c]",
+                    tpl === d.id ? "ring-2 ring-primary" : "ring-1 ring-white/10",
+                  )}
+                >
+                  <MiniDesign cover={payload.coverUrl} id={d.id} />
+                </span>
+                <span className={cn("mt-1.5 block text-[10px]", tpl === d.id ? "font-semibold text-white" : "text-muted-foreground")}>
+                  {d.label}
+                </span>
               </button>
             ))}
           </div>
@@ -240,19 +240,74 @@ function SharePreview({
   tpl: ShareTemplate;
   url: string;
 }) {
+  const cover = payload.coverUrl;
+  if (tpl === "poster" || tpl === "story") {
+    return (
+      <div className={cn("relative overflow-hidden rounded-[22px] text-left shadow-lg", tpl === "story" ? "min-h-[22rem]" : "min-h-[18rem]")}>
+        <img src={cover} alt="" className="absolute inset-0 size-full object-cover" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/55 to-black/10" />
+        <img src="/logo.png?v=5" alt="" className="relative z-10 ml-4 mt-4 h-6 w-auto" />
+        <div className="relative z-10 mt-24 px-4 pb-5">
+          <h2 className="font-display text-2xl leading-tight">{payload.title}</h2>
+          <p className="mt-1 text-xs font-semibold text-fuchsia-300">
+            {payload.subtitle ? `${payload.subtitle} · VerzZify` : "Listen on VerzZify"}
+          </p>
+        </div>
+      </div>
+    );
+  }
+  if (tpl === "neon") {
+    return (
+      <div className="rounded-[22px] bg-black p-3 shadow-[0_0_24px_rgba(192,38,211,0.45)] ring-2 ring-fuchsia-500">
+        <img src="/logo.png?v=5" alt="" className="mx-auto h-6 w-auto" />
+        <div className="mx-auto mt-3 aspect-square w-[72%] overflow-hidden rounded-2xl shadow-[0_0_30px_rgba(192,38,211,0.6)]">
+          <img src={cover} alt="" className="size-full object-cover" />
+        </div>
+        <h2 className="mt-3 text-center font-display text-xl">{payload.title}</h2>
+        <p className="mt-1 text-center text-[10px] font-bold tracking-[0.2em] text-fuchsia-400">VERZZIFY · STREAM IT HERE</p>
+      </div>
+    );
+  }
+  if (tpl === "billboard") {
+    return (
+      <div className="overflow-hidden rounded-[22px] bg-primary shadow-lg">
+        <div className="aspect-[16/10] overflow-hidden">
+          <img src={cover} alt="" className="size-full object-cover" />
+        </div>
+        <div className="bg-[#07010d] px-4 py-4">
+          <img src="/logo.png?v=5" alt="" className="h-5 w-auto" />
+          <h2 className="mt-2 font-display text-2xl leading-tight">{payload.title}</h2>
+          <p className="mt-1 text-xs text-fuchsia-200">{payload.subtitle ?? "VerzZify exclusive"}</p>
+        </div>
+      </div>
+    );
+  }
+  if (tpl === "stack") {
+    return (
+      <div className="relative overflow-hidden rounded-[22px] bg-[#07010d] px-5 pb-4 pt-6 text-center">
+        <div className="relative mx-auto h-44 w-44">
+          <img
+            src={cover}
+            alt=""
+            className="absolute inset-2 rotate-[-8deg] rounded-xl object-cover opacity-40"
+          />
+          <img src={cover} alt="" className="relative size-full rounded-xl object-cover shadow-xl" />
+        </div>
+        <div className="mt-4 rounded-2xl bg-black/70 px-3 py-3">
+          <h2 className="font-display text-lg leading-tight">{payload.title}</h2>
+          <p className="mt-1 text-[10px] font-bold tracking-[0.18em] text-fuchsia-400">VERZZIFY.COM</p>
+        </div>
+      </div>
+    );
+  }
   return (
-    <div
-      className={cn(
-        "relative overflow-hidden rounded-[22px] bg-[#07010d] text-center shadow-lg ring-1 ring-fuchsia-500/30",
-        tpl === "story" ? "px-5 pt-5 pb-4" : "px-5 pt-5 pb-5",
-      )}
-    >
+    <div className="relative overflow-hidden rounded-[22px] bg-[#07010d] px-5 pt-5 pb-5 text-center shadow-lg ring-1 ring-fuchsia-500/30">
       <img src="/logo.png?v=5" alt="VerzZify" className="mx-auto h-8 w-auto object-contain" />
       <p className="mt-2 text-[10px] font-bold tracking-[0.22em] text-fuchsia-400 uppercase">
         {tpl === "now" ? "Now playing on VerzZify" : "Listen on VerzZify"}
       </p>
       <div className="relative mx-auto mt-3 aspect-square w-[78%] overflow-hidden rounded-2xl">
-        <img src={payload.coverUrl} alt="" className="size-full object-cover" />
+        <img src={cover} alt="" className="size-full object-cover" />
         {tpl === "now" ? (
           <span className="absolute top-2 left-2 rounded-full bg-primary px-2 py-0.5 text-[10px] font-bold text-white">
             ● LIVE
@@ -268,6 +323,46 @@ function SharePreview({
       {payload.subtitle ? <p className="mt-1 text-sm text-muted-foreground">{payload.subtitle}</p> : null}
       <p className="mt-2 truncate text-[10px] text-fuchsia-300/80">{url.replace(/^https?:\/\//, "")}</p>
     </div>
+  );
+}
+
+function MiniDesign({ cover, id }: { cover: string; id: ShareTemplate }) {
+  if (id === "poster" || id === "story") {
+    return (
+      <span className={cn("relative block bg-black", id === "story" ? "h-16" : "h-14")}>
+        <img src={cover} alt="" className="size-full object-cover opacity-80" />
+        <span className="absolute inset-x-0 bottom-0 h-6 bg-gradient-to-t from-black" />
+      </span>
+    );
+  }
+  if (id === "neon") {
+    return (
+      <span className="flex h-14 items-center justify-center bg-black ring-1 ring-fuchsia-500">
+        <img src={cover} alt="" className="size-9 rounded object-cover" />
+      </span>
+    );
+  }
+  if (id === "billboard") {
+    return (
+      <span className="block h-14 overflow-hidden bg-primary">
+        <img src={cover} alt="" className="h-8 w-full object-cover" />
+        <span className="block h-6 bg-[#07010d]" />
+      </span>
+    );
+  }
+  if (id === "stack") {
+    return (
+      <span className="relative block h-14 bg-[#12081c]">
+        <img src={cover} alt="" className="absolute top-2 left-2 size-9 rotate-[-8deg] rounded object-cover opacity-50" />
+        <img src={cover} alt="" className="absolute top-3 left-3 size-9 rounded object-cover" />
+      </span>
+    );
+  }
+  return (
+    <span className="relative block h-14 bg-[#07010d] p-1">
+      <img src={cover} alt="" className="size-full rounded-sm object-cover" />
+      {id === "now" ? <span className="absolute top-1 left-1 size-1.5 rounded-full bg-primary" /> : null}
+    </span>
   );
 }
 
