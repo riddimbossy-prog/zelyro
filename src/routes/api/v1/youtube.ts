@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { getViewerGeo } from "@/lib/verzzify/geo";
-import { searchMusic } from "@/lib/verzzify/youtube";
+import { searchMusicDetailed } from "@/lib/verzzify/youtube";
 import { loadYoutubeHome, normalizeRegion } from "@/lib/verzzify/yt-charts";
 
 export const Route = createFileRoute("/api/v1/youtube")({
@@ -15,26 +15,38 @@ export const Route = createFileRoute("/api/v1/youtube")({
           : (await getViewerGeo().catch(() => ({ region: "US" }))).region;
 
         if (q) {
-          const videos = await searchMusic(q.slice(0, 120), {
+          const result = await searchMusicDetailed(q.slice(0, 120), {
             regionCode: region,
             maxResults: 36,
             musicOnly: false,
           });
           return Response.json(
-            { query: q, region, source: "verzzify", videos },
+            {
+              query: q,
+              region,
+              source: result.api,
+              keyConfigured: result.keyConfigured,
+              error: result.error ?? null,
+              httpStatus: result.httpStatus ?? null,
+              count: result.videos.length,
+              videos: result.videos,
+            },
             {
               headers: {
                 "access-control-allow-origin": "*",
-                "cache-control": "public, max-age=60",
+                "cache-control": "public, max-age=30",
               },
             },
           );
         }
 
         const data = await loadYoutubeHome(region);
-        return Response.json(data, {
-          headers: { "access-control-allow-origin": "*", "cache-control": "public, max-age=120" },
-        });
+        return Response.json(
+          { ...data, source: "youtube-data-api-v3" },
+          {
+            headers: { "access-control-allow-origin": "*", "cache-control": "public, max-age=120" },
+          },
+        );
       },
     },
   },
