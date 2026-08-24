@@ -1175,11 +1175,45 @@ export const getStudioOverview = createServerFn({ method: "GET" })
     };
   });
 
+function demoProfile(): MackProfileData {
+  return {
+    id: "preview",
+    username: "verzzify",
+    displayName: "VerzZify",
+    role: "artist",
+    country: "GH",
+    bio: "Preview profile. Sign-in is off for now — this is the Audiomack-style layout.",
+    avatarUrl: "/logo.png?v=3",
+    bannerUrl: "/covers/terrace-lights.jpg",
+    city: "Accra",
+    favoriteGenres: "Afrobeats, Hip Hop",
+    verified: true,
+    genres: "Afrobeats",
+    monthlyListeners: 128400,
+    followers: 4200,
+    followingCount: 18,
+    totalPlays: 910000,
+    socials: null,
+    tracks: [],
+    albums: [],
+    liked: [],
+    playlists: [],
+    following: [],
+    suggested: [],
+    posts: [],
+    chartRanks: {},
+    live: [],
+    videoCall: { priceCents: 2500, durationMin: 15, available: true },
+  };
+}
+
 export const getMyProfile = createServerFn({ method: "GET" })
-  .middleware([authMiddleware])
-  .handler(async ({ context }): Promise<MackProfileData | null> => {
+  .handler(async (): Promise<MackProfileData | null> => {
+    const userId = await optionalUserId();
+    if (!userId) return demoProfile();
+    try {
     const sql = await getSql();
-    await ensureProfile(context.userId, null, null, null);
+    await ensureProfile(userId, null, null, null);
     const p = await sql.query<Record<string, unknown>>(
       `select p.id, p.username, p.display_name, p.role, p.country, p.bio, p.avatar_url,
               p.banner_url, p.favorite_genres, p.city,
@@ -1191,14 +1225,14 @@ export const getMyProfile = createServerFn({ method: "GET" })
        from profiles p
        left join artist_profiles a on a.user_id = p.id
        where p.id = $1 limit 1`,
-      [context.userId],
+      [userId],
     );
-    if (!p[0]) return null;
+    if (!p[0]) return demoProfile();
     const row = p[0];
     const tracks = await sql.query<TrackRow>(
       `select ${TRACK_COLS} ${TRACK_FROM} where t.artist_id = $1 and t.status = 'published'
        order by t.play_count desc`,
-      [context.userId],
+      [userId],
     );
     const albums = await sql.query<Record<string, unknown>>(
       `select al.id, al.title, al.cover_url, al.album_type, al.artist_id, al.price_cents,
@@ -1207,19 +1241,19 @@ export const getMyProfile = createServerFn({ method: "GET" })
        join artist_profiles a on a.user_id = al.artist_id
        join profiles p on p.id = a.user_id
        where al.artist_id = $1`,
-      [context.userId],
+      [userId],
     );
     const liked = await sql.query<TrackRow>(
       `select ${TRACK_COLS} ${TRACK_FROM}
        join favorites f on f.target_id = t.id
        where f.user_id = $1 and f.target_type = 'track'`,
-      [context.userId],
+      [userId],
     );
     const playlists = await sql.query<PlaylistCard>(
       `select id, title, description, cover_url as "coverUrl", kind
        from playlists where user_id = $1 and is_system = false
        order by created_at desc`,
-      [context.userId],
+      [userId],
     );
     const following = await sql.query<Record<string, unknown>>(
       `select p.id, p.username as slug, a.artist_name as name, p.avatar_url, p.banner_url,
@@ -1230,7 +1264,7 @@ export const getMyProfile = createServerFn({ method: "GET" })
        join artist_profiles a on a.user_id = f.following_id
        join profiles p on p.id = a.user_id
        where f.follower_id = $1`,
-      [context.userId],
+      [userId],
     );
     const suggested = await sql.query<Record<string, unknown>>(
       `select p.id, p.username as slug, a.artist_name as name, p.avatar_url, p.banner_url,
@@ -1243,7 +1277,7 @@ export const getMyProfile = createServerFn({ method: "GET" })
          and p.id not in (select following_id from follows where follower_id = $1)
        order by a.monthly_listeners desc
        limit 8`,
-      [context.userId],
+      [userId],
     );
     const posts = await sql.query<Record<string, unknown>>(
       `select po.id, po.body, po.image_url, po.like_count, po.created_at, po.track_id,
@@ -1251,13 +1285,13 @@ export const getMyProfile = createServerFn({ method: "GET" })
        from posts po join profiles pr on pr.id = po.user_id
        where po.user_id = $1
        order by po.created_at desc limit 12`,
-      [context.userId],
+      [userId],
     );
-    const decoratedTracks = await decorate(tracks.map((r) => mapTrack(r)), context.userId);
+    const decoratedTracks = await decorate(tracks.map((r) => mapTrack(r)), userId);
     const decoratedLiked = liked.map((r) => mapTrack(r, { liked: true }));
     const call = await sql<{ price_cents: number; duration_min: number; available: boolean }>`
       select price_cents, duration_min, available from video_call_services
-      where artist_id = ${context.userId}
+      where artist_id = ${userId}
     `;
     return {
       id: String(row.id),
@@ -1298,7 +1332,7 @@ export const getMyProfile = createServerFn({ method: "GET" })
         sql,
         decoratedTracks.map((t) => t.id),
       ),
-      live: await loadArtistLive(sql, context.userId),
+      live: await loadArtistLive(sql, userId),
       videoCall: call[0]
         ? {
             priceCents: Number(call[0].price_cents),
@@ -1307,6 +1341,9 @@ export const getMyProfile = createServerFn({ method: "GET" })
           }
         : null,
     };
+      } catch {
+      return demoProfile();
+    }
   });
 
 export const updateMyProfile = createServerFn({ method: "POST" })

@@ -148,18 +148,20 @@ async function rapidGet(path: string, query: Record<string, string>): Promise<un
   }
 }
 
-function window() {
-  const min = new Date();
-  const max = new Date();
-  max.setDate(max.getDate() + 150);
-  return { starts_at: min.toISOString().slice(0, 10), ends_at: max.toISOString().slice(0, 10) };
-}
-
 export async function searchEvents(params: Record<string, string>, country: string): Promise<RapidConcert[]> {
-  const json = await rapidGet("/search", { types: "event,festival", page: "1", ...window(), ...params });
-  return pickList(json)
+  const json = await rapidGet("/search", { page: "1", ...params });
+  const mapped = pickList(json)
     .map((row) => mapConcert(row, country))
     .filter((x): x is RapidConcert => Boolean(x));
+  if (mapped.length) return mapped;
+  const blob = JSON.stringify(json);
+  if (blob.length > 8 && blob !== "{}" && blob !== "[]") {
+    const rec = asRecord(json);
+    if (rec && (rec.message || rec.error || rec.Message)) {
+      throw new Error(str(rec.message, rec.error, rec.Message));
+    }
+  }
+  return [];
 }
 
 export async function fetchArtistId(name: string): Promise<string | null> {

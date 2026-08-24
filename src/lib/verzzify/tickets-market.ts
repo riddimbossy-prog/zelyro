@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { REGION_NAMES, normalizeRegion } from "./yt-charts";
-import { eventsKeyConfigured, fetchConcertsByArtist, searchEvents, type RapidConcert } from "./rapid-events";
+import { eventsKeyConfigured, searchEvents, type RapidConcert } from "./rapid-events";
 
 export type MarketTicket = RapidConcert & {
   scope: "local" | "global";
@@ -97,57 +97,63 @@ function dedupe(rows: RapidConcert[], scope: "local" | "global"): MarketTicket[]
   return out;
 }
 
-async function localFor(code: string): Promise<RapidConcert[]> {
-  const cities = COUNTRY_CITIES[code] ?? [REGION_NAMES[code] ?? code];
-  const batches = await Promise.all(
-    cities.slice(0, 2).map(async (city) => {
-      try {
-        const byCity = await searchEvents({ city, types: "event,festival", sort: "date", keyword: "concert" }, code);
-        if (byCity.length) return byCity;
-      } catch {
-        /* try geo */
+async function collectSearch(variants: Record<string, string>[], country: string, errors: string[]): Promise<RapidConcert[]> {
+  const out: RapidConcert[] = [];
+  const seen = new Set<string>();
+  for (const params of variants) {
+    try {
+      const rows = await searchEvents(params, country);
+      for (const row of rows) {
+        if (seen.has(row.id)) continue;
+        seen.add(row.id);
+        out.push(row);
       }
-      const geo = CITY_GEO[city];
-      if (!geo) return [];
-      try {
-        return await searchEvents(
-          { latitude: geo.lat, longitude: geo.lng, radius: "80", types: "event,festival", sort: "date", keyword: "concert" },
-          code,
-        );
-      } catch {
-        return [];
-      }
-    }),
-  );
-  return batches.flat();
+      if (out.length >= 10) break;
+    } catch (e) {
+      errors.push(e instanceof Error ? e.message : String(e));
+    }
+  }
+  return out;
 }
 
-async function globalPopular(): Promise<RapidConcert[]> {
-  const hubs = ["London", "New York", "Lagos", "Paris"];
-  const hubRows = (
-    await Promise.all(
-      hubs.map(async (city) => {
-        try {
-          return await searchEvents({ city, types: "event", sort: "popularity", keyword: "concert" }, "US");
-        } catch {
-          return [];
-        }
-      }),
-    )
-  ).flat();
-  const stars = ["Burna Boy", "Wizkid", "Taylor Swift", "Coldplay", "Beyonce"];
-  const starRows = (
-    await Promise.all(
-      stars.map(async (name) => {
-        try {
-          return await fetchConcertsByArtist(name);
-        } catch {
-          return [];
-        }
-      }),
-    )
-  ).flat();
-  return [...hubRows, ...starRows];
+async function localFor(code: string, errors: string[]): Promise<RapidConcert[]> {
+  const cities = COUNTRY_CITIES[code] ?? [REGION_NAMES[code] ?? code];
+  const out: RapidConcert[] = [];
+  for (const city of cities.slice(0, 2)) {
+    const geo = CITY_GEO[city];
+    const variants: Record<string, string>[] = [];
+    if (geo) {
+      variants.push({
+        keyword: "concert",
+        latitude: geo.lat,
+        longitude: geo.lng,
+        radius: "80",
+        sort: "popularity",
+      });
+    }
+    variants.push({ keyword: city });
+    variants.push({ city, keyword: "music" });
+    variants.push({ keyword: `${city} live` });
+    out.push(...(await collectSearch(variants, code, errors)));
+    if (out.length >= 10) break;
+  }
+  return out;
+}
+
+async function globalPopular(errors: string[]): Promise<RapidConcert[]> {
+  return collectSearch(
+    [
+      { keyword: "concert", latitude: "51.5074", longitude: "-0.1278", radius: "80", sort: "popularity" },
+      { keyword: "concert", latitude: "40.7128", longitude: "-74.0060", radius: "80", sort: "popularity" },
+      { keyword: "Burna Boy" },
+      { keyword: "Wizkid" },
+      { keyword: "Taylor Swift" },
+      { keyword: "Coldplay" },
+      { keyword: "Beyonce" },
+    ],
+    "US",
+    errors,
+  );
 }
 
 const cache = new Map<string, { at: number; data: TicketMarket }>();
@@ -268,30 +274,31 @@ export async function loadTicketMarket(region: string): Promise<TicketMarket> {
   let local: MarketTicket[] = [];
   let global: MarketTicket[] = [];
   const live = eventsKeyConfigured();
+  const errors: string[] = [];
   if (live) {
     try {
-      local = dedupe(await localFor(code), "local");
+      local = dedupe(await localFor(code, errors), "local");
     } catch (e) {
-      error = e instanceof Error ? e.message : "local concerts failed";
+      errors.push(e instanceof Error ? e.message : "local concerts failed");
     }
     try {
-      const rows = dedupe(await globalPopular(), "global").slice(0, 24).map((t) => {
+      const rows = dedupe(await globalPopular(errors), "global").slice(0, 24).map((t) => {
         const row = { ...t, popular: true as const };
         byId.set(row.id, row);
         return row;
       });
       global = rows;
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "global concerts failed";
-      error = error ? `${error} · ${msg}` : msg;
+      errors.push(e instanceof Error ? e.message : "global concerts failed");
     }
+    error = errors[0];
   } else {
     local = fallback(code);
     global = GLOBAL_FALLBACK;
     error = "RAPIDAPI_KEY is not set on the server";
   }
   const data: TicketMarket = { region: code, regionName, live, local, global, error };
-  cache.set(code, { at: Date.now(), data });
+  if (local.length || global.length) cache.set(code, { at: Date.now(), data });
   return data;
 }
 

@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getMyProfile, updateMyProfile } from "@/lib/verzzify/queries";
 import { RedirectToSignIn } from "@/lib/auth/gates";
+import { authEnabled } from "@/lib/auth/client";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { MackProfileView } from "@/components/mack-profile";
 import { Button } from "@/components/ui/button";
@@ -32,7 +33,7 @@ function Profile() {
   const [city, setCity] = useState("");
 
   if (isPending) return <div className="h-80 animate-pulse rounded-3xl bg-secondary" />;
-  if (!user) return <RedirectToSignIn />;
+  if (!user && authEnabled) return <RedirectToSignIn />;
   if (!p) return <p className="py-16 text-muted-foreground">Profile could not load.</p>;
 
   return (
@@ -60,7 +61,7 @@ function Profile() {
       live={p.live}
       chartRanks={p.chartRanks}
       videoCall={p.videoCall}
-      isOwner
+      isOwner={Boolean(user)}
       about={
         <form
           className="grid gap-4 md:grid-cols-2"
