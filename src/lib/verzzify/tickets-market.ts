@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { REGION_NAMES, normalizeRegion } from "./yt-charts";
-import { eventsKeyConfigured, searchEvents, type RapidConcert } from "./rapid-events";
+import { eventsKeyConfigured, type RapidConcert } from "./rapid-events";
+import { searchGoogleEvents, searchTicketmaster, ticketmasterConfigured } from "./ticket-sources";
 
 export type MarketTicket = RapidConcert & {
   scope: "local" | "global";
@@ -97,63 +98,50 @@ function dedupe(rows: RapidConcert[], scope: "local" | "global"): MarketTicket[]
   return out;
 }
 
-async function collectSearch(variants: Record<string, string>[], country: string, errors: string[]): Promise<RapidConcert[]> {
+async function localFor(code: string, errors: string[]): Promise<RapidConcert[]> {
+  const city = COUNTRY_CITIES[code]?.[0] ?? REGION_NAMES[code] ?? code;
+  const countryName = REGION_NAMES[code] ?? code;
   const out: RapidConcert[] = [];
-  const seen = new Set<string>();
-  for (const params of variants) {
+  try {
+    out.push(...(await searchGoogleEvents(`concerts in ${city}`, code)));
+  } catch (e) {
+    errors.push(e instanceof Error ? e.message : "google-events local failed");
+  }
+  if (!out.length && ticketmasterConfigured()) {
     try {
-      const rows = await searchEvents(params, country);
-      for (const row of rows) {
-        if (seen.has(row.id)) continue;
-        seen.add(row.id);
-        out.push(row);
-      }
-      if (out.length >= 10) break;
+      out.push(...(await searchTicketmaster({ countryCode: code, city })));
     } catch (e) {
-      errors.push(e instanceof Error ? e.message : String(e));
+      errors.push(e instanceof Error ? e.message : "ticketmaster local failed");
     }
   }
-  return out;
-}
-
-async function localFor(code: string, errors: string[]): Promise<RapidConcert[]> {
-  const cities = COUNTRY_CITIES[code] ?? [REGION_NAMES[code] ?? code];
-  const out: RapidConcert[] = [];
-  for (const city of cities.slice(0, 2)) {
-    const geo = CITY_GEO[city];
-    const variants: Record<string, string>[] = [];
-    if (geo) {
-      variants.push({
-        keyword: "concert",
-        latitude: geo.lat,
-        longitude: geo.lng,
-        radius: "80",
-        sort: "popularity",
-      });
+  if (!out.length) {
+    try {
+      out.push(...(await searchGoogleEvents(`concerts in ${countryName}`, code)));
+    } catch (e) {
+      errors.push(e instanceof Error ? e.message : "google-events country failed");
     }
-    variants.push({ keyword: city });
-    variants.push({ city, keyword: "music" });
-    variants.push({ keyword: `${city} live` });
-    out.push(...(await collectSearch(variants, code, errors)));
-    if (out.length >= 10) break;
   }
   return out;
 }
 
 async function globalPopular(errors: string[]): Promise<RapidConcert[]> {
-  return collectSearch(
-    [
-      { keyword: "concert", latitude: "51.5074", longitude: "-0.1278", radius: "80", sort: "popularity" },
-      { keyword: "concert", latitude: "40.7128", longitude: "-74.0060", radius: "80", sort: "popularity" },
-      { keyword: "Burna Boy" },
-      { keyword: "Wizkid" },
-      { keyword: "Taylor Swift" },
-      { keyword: "Coldplay" },
-      { keyword: "Beyonce" },
-    ],
-    "US",
-    errors,
-  );
+  const out: RapidConcert[] = [];
+  if (ticketmasterConfigured()) {
+    try {
+      out.push(...(await searchTicketmaster({ countryCode: "US" })));
+      if (out.length < 8) out.push(...(await searchTicketmaster({ countryCode: "GB" })));
+    } catch (e) {
+      errors.push(e instanceof Error ? e.message : "ticketmaster global failed");
+    }
+  }
+  if (out.length < 6) {
+    try {
+      out.push(...(await searchGoogleEvents("popular stadium concerts in London", "GB")));
+    } catch (e) {
+      errors.push(e instanceof Error ? e.message : "google-events global failed");
+    }
+  }
+  return out;
 }
 
 const cache = new Map<string, { at: number; data: TicketMarket }>();
@@ -273,7 +261,7 @@ export async function loadTicketMarket(region: string): Promise<TicketMarket> {
   let error: string | undefined;
   let local: MarketTicket[] = [];
   let global: MarketTicket[] = [];
-  const live = eventsKeyConfigured();
+  const live = eventsKeyConfigured() || ticketmasterConfigured();
   const errors: string[] = [];
   if (live) {
     try {

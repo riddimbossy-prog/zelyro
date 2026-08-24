@@ -30,6 +30,7 @@ function TicketsMarket() {
       <h1 className="mt-1 font-display text-4xl font-extrabold">Live dates</h1>
       <p className="mt-2 max-w-xl text-sm text-muted-foreground">
         Shows in your country first. Only popular tours — stadiums, arenas, and global stars — go to the worldwide rail.
+        Live dates come from Google Events and Ticketmaster (the first RapidAPI concerts plan is out of quota).
       </p>
       {!data.live && (
         <p className="mt-3 text-xs text-amber-300">Live concert feed needs RAPIDAPI_KEY on Render. Showing the VerzZify starter board until then.</p>
