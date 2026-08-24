@@ -23,15 +23,18 @@ export const Route = createRootRoute({
       { title: APP_NAME },
       {
         name: "description",
-        content: "VerzZify — a creator-first music platform. Stream, buy, and sit with the people who make the sound.",
+        content:
+          "VerzZify — regional music, tickets, and offline playlists. Stream and keep playing when you leave the page.",
       },
-      { name: "theme-color", content: "#07010d" },
+      { name: "theme-color", content: "#c026d3" },
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "mobile-web-app-capable", content: "yes" },
     ],
     links: [
       { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
       { rel: "stylesheet", href: appCss },
-      { rel: "manifest", href: "/__grok/manifest.webmanifest" },
-      { rel: "apple-touch-icon", href: "/__grok/icon-180.png" },
+      { rel: "manifest", href: "/manifest.webmanifest" },
+      { rel: "apple-touch-icon", href: "/icon-256.png" },
       {
         rel: "stylesheet",
         href: "https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Nunito+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap",
