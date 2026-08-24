@@ -29,6 +29,7 @@ const LOCAL_CHIPS: Record<string, string[]> = {
 async function fetchYoutubeSearch(q: string, region: string): Promise<YouTubeVideo[]> {
   const res = await fetch(
     `/api/v1/youtube?q=${encodeURIComponent(q)}&region=${encodeURIComponent(region)}`,
+    { signal: AbortSignal.timeout(18_000) },
   );
   if (!res.ok) throw new Error("search failed");
   const json = (await res.json()) as { videos?: YouTubeVideo[] };
@@ -61,7 +62,6 @@ function SearchPage() {
     return city ? [`${city} hits`, ...local] : local;
   }, [region, city]);
 
-  // Live catalog search — same engine as the header overlay
   const ytQuery = useMemo(() => {
     const base = q.trim();
     if (!base) return "";
@@ -75,6 +75,7 @@ function SearchPage() {
     queryFn: () => fetchYoutubeSearch(ytQuery, region),
     enabled: ytQuery.length > 0,
     staleTime: 60_000,
+    retry: 1,
   });
 
   const catalog = useQuery({
@@ -83,7 +84,6 @@ function SearchPage() {
     enabled: q.trim().length > 0,
   });
 
-  // Secondary lane (promoted + boomplay) — does not replace YouTube results
   const discover = useQuery({
     queryKey: ["discover-page", kind, q, region],
     queryFn: () => searchDiscover({ data: { q: q.trim(), kind } }),
