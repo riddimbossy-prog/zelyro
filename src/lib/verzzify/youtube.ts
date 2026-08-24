@@ -15,7 +15,13 @@ export function extractVideoId(input: string): string | null {
     return null;
   }
   const host = url.hostname.replace(/^www\./, "");
-  if (host === "youtu.be" || host === "youtube.com" || host === "m.youtube.com" || host === "music.youtube.com" || host === "youtube-nocookie.com") {
+  if (
+    host === "youtu.be" ||
+    host === "youtube.com" ||
+    host === "m.youtube.com" ||
+    host === "music.youtube.com" ||
+    host === "youtube-nocookie.com"
+  ) {
     if (host === "youtu.be") {
       const id = url.pathname.split("/").filter(Boolean)[0];
       return id && YT_ID.test(id) ? id : null;
@@ -23,7 +29,8 @@ export function extractVideoId(input: string): string | null {
     const v = url.searchParams.get("v");
     if (v && YT_ID.test(v)) return v;
     const parts = url.pathname.split("/").filter(Boolean);
-    const nested = parts[0] === "embed" || parts[0] === "shorts" || parts[0] === "live" || parts[0] === "v";
+    const nested =
+      parts[0] === "embed" || parts[0] === "shorts" || parts[0] === "live" || parts[0] === "v";
     if (nested && parts[1] && YT_ID.test(parts[1])) return parts[1];
   }
   return null;
@@ -65,7 +72,7 @@ function parseIsoDuration(iso?: string): number | null {
   if (!iso) return null;
   const m = iso.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
   if (!m) return null;
-  return (Number(m[1] || 0) * 3600) + (Number(m[2] || 0) * 60) + Number(m[3] || 0);
+  return Number(m[1] || 0) * 3600 + Number(m[2] || 0) * 60 + Number(m[3] || 0);
 }
 
 async function oEmbed(url: string): Promise<OEmbed | null> {
@@ -93,8 +100,7 @@ type DataVideo = {
 async function dataApiVideos(ids: string[]): Promise<DataVideo[]> {
   const key = apiKey();
   if (!key || ids.length === 0) return [];
-  const url =
-    `https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails,statistics,status&id=${ids.join(",")}&key=${key}`;
+  const url = `https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails,statistics,status&id=${ids.join(",")}&key=${key}`;
   const res = await fetch(url);
   if (!res.ok) return [];
   const json = (await res.json()) as { items?: DataVideo[] };
@@ -109,9 +115,7 @@ function mapDataVideo(v: DataVideo): YouTubeVideo {
     thumbnailUrl: v.snippet?.thumbnails?.high?.url ?? getVideoThumbnail(id),
     channelName: v.snippet?.channelTitle ?? "YouTube",
     channelId: v.snippet?.channelId ?? null,
-    channelUrl: v.snippet?.channelId
-      ? `https://www.youtube.com/channel/${v.snippet.channelId}`
-      : null,
+    channelUrl: v.snippet?.channelId ? `https://www.youtube.com/channel/${v.snippet.channelId}` : null,
     publishedAt: v.snippet?.publishedAt ?? null,
     description: v.snippet?.description ?? null,
     durationSeconds: parseIsoDuration(v.contentDetails?.duration),
@@ -315,12 +319,40 @@ function localSearch(q: string): YouTubeVideo[] {
   );
 }
 
-async function dataApiSearch(q: string, extra = ""): Promise<YouTubeVideo[]> {
+export type YtSearchOpts = {
+  /** ISO country code for YouTube region bias */
+  regionCode?: string;
+  /** Limit results (max 50) */
+  maxResults?: number;
+  /** Restrict to Music category (10) */
+  musicOnly?: boolean;
+  /** relevance | viewCount | date */
+  order?: "relevance" | "viewCount" | "date";
+};
+
+async function dataApiSearch(q: string, opts: YtSearchOpts = {}): Promise<YouTubeVideo[]> {
   const key = apiKey();
   if (!key) return localSearch(q);
-  const url =
-    `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=12&q=${encodeURIComponent(q)}${extra}&key=${key}`;
-  const res = await fetch(url);
+
+  // Paste a YouTube URL or 11-char id → resolve that video first
+  const directId = extractVideoId(q);
+  if (directId) {
+    const detail = await getVideoDetails(directId);
+    return detail ? [detail] : [];
+  }
+
+  const params = new URLSearchParams({
+    part: "snippet",
+    type: "video",
+    maxResults: String(Math.min(50, Math.max(8, opts.maxResults ?? 24))),
+    q,
+    key,
+    order: opts.order ?? "relevance",
+  });
+  if (opts.regionCode) params.set("regionCode", opts.regionCode);
+  if (opts.musicOnly !== false) params.set("videoCategoryId", "10");
+
+  const res = await fetch(`https://www.googleapis.com/youtube/v3/search?${params}`);
   if (!res.ok) return localSearch(q);
   const json = (await res.json()) as {
     items?: Array<{ id?: { videoId?: string }; snippet?: DataVideo["snippet"] }>;
@@ -364,12 +396,41 @@ export async function moreFromArtist(opts: {
   const local = ALL_YT_VIDEOS.filter((v) => {
     if (v.videoId === exclude) return false;
     if (opts.channelId && v.channelId === opts.channelId) return true;
-    return v.channelName.toLowerCase() === name.toLowerCase() || v.channelName.toLowerCase().includes(name.toLowerCase().replace(/vevo$/i, "").trim());
+    return (
+      v.channelName.toLowerCase() === name.toLowerCase() ||
+      v.channelName
+        .toLowerCase()
+        .includes(name.toLowerCase().replace(/vevo$/i, "").trim())
+    );
   });
-  const extra = opts.channelId ? `&channelId=${encodeURIComponent(opts.channelId)}` : "";
-  const q = opts.channelId ? "official audio OR official video OR lyrics" : `${name} official audio`;
-  const live = await dataApiSearch(q, `${extra}&videoCategoryId=10`);
-  const named = name ? await dataApiSearch(`${name} songs`, "&videoCategoryId=10") : [];
+  const live = opts.channelId
+    ? await dataApiSearch("official audio OR official video OR lyrics", {
+        maxResults: 16,
+        musicOnly: true,
+      }).then(async (rows) => {
+        // channelId filter via second pass when API supports it on search
+        const key = apiKey();
+        if (!key || !opts.channelId) return rows;
+        const params = new URLSearchParams({
+          part: "snippet",
+          type: "video",
+          maxResults: "16",
+          q: "official",
+          channelId: opts.channelId,
+          videoCategoryId: "10",
+          key,
+        });
+        const res = await fetch(`https://www.googleapis.com/youtube/v3/search?${params}`);
+        if (!res.ok) return rows;
+        const json = (await res.json()) as {
+          items?: Array<{ id?: { videoId?: string }; snippet?: DataVideo["snippet"] }>;
+        };
+        const ids = (json.items ?? []).map((i) => i.id?.videoId).filter(Boolean) as string[];
+        const details = await dataApiVideos(ids);
+        return details.length ? details.map(mapDataVideo) : rows;
+      })
+    : await dataApiSearch(`${name} official audio`, { maxResults: 16, musicOnly: true });
+  const named = name ? await dataApiSearch(`${name} songs`, { maxResults: 12, musicOnly: true }) : [];
   const seen = new Set<string>();
   const out: YouTubeVideo[] = [];
   for (const v of [...local, ...live, ...named]) {
@@ -380,23 +441,26 @@ export async function moreFromArtist(opts: {
   return out.slice(0, 16);
 }
 
-export async function searchVideos(q: string): Promise<YouTubeVideo[]> {
-  return dataApiSearch(q);
+export async function searchVideos(q: string, opts?: YtSearchOpts): Promise<YouTubeVideo[]> {
+  return dataApiSearch(q, { musicOnly: false, maxResults: 24, ...opts });
 }
 
-export async function searchMusic(q: string): Promise<YouTubeVideo[]> {
-  const [live, extra] = await Promise.all([
-    dataApiSearch(q, "&videoCategoryId=10"),
+/** Primary music search used by Search page — live YouTube Data API. */
+export async function searchMusic(q: string, opts?: YtSearchOpts): Promise<YouTubeVideo[]> {
+  const region = opts?.regionCode;
+  const [live, broad, extra] = await Promise.all([
+    dataApiSearch(q, { regionCode: region, maxResults: 24, musicOnly: true, order: "relevance" }),
+    dataApiSearch(q, { regionCode: region, maxResults: 16, musicOnly: false, order: "relevance" }),
     rapidKey() ? rapidSearch(q, 20) : Promise.resolve([] as YouTubeVideo[]),
   ]);
   const seen = new Set<string>();
   const out: YouTubeVideo[] = [];
-  for (const v of [...extra, ...live]) {
+  for (const v of [...live, ...broad, ...extra]) {
     if (!v.videoId || seen.has(v.videoId)) continue;
     seen.add(v.videoId);
     out.push(v);
   }
-  return out;
+  return out.slice(0, 36);
 }
 
 export function youtubeVideoToTrack(v: YouTubeVideo): TrackCard {
@@ -435,7 +499,7 @@ export function youtubeVideoToTrack(v: YouTubeVideo): TrackCard {
 }
 
 export async function searchArtists(q: string): Promise<YouTubeVideo[]> {
-  return dataApiSearch(`${q} official artist`, "&videoCategoryId=10");
+  return dataApiSearch(`${q} official artist`, { musicOnly: true, maxResults: 16 });
 }
 
 export async function getRelatedVideos(videoId: string): Promise<YouTubeVideo[]> {
@@ -443,11 +507,12 @@ export async function getRelatedVideos(videoId: string): Promise<YouTubeVideo[]>
   if (!key) {
     return LOCAL_YOUTUBE_CATALOG.filter((v) => v.videoId !== videoId).slice(0, 4);
   }
-  const url =
-    `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=6&relatedToVideoId=${videoId}&key=${key}`;
-  const res = await fetch(url);
-  if (!res.ok) return LOCAL_YOUTUBE_CATALOG.filter((v) => v.videoId !== videoId).slice(0, 4);
-  return searchVideos(videoId);
+  // relatedToVideoId is deprecated on many keys — fall back to topic search from the title
+  const detail = await getVideoDetails(videoId);
+  if (detail?.title) {
+    return (await searchMusic(detail.title)).filter((v) => v.videoId !== videoId).slice(0, 8);
+  }
+  return LOCAL_YOUTUBE_CATALOG.filter((v) => v.videoId !== videoId).slice(0, 4);
 }
 
 export async function getPlaylistDetails(playlistId: string): Promise<{
@@ -457,8 +522,7 @@ export async function getPlaylistDetails(playlistId: string): Promise<{
 } | null> {
   const key = apiKey();
   if (!key) return null;
-  const url =
-    `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=8&playlistId=${playlistId}&key=${key}`;
+  const url = `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=8&playlistId=${playlistId}&key=${key}`;
   const res = await fetch(url);
   if (!res.ok) return null;
   const json = (await res.json()) as {
