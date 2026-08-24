@@ -10,6 +10,11 @@ export type GenreDef = {
   queries: string[];
   /** Optional region overrides for local scenes */
   regionQueries?: Record<string, string[]>;
+  /**
+   * Cultural home markets for this genre. Always searched in addition to the
+   * listener region so e.g. Dancehall is flooded from Jamaica, not only GH/NG.
+   */
+  hubRegions?: string[];
 };
 
 export const GENRES: GenreDef[] = [
@@ -27,6 +32,7 @@ export const GENRES: GenreDef[] = [
       ZA: ["south africa gospel official"],
       JM: ["jamaican gospel official"],
     },
+    hubRegions: ["US", "NG", "GH"],
   },
   {
     slug: "afrobeats",
@@ -41,6 +47,7 @@ export const GENRES: GenreDef[] = [
       GB: ["uk afrobeats official"],
       US: ["afrobeats usa official"],
     },
+    hubRegions: ["NG", "GH", "GB"],
   },
   {
     slug: "amapiano",
@@ -54,6 +61,7 @@ export const GENRES: GenreDef[] = [
       NG: ["amapiano nigeria official"],
       GH: ["amapiano ghana official"],
     },
+    hubRegions: ["ZA"],
   },
   {
     slug: "hip-hop",
@@ -68,6 +76,7 @@ export const GENRES: GenreDef[] = [
       GB: ["uk drill official", "grime official"],
       DE: ["deutschrap official"],
     },
+    hubRegions: ["US"],
   },
   {
     slug: "rnb",
@@ -76,6 +85,7 @@ export const GENRES: GenreDef[] = [
     gradient: "linear-gradient(145deg,#c084fc 0%,#7c3aed 50%,#4c1d95 100%)",
     glow: "rgba(124,58,237,0.55)",
     queries: ["r&b official music video", "{place} rnb official"],
+    hubRegions: ["US"],
   },
   {
     slug: "pop",
@@ -92,6 +102,7 @@ export const GENRES: GenreDef[] = [
     gradient: "linear-gradient(145deg,#f87171 0%,#dc2626 45%,#7f1d1d 100%)",
     glow: "rgba(220,38,38,0.55)",
     queries: ["rock music official", "{place} rock band official"],
+    hubRegions: ["US", "GB"],
   },
   {
     slug: "latin",
@@ -106,6 +117,7 @@ export const GENRES: GenreDef[] = [
       ES: ["reggaeton espana official"],
       US: ["latin trap official"],
     },
+    hubRegions: ["MX", "CO", "PR", "US"],
   },
   {
     slug: "electronic",
@@ -121,12 +133,29 @@ export const GENRES: GenreDef[] = [
     emoji: "🌴",
     gradient: "linear-gradient(145deg,#4ade80 0%,#16a34a 50%,#14532d 100%)",
     glow: "rgba(22,163,74,0.5)",
-    queries: ["dancehall official", "{place} dancehall"],
+    queries: [
+      "dancehall jamaica official",
+      "dancehall official music video",
+      "bashment dancehall official",
+      "{place} dancehall official",
+    ],
     regionQueries: {
-      JM: ["dancehall jamaica official", "reggae jamaica official"],
-      GH: ["ghana dancehall official"],
+      JM: [
+        "dancehall jamaica official 2026",
+        "vybz kartel official",
+        "shenseea official",
+        "skillibeng official",
+        "popcaan official",
+      ],
+      GH: ["ghana dancehall official", "shatta wale official"],
       NG: ["nigeria dancehall official"],
+      GB: ["uk dancehall official", "bashment uk official"],
+      US: ["dancehall usa official"],
+      TT: ["trinidad dancehall soca"],
+      BB: ["barbados dancehall"],
     },
+    /** Always flood from Jamaica + UK scene, plus local where it thrives */
+    hubRegions: ["JM", "GB", "GH", "TT"],
   },
   {
     slug: "highlife",
@@ -139,6 +168,7 @@ export const GENRES: GenreDef[] = [
       GH: ["ghana highlife official", "hiplife ghana"],
       NG: ["nigeria highlife official"],
     },
+    hubRegions: ["GH", "NG"],
   },
   {
     slug: "reggae",
@@ -146,7 +176,12 @@ export const GENRES: GenreDef[] = [
     emoji: "🟢",
     gradient: "linear-gradient(145deg,#86efac 0%,#22c55e 40%,#b91c1c 100%)",
     glow: "rgba(34,197,94,0.45)",
-    queries: ["reggae official", "{place} reggae"],
+    queries: ["reggae jamaica official", "reggae official", "{place} reggae"],
+    regionQueries: {
+      JM: ["bob marley official", "reggae jamaica 2026"],
+      CI: ["alpha blondy official"],
+    },
+    hubRegions: ["JM"],
   },
   {
     slug: "trap",
@@ -155,6 +190,7 @@ export const GENRES: GenreDef[] = [
     gradient: "linear-gradient(145deg,#a1a1aa 0%,#52525b 50%,#18181b 100%)",
     glow: "rgba(113,113,122,0.55)",
     queries: ["trap music official", "{place} trap official"],
+    hubRegions: ["US"],
   },
   {
     slug: "indie",
@@ -174,6 +210,7 @@ export const GENRES: GenreDef[] = [
     regionQueries: {
       KR: ["kpop official mv 2026", "k hip hop official"],
     },
+    hubRegions: ["KR"],
   },
   {
     slug: "jazz",
@@ -182,6 +219,7 @@ export const GENRES: GenreDef[] = [
     gradient: "linear-gradient(145deg,#fcd34d 0%,#d97706 50%,#78350f 100%)",
     glow: "rgba(217,119,6,0.5)",
     queries: ["jazz music official", "{place} jazz"],
+    hubRegions: ["US"],
   },
   {
     slug: "country",
@@ -190,6 +228,7 @@ export const GENRES: GenreDef[] = [
     gradient: "linear-gradient(145deg,#fdba74 0%,#ea580c 50%,#7c2d12 100%)",
     glow: "rgba(234,88,12,0.5)",
     queries: ["country music official", "{place} country songs"],
+    hubRegions: ["US"],
   },
   {
     slug: "classical",
@@ -205,8 +244,53 @@ export function getGenre(slug: string): GenreDef | undefined {
   return GENRES.find((g) => g.slug === slug.toLowerCase());
 }
 
+/** Local scene queries + hub (e.g. Jamaica for Dancehall) + generic seeds. */
 export function genreQueries(genre: GenreDef, regionCode: string, regionName: string): string[] {
   const local = genre.regionQueries?.[regionCode] ?? [];
+  const hubs = (genre.hubRegions ?? [])
+    .filter((c) => c !== regionCode)
+    .flatMap((c) => genre.regionQueries?.[c] ?? [`${genre.name} ${REGION_LABEL[c] ?? c} official`]);
   const base = genre.queries.map((q) => q.replace(/\{place\}/gi, regionName));
-  return [...local, ...base].slice(0, 5);
+  // Jamaica / hubs first for origin genres, then local flavour, then generic
+  const ordered =
+    genre.hubRegions?.includes("JM") && genre.slug === "dancehall"
+      ? [...(genre.regionQueries?.JM ?? []), ...local, ...hubs, ...base]
+      : [...local, ...hubs, ...base];
+  return unique(ordered).slice(0, 8);
+}
+
+const REGION_LABEL: Record<string, string> = {
+  JM: "Jamaica",
+  GH: "Ghana",
+  NG: "Nigeria",
+  GB: "UK",
+  US: "USA",
+  ZA: "South Africa",
+  TT: "Trinidad",
+  BB: "Barbados",
+  KR: "Korea",
+  MX: "Mexico",
+  CO: "Colombia",
+  PR: "Puerto Rico",
+  FR: "France",
+  DE: "Germany",
+  CI: "Cote d'Ivoire",
+};
+
+function unique(list: string[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const q of list) {
+    const k = q.toLowerCase();
+    if (seen.has(k)) continue;
+    seen.add(k);
+    out.push(q);
+  }
+  return out;
+}
+
+/** Region codes to hit with YouTube regionCode when loading this genre. */
+export function genreSearchRegions(genre: GenreDef, listenerRegion: string): string[] {
+  const hubs = genre.hubRegions ?? [];
+  return unique([listenerRegion, ...hubs]).slice(0, 4);
 }
