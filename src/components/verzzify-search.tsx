@@ -1,12 +1,15 @@
 import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Search, X } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { Play, Search, X } from "lucide-react";
 import { searchDiscover } from "@/lib/verzzify/promotions";
 import type { YouTubeVideo } from "@/lib/verzzify/types";
-import { YtVideoCard } from "@/components/yt-video-card";
+import { useYtPlayer } from "@/lib/verzzify/yt-player";
+import { youtubeVideoToTrack } from "@/lib/verzzify/youtube";
+import { DownloadButton } from "@/components/download-button";
 import { TrackRow } from "@/components/track-row";
 import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
+import { cn, formatCount } from "@/lib/utils";
 
 const KINDS = [
   { id: "songs" as const, label: "Songs" },
@@ -29,6 +32,46 @@ function buildYtQuery(q: string, kind: (typeof KINDS)[number]["id"]): string {
   if (kind === "beats") return `${base} type beat instrumental`;
   if (kind === "albums") return `${base} full album`;
   return base;
+}
+
+function ResultRow({
+  video,
+  queue,
+  index,
+}: {
+  video: YouTubeVideo;
+  queue: YouTubeVideo[];
+  index: number;
+}) {
+  const openQueue = useYtPlayer((s) => s.openQueue);
+  return (
+    <div className="flex items-center gap-3 rounded-xl px-2 py-2 hover:bg-white/5">
+      <span className="w-5 shrink-0 text-center text-xs text-muted-foreground">{index + 1}</span>
+      <button
+        type="button"
+        onClick={() => openQueue(queue, index)}
+        className="relative size-12 shrink-0 overflow-hidden rounded-lg bg-secondary"
+        aria-label={`Play ${video.title}`}
+      >
+        <img src={video.thumbnailUrl} alt="" className="size-full object-cover" />
+        <span className="absolute inset-0 grid place-items-center bg-black/40 opacity-0 transition-opacity hover:opacity-100">
+          <Play className="size-4 fill-white text-white" />
+        </span>
+      </button>
+      <button
+        type="button"
+        onClick={() => openQueue(queue, index)}
+        className="min-w-0 flex-1 text-left"
+      >
+        <p className="truncate text-sm font-medium text-foreground">{video.title}</p>
+        <p className="truncate text-xs text-muted-foreground">
+          {video.channelName}
+          {video.viewCount != null ? ` · ${formatCount(video.viewCount)} views` : ""}
+        </p>
+      </button>
+      <DownloadButton track={youtubeVideoToTrack(video)} />
+    </div>
+  );
 }
 
 export function VerzZifySearch({ autoFocus = false }: { autoFocus?: boolean }) {
@@ -55,13 +98,29 @@ export function VerzZifySearch({ autoFocus = false }: { autoFocus?: boolean }) {
     function onDoc(e: MouseEvent) {
       if (!wrap.current?.contains(e.target as Node)) setOpen(false);
     }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
+    }
     document.addEventListener("mousedown", onDoc);
-    return () => document.removeEventListener("mousedown", onDoc);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDoc);
+      document.removeEventListener("keydown", onKey);
+    };
   }, []);
+
+  // Dim the page behind results so home content does not bleed through
+  useEffect(() => {
+    if (!open || debounced.length <= 1) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [open, debounced]);
 
   const ytQ = buildYtQuery(debounced, kind);
 
-  // Primary: live YouTube Data API (same as youtube.com search)
   const youtube = useQuery({
     queryKey: ["header-yt", ytQ, region],
     queryFn: () => fetchYoutube(ytQ, region),
@@ -69,7 +128,6 @@ export function VerzZifySearch({ autoFocus = false }: { autoFocus?: boolean }) {
     staleTime: 60_000,
   });
 
-  // Secondary: promoted + Boomplay catalog
   const extra = useQuery({
     queryKey: ["header-discover", kind, debounced],
     queryFn: () => searchDiscover({ data: { q: debounced, kind } }),
@@ -77,10 +135,9 @@ export function VerzZifySearch({ autoFocus = false }: { autoFocus?: boolean }) {
   });
 
   const videos = youtube.data ?? [];
-  const promoted = extra.data?.promoted ?? [];
   const boomplay = extra.data?.boomplay ?? [];
   const showPanel = open && debounced.length > 1;
-  const total = videos.length + promoted.length + boomplay.length;
+  const total = videos.length + boomplay.length;
 
   return (
     <div ref={wrap} className="relative min-w-0 flex-1">
@@ -94,8 +151,11 @@ export function VerzZifySearch({ autoFocus = false }: { autoFocus?: boolean }) {
             setOpen(true);
           }}
           onFocus={() => setOpen(true)}
-          placeholder="Search YouTube — songs, artists, or paste a link"
-          className="h-11 rounded-full pr-10 pl-9"
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && q.trim()) setOpen(true);
+          }}
+          placeholder="Search songs, artists…"
+          className="h-11 rounded-full border border-white/15 bg-[#1a0b2e] pr-10 pl-9 text-foreground"
           aria-label="Search YouTube on VerzZify"
         />
         {q && (
@@ -112,6 +172,7 @@ export function VerzZifySearch({ autoFocus = false }: { autoFocus?: boolean }) {
           </button>
         )}
       </div>
+
       <div className={cn("mt-2 flex gap-1.5", !open && "hidden")}>
         {KINDS.map((k) => (
           <button
@@ -122,69 +183,95 @@ export function VerzZifySearch({ autoFocus = false }: { autoFocus?: boolean }) {
               setOpen(true);
             }}
             className={cn(
-              "h-8 rounded-full px-3 text-xs",
-              kind === k.id ? "bg-primary text-primary-foreground" : "bg-secondary text-foreground",
+              "h-8 rounded-full px-3 text-xs font-medium",
+              kind === k.id
+                ? "bg-primary text-primary-foreground"
+                : "bg-[#2a1840] text-foreground",
             )}
           >
             {k.label}
           </button>
         ))}
       </div>
+
       {showPanel && (
-        <div className="glass absolute top-[calc(100%+0.5rem)] right-0 left-0 z-50 max-h-[min(28rem,70dvh)] overflow-y-auto rounded-2xl p-3 shadow-lg">
-          <p className="mb-2 text-xs text-muted-foreground">
-            {youtube.isFetching && videos.length === 0
-              ? "Searching YouTube…"
-              : `${kind} · ${total} results · ${region}`}
-          </p>
+        <>
+          {/* Solid dim — home content cannot show through results */}
+          <button
+            type="button"
+            aria-label="Close search"
+            className="fixed inset-0 z-40 bg-black/75"
+            onClick={() => setOpen(false)}
+          />
 
-          {videos.length > 0 && (
-            <div className="mb-3">
-              <p className="mb-1 text-[10px] font-extrabold tracking-widest text-primary uppercase">
-                YouTube
-              </p>
-              <ul className="space-y-2">
-                {videos.map((v) => (
-                  <li key={v.videoId}>
-                    <YtVideoCard video={v} queue={videos} compact />
-                  </li>
-                ))}
-              </ul>
+          {/* Opaque results sheet */}
+          <div
+            className="fixed inset-x-0 top-[4.5rem] z-50 mx-auto max-h-[min(32rem,72dvh)] w-[min(100%,36rem)] overflow-hidden rounded-2xl border border-white/10 bg-[#140a22] shadow-2xl sm:left-auto sm:right-4 md:right-8"
+            role="listbox"
+            aria-label="Search results"
+          >
+            <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
+              <div>
+                <p className="text-sm font-semibold text-foreground">
+                  {youtube.isFetching && videos.length === 0
+                    ? "Searching…"
+                    : `${total} result${total === 1 ? "" : "s"}`}
+                </p>
+                <p className="text-[11px] text-muted-foreground">
+                  YouTube · {region} · {kind}
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Link
+                  to="/search"
+                  search={{ q: debounced }}
+                  onClick={() => setOpen(false)}
+                  className="rounded-full bg-white/10 px-3 py-1.5 text-xs font-medium text-foreground hover:bg-white/15"
+                >
+                  Full page
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => setOpen(false)}
+                  className="grid size-8 place-items-center rounded-full bg-white/10 text-muted-foreground hover:text-foreground"
+                  aria-label="Close"
+                >
+                  <X className="size-4" />
+                </button>
+              </div>
             </div>
-          )}
 
-          {promoted.length > 0 && (
-            <div className="mb-3">
-              <p className="mb-1 text-[10px] font-extrabold tracking-widest text-sand uppercase">
-                Promoted
-              </p>
-              <ul className="space-y-2">
-                {promoted.map((p) => (
-                  <li key={p.campaignId}>
-                    <YtVideoCard video={p.video} queue={[p.video, ...videos]} compact />
-                  </li>
-                ))}
-              </ul>
+            <div className="max-h-[min(26rem,60dvh)] overflow-y-auto px-2 py-2">
+              {videos.length > 0 && (
+                <div className="mb-2">
+                  <p className="px-2 py-1 text-[10px] font-bold tracking-widest text-primary uppercase">
+                    YouTube
+                  </p>
+                  {videos.map((v, i) => (
+                    <ResultRow key={v.videoId} video={v} queue={videos} index={i} />
+                  ))}
+                </div>
+              )}
+
+              {boomplay.length > 0 && (
+                <div className="border-t border-white/10 pt-2">
+                  <p className="px-2 py-1 text-[10px] font-bold tracking-widest text-muted-foreground uppercase">
+                    On VerzZify
+                  </p>
+                  {boomplay.map((t, i) => (
+                    <TrackRow key={t.id} track={t} queue={boomplay} index={i} />
+                  ))}
+                </div>
+              )}
+
+              {!youtube.isFetching && total === 0 && (
+                <p className="px-4 py-10 text-center text-sm text-muted-foreground">
+                  No matches for “{debounced}”. Try another spelling.
+                </p>
+              )}
             </div>
-          )}
-
-          {boomplay.length > 0 && (
-            <div className="mb-1">
-              <p className="mb-1 text-[10px] font-extrabold tracking-widest text-muted-foreground uppercase">
-                On VerzZify
-              </p>
-              {boomplay.map((t, i) => (
-                <TrackRow key={t.id} track={t} queue={boomplay} index={i} />
-              ))}
-            </div>
-          )}
-
-          {!youtube.isFetching && total === 0 && (
-            <p className="py-6 text-center text-sm text-muted-foreground">
-              No YouTube matches. Try another title or paste a video URL.
-            </p>
-          )}
-        </div>
+          </div>
+        </>
       )}
     </div>
   );
