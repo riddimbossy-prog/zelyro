@@ -39,7 +39,8 @@ function Community() {
 
   return (
     <div className="mx-auto max-w-2xl">
-      <h1 className="font-display text-3xl">Community</h1>
+      <p className="kicker">The room</p>
+      <h1 className="font-display text-3xl">Sit with the makers</h1>
       <p className="mt-1 text-sm text-muted-foreground">Studio, releases, and the people who make the sound.</p>
       <div className="mt-5">
         <CommunitySearch

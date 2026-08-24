@@ -34,7 +34,7 @@ function ChartsPage() {
 
   return (
     <div>
-      <p className="text-xs tracking-[0.2em] text-sand uppercase">VerzZify Charts</p>
+      <p className="kicker">Heat</p>
       <h1 className="glow-title mt-2 font-display text-4xl md:text-5xl">{board.title}</h1>
       <p className="mt-3 max-w-2xl text-sm text-muted-foreground">{board.subtitle}</p>
       <p className="mt-1 text-xs text-muted-foreground">{board.updatedLabel}</p>

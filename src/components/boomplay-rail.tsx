@@ -3,6 +3,7 @@ import { CoverCard } from "@/components/cover-card";
 import { SectionRail } from "@/components/section-rail";
 import { getBoomplayHome } from "@/lib/verzzify/boomplay";
 import { getViewerGeo } from "@/lib/verzzify/geo";
+import { copy } from "@/lib/verzzify/copy";
 
 export function BoomplayRail() {
   const q = useQuery({
@@ -16,7 +17,7 @@ export function BoomplayRail() {
   const tracks = q.data?.tracks ?? [];
   if (!tracks.length) return null;
   return (
-    <SectionRail title={`Boomplay · ${q.data?.region ?? "Africa"}`}>
+    <SectionRail title={copy.houseCuts} kicker={q.data?.region ?? "Africa"}>
       {tracks.map((t) => (
         <CoverCard key={t.id} track={t} queue={tracks} subtitle={t.artistName} />
       ))}

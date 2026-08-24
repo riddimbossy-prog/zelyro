@@ -5,7 +5,7 @@ import { searchDiscover } from "@/lib/verzzify/promotions";
 import { YtVideoCard } from "@/components/yt-video-card";
 import { TrackRow } from "@/components/track-row";
 import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
+import { copy } from "@/lib/verzzify/copy";
 
 const KINDS = [
   { id: "songs" as const, label: "Songs" },
@@ -55,7 +55,7 @@ export function VerzZifySearch({ autoFocus = false }: { autoFocus?: boolean }) {
             setOpen(true);
           }}
           onFocus={() => setOpen(true)}
-          placeholder="Search songs, beats, albums"
+          placeholder={copy.search}
           className="h-11 rounded-full pr-10 pl-9"
           aria-label="Search VerzZify"
         />
@@ -98,7 +98,7 @@ export function VerzZifySearch({ autoFocus = false }: { autoFocus?: boolean }) {
           </p>
           {boomplay.length > 0 && (
             <div className="mb-3">
-              <p className="mb-1 text-[10px] font-extrabold tracking-widest text-primary uppercase">Boomplay</p>
+              <p className="mb-1 kicker">House cuts</p>
               {boomplay.map((t, i) => (
                 <TrackRow key={t.id} track={t} queue={boomplay} index={i} />
               ))}

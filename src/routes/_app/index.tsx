@@ -11,6 +11,7 @@ import { YoutubeHome } from "@/components/youtube-home";
 import { DownloadsFolder } from "@/components/downloads-folder";
 import { TicketsRail } from "@/components/tickets-rail";
 import { BoomplayRail } from "@/components/boomplay-rail";
+import { copy } from "@/lib/verzzify/copy";
 
 export const Route = createFileRoute("/_app/")({
   loader: () => getHomeData(),
@@ -33,11 +34,11 @@ function Home() {
           <div className="absolute inset-0 bg-gradient-to-r from-black via-black/75 to-black/20" />
           <div className="relative flex min-h-[240px] flex-col justify-end gap-4 p-5 md:min-h-[320px] md:flex-row md:items-end md:justify-between md:p-8">
             <div className="max-w-xl">
-              <p className="text-[11px] font-semibold tracking-[0.2em] text-primary uppercase">
-                Trending
+              <p className="kicker">
+                {copy.heroKicker}
                 {d.youtubeHome?.regionName ? ` · ${d.youtubeHome.regionName}` : ""}
               </p>
-              <h1 className="mt-2 font-display text-4xl font-extrabold tracking-tight md:text-6xl">{hero.title}</h1>
+              <h1 className="glow-title mt-2 font-display text-4xl font-extrabold tracking-tight md:text-6xl">{hero.title}</h1>
               <Link
                 to="/artist/$slug"
                 params={{ slug: hero.artistSlug }}
@@ -95,7 +96,7 @@ function Home() {
 
       <section className="mt-10">
         <div className="mb-3 flex items-end justify-between">
-          <h2 className="font-display text-2xl font-extrabold tracking-tight">Trending songs</h2>
+          <h2 className="font-display text-2xl font-extrabold tracking-tight">Cuts moving now</h2>
           <Link to="/charts" className="text-sm font-medium text-primary">
             See all
           </Link>
@@ -126,8 +127,8 @@ function Home() {
       <section className="mt-10">
         <div className="mb-4 flex items-end justify-between">
           <div>
-            <p className="text-xs tracking-[0.2em] text-sand uppercase">This week</p>
-            <h2 className="font-display text-xl font-medium md:text-2xl">VerzZify Global 200</h2>
+            <p className="kicker">Heat</p>
+            <h2 className="font-display text-xl font-medium md:text-2xl">The VerzZify 200</h2>
           </div>
           <Link to="/charts" className="text-sm text-muted-foreground hover:text-foreground">
             Full charts
