@@ -1,8 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { searchCatalog } from "@/lib/verzzify/queries";
 import { searchDiscover } from "@/lib/verzzify/promotions";
+import { getViewerGeo } from "@/lib/verzzify/geo";
 import { ArtistTile } from "@/components/cover-card";
 import { TrackRow } from "@/components/track-row";
 import { Input } from "@/components/ui/input";
@@ -13,6 +14,17 @@ import { z } from "zod";
 const searchSchema = z.object({ q: z.string().optional() });
 const KINDS = ["songs", "beats", "albums"] as const;
 
+const LOCAL_CHIPS: Record<string, string[]> = {
+  GH: ["Highlife", "Hiplife", "Ghana gospel", "Afrobeats Accra", "Black Sherif"],
+  NG: ["Afrobeats", "Naija gospel", "Amapiano Lagos", "Burna Boy", "Asake"],
+  ZA: ["Amapiano", "Gqom", "Johannesburg live", "Tyla"],
+  JM: ["Dancehall", "Reggae", "Kingston"],
+  US: ["Hip Hop", "R&B", "Gospel choir", "Country"],
+  GB: ["UK drill", "Grime", "Afrobeats UK"],
+  KR: ["K-pop", "K hip hop"],
+  FR: ["Rap français", "Amapiano Paris"],
+};
+
 export const Route = createFileRoute("/_app/search")({
   validateSearch: searchSchema,
   component: SearchPage,
@@ -22,14 +34,31 @@ function SearchPage() {
   const { q: initial } = Route.useSearch();
   const [q, setQ] = useState(initial ?? "");
   const [kind, setKind] = useState<(typeof KINDS)[number]>("songs");
+  const [region, setRegion] = useState("US");
+  const [city, setCity] = useState<string | null>(null);
+
+  useEffect(() => {
+    void getViewerGeo()
+      .then((g) => {
+        setRegion(g.region);
+        setCity(g.city);
+      })
+      .catch(() => undefined);
+  }, []);
+
+  const chips = useMemo(() => {
+    const local = LOCAL_CHIPS[region] ?? ["Afrobeats", "Gospel", "Hip Hop", "Pop", "Latin"];
+    return city ? [`${city} hits`, ...local] : local;
+  }, [region, city]);
+
   const catalog = useQuery({
     queryKey: ["search", q],
     queryFn: () => searchCatalog({ data: q }),
     enabled: q.trim().length > 0,
   });
   const discover = useQuery({
-    queryKey: ["discover-page", kind, q],
-    queryFn: () => searchDiscover({ data: { q, kind } }),
+    queryKey: ["discover-page", kind, q, region],
+    queryFn: () => searchDiscover({ data: { q: `${q} ${region}`.trim(), kind } }),
     enabled: q.trim().length > 1,
   });
   const data = catalog.data;
@@ -39,6 +68,9 @@ function SearchPage() {
   return (
     <div>
       <h1 className="font-display text-3xl">Search</h1>
+      <p className="mt-1 text-sm text-muted-foreground">
+        Ranked with your region{city ? ` · ${city}` : ""} ({region}) in mind.
+      </p>
       <form
         className="mt-4"
         onSubmit={(e) => {
@@ -48,7 +80,7 @@ function SearchPage() {
         <Input
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="Songs, beats, albums, artists…"
+          placeholder="Songs, artists, genres, cities…"
           autoFocus
         />
       </form>
@@ -69,7 +101,7 @@ function SearchPage() {
       </div>
       {!q && (
         <div className="mt-8 flex flex-wrap gap-2">
-          {["Pop", "Latin", "Seoul", "Hip Hop", "Afrobeats"].map((s) => (
+          {chips.map((s) => (
             <button
               key={s}
               type="button"
@@ -84,7 +116,7 @@ function SearchPage() {
       {q.trim().length > 0 && (
         <div className="mt-8 space-y-10">
           <section>
-            <p className="text-xs tracking-widest text-sand uppercase">Discover</p>
+            <p className="text-xs tracking-widest text-sand uppercase">Near you · {region}</p>
             <h2 className="mb-3 font-display text-xl capitalize">{kind}</h2>
             {videos.length > 0 ? (
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -94,7 +126,7 @@ function SearchPage() {
               </div>
             ) : (
               <p className="text-sm text-muted-foreground">
-                {discover.isFetching ? "Searching…" : "No matches in that lane."}
+                {discover.isFetching ? "Searching your region…" : "No matches in that lane."}
               </p>
             )}
           </section>
@@ -124,7 +156,14 @@ function SearchPage() {
                   <h2 className="mb-3 font-display text-lg">Artists & producers</h2>
                   <div className="media-rail">
                     {data.artists.map((a) => (
-                      <ArtistTile key={a.id} id={a.id} slug={a.slug} name={a.name} avatarUrl={a.avatarUrl} verified={a.verified} />
+                      <ArtistTile
+                        key={a.id}
+                        id={a.id}
+                        slug={a.slug}
+                        name={a.name}
+                        avatarUrl={a.avatarUrl}
+                        verified={a.verified}
+                      />
                     ))}
                   </div>
                 </div>

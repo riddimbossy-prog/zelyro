@@ -46,6 +46,7 @@ let floatPos: { x: number; y: number } | null = null;
 let dragging = false;
 let dragOffset = { x: 0, y: 0 };
 let minimized = false;
+let wakeLock: WakeLockSentinel | null = null;
 
 const FLOAT_W = 400;
 const CHROME_H = 36;
@@ -53,6 +54,66 @@ const FLOAT_H = Math.round((FLOAT_W * 9) / 16) + CHROME_H;
 
 function isDesktop() {
   return typeof window !== "undefined" && window.matchMedia("(min-width: 768px)").matches;
+}
+
+async function requestWake() {
+  try {
+    if (typeof navigator !== "undefined" && "wakeLock" in navigator && useYtPlayer.getState().isPlaying) {
+      wakeLock = await navigator.wakeLock.request("screen");
+      wakeLock.addEventListener("release", () => {
+        wakeLock = null;
+      });
+    }
+  } catch {
+    wakeLock = null;
+  }
+}
+
+function releaseWake() {
+  void wakeLock?.release().catch(() => undefined);
+  wakeLock = null;
+}
+
+function bindYtMediaSession() {
+  if (typeof navigator === "undefined" || !navigator.mediaSession) return;
+  const s = useYtPlayer.getState();
+  if (!s.videoId || !s.title) return;
+  navigator.mediaSession.metadata = new MediaMetadata({
+    title: s.title,
+    artist: s.channel ?? "VerzZify",
+    album: "VerzZify",
+    artwork: s.thumbnailUrl
+      ? [
+          { src: s.thumbnailUrl, sizes: "96x96", type: "image/jpeg" },
+          { src: s.thumbnailUrl, sizes: "256x256", type: "image/jpeg" },
+          { src: s.thumbnailUrl, sizes: "512x512", type: "image/jpeg" },
+        ]
+      : [],
+  });
+  navigator.mediaSession.setActionHandler("play", () => {
+    const st = useYtPlayer.getState();
+    if (st.videoId) {
+      startVideo(st.videoId, st.queue.map((v) => v.videoId));
+      useYtPlayer.setState({ isPlaying: true });
+    }
+  });
+  navigator.mediaSession.setActionHandler("pause", () => {
+    useYtPlayer.getState().pause();
+  });
+  navigator.mediaSession.setActionHandler("previoustrack", () => useYtPlayer.getState().prev());
+  navigator.mediaSession.setActionHandler("nexttrack", () => useYtPlayer.getState().next());
+  navigator.mediaSession.playbackState = s.isPlaying ? "playing" : "paused";
+  try {
+    if (s.duration > 0) {
+      navigator.mediaSession.setPositionState({
+        duration: s.duration,
+        playbackRate: 1,
+        position: Math.min(s.position, s.duration),
+      });
+    }
+  } catch {
+    /* ignore */
+  }
 }
 
 function embedUrl(id: string, play: boolean, playlist: string[] = []) {
@@ -97,7 +158,8 @@ function ensureFrame() {
   wrap.style.boxShadow = "0 18px 50px rgba(0,0,0,0.55)";
   wrap.style.border = "1px solid rgba(255,255,255,0.16)";
   wrap.style.display = "none";
-  wrap.style.transition = "height .32s cubic-bezier(.22,1,.36,1), width .32s cubic-bezier(.22,1,.36,1), box-shadow .32s ease, border-radius .32s ease";
+  wrap.style.transition =
+    "height .32s cubic-bezier(.22,1,.36,1), width .32s cubic-bezier(.22,1,.36,1), box-shadow .32s ease, border-radius .32s ease";
 
   chrome = wrap.querySelector("#verzzify-yt-chrome") as HTMLDivElement | null;
   if (!chrome) {
@@ -191,7 +253,8 @@ function ensureFrame() {
     frame = document.createElement("iframe");
     frame.id = "verzzify-yt-frame";
     frame.title = "VerzZify player";
-    frame.allow = "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share";
+    frame.allow =
+      "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share";
     frame.setAttribute("allowfullscreen", "true");
     wrap.appendChild(frame);
   }
@@ -202,7 +265,6 @@ function ensureFrame() {
   frame.style.background = "#000";
 }
 
-/** Must run inside a click. Assigning src here is what allows unmuted autoplay. */
 function startVideo(id: string, playlist: string[] = []) {
   ensureFrame();
   if (!frame || !wrap) return;
@@ -211,10 +273,14 @@ function startVideo(id: string, playlist: string[] = []) {
   frame.src = embedUrl(id, true, playlist);
   wrap.style.display = "block";
   requestAnimationFrame(layoutYtFrame);
+  bindYtMediaSession();
+  void requestWake();
 }
 
 function stopVideo() {
   if (frame) frame.src = "about:blank";
+  releaseWake();
+  if (navigator.mediaSession) navigator.mediaSession.playbackState = "paused";
 }
 
 export function layoutYtFrame() {
@@ -335,12 +401,21 @@ async function fillArtistQueue(video: YouTubeVideo) {
 if (typeof window !== "undefined") {
   window.addEventListener("resize", () => layoutYtFrame());
   window.addEventListener("scroll", () => layoutYtFrame(), true);
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible" && useYtPlayer.getState().isPlaying) {
+      void requestWake();
+      bindYtMediaSession();
+    }
+  });
   window.addEventListener("message", (event) => {
     const origin = String(event.origin || "");
     if (!origin.includes("youtube.com") && !origin.includes("youtube-nocookie.com")) return;
     let payload: { event?: string; info?: number | Record<string, unknown> } | null = null;
     try {
-      payload = typeof event.data === "string" ? (JSON.parse(event.data) as typeof payload) : (event.data as typeof payload);
+      payload =
+        typeof event.data === "string"
+          ? (JSON.parse(event.data) as typeof payload)
+          : (event.data as typeof payload);
     } catch {
       return;
     }
@@ -358,7 +433,10 @@ if (typeof window !== "undefined") {
       const patch: Partial<YtState> = {};
       if (typeof info.currentTime === "number") patch.position = info.currentTime;
       if (typeof info.duration === "number" && info.duration > 0) patch.duration = info.duration;
-      if (Object.keys(patch).length) useYtPlayer.setState(patch);
+      if (Object.keys(patch).length) {
+        useYtPlayer.setState(patch);
+        bindYtMediaSession();
+      }
     }
   });
 }
@@ -399,12 +477,14 @@ export const useYtPlayer = create<YtState>((set, get) => ({
       source: "youtube",
     };
     set(asVideo(video, [video], 0));
+    bindYtMediaSession();
     void fillArtistQueue(video);
   },
   openQueue: (videos, index = 0) => {
     const video = videos[index];
     if (!video?.videoId) return;
     set(asVideo(video, videos, index));
+    bindYtMediaSession();
     void fillArtistQueue(video);
   },
   playAt: (index) => {
@@ -412,6 +492,7 @@ export const useYtPlayer = create<YtState>((set, get) => ({
     const video = s.queue[index];
     if (!video?.videoId) return;
     set(asVideo(video, s.queue, index));
+    bindYtMediaSession();
   },
   toggle: () => {
     const s = get();
@@ -420,19 +501,23 @@ export const useYtPlayer = create<YtState>((set, get) => ({
     if (s.isPlaying && live) {
       stopVideo();
       set({ isPlaying: false });
+      bindYtMediaSession();
     } else {
       startVideo(s.videoId, s.queue.map((v) => v.videoId));
       set({ isPlaying: true, expanded: true });
+      bindYtMediaSession();
     }
   },
   pause: () => {
     stopVideo();
     set({ isPlaying: false });
+    bindYtMediaSession();
   },
   next: () => {
     const s = get();
     if (s.index + 1 < s.queue.length) {
       set(asVideo(s.queue[s.index + 1], s.queue, s.index + 1));
+      bindYtMediaSession();
       return;
     }
     const current = s.queue[s.index];
@@ -445,6 +530,7 @@ export const useYtPlayer = create<YtState>((set, get) => ({
       } else if (now.queue.length) {
         set(asVideo(now.queue[0], now.queue, 0));
       }
+      bindYtMediaSession();
     })();
   },
   prev: () => {
@@ -452,6 +538,7 @@ export const useYtPlayer = create<YtState>((set, get) => ({
     if (!queue.length) return;
     const prev = (index - 1 + queue.length) % queue.length;
     set(asVideo(queue[prev], queue, prev));
+    bindYtMediaSession();
   },
   seek: (seconds) => set({ position: seconds }),
   setVolume: (v) => set({ volume: v, muted: v === 0 }),
@@ -483,6 +570,10 @@ export const useYtPlayer = create<YtState>((set, get) => ({
     minimized = false;
     stopVideo();
     if (wrap) wrap.style.display = "none";
+    if (navigator.mediaSession) {
+      navigator.mediaSession.metadata = null;
+      navigator.mediaSession.playbackState = "none";
+    }
     set({
       videoId: null,
       title: null,

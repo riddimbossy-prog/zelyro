@@ -14,6 +14,29 @@ import { CreatorStudio } from "@/components/creator-studio";
 import { CommunitySearch } from "@/components/community-search";
 import { formatMoney } from "@/lib/utils";
 
+const SEED_POSTS = [
+  {
+    id: "seed-1",
+    authorName: "VerzZify",
+    authorSlug: "verzzify",
+    authorAvatar: "/logo.png",
+    body: "Welcome to Community — share a release, a night out, or a track that carried you. Studio creators post here first.",
+    createdAt: new Date().toISOString(),
+    imageUrl: null as string | null,
+    track: null as null,
+  },
+  {
+    id: "seed-2",
+    authorName: "VerzZify Charts",
+    authorSlug: "verzzify",
+    authorAvatar: "/logo.png",
+    body: "Regional charts update from your location. Drop a city + genre in the comments (via a post) and we’ll surface more of that scene.",
+    createdAt: new Date(Date.now() - 3600000).toISOString(),
+    imageUrl: null,
+    track: null,
+  },
+];
+
 export const Route = createFileRoute("/_app/community")({
   loader: async () => {
     const [home, rooms] = await Promise.all([getHomeData(), listOpenVideoRooms()]);
@@ -36,6 +59,7 @@ function Community() {
   });
   const [body, setBody] = useState("");
   const play = usePlayer((s) => s.play);
+  const posts = (q.data && q.data.length > 0 ? q.data : SEED_POSTS) as typeof SEED_POSTS;
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -87,7 +111,7 @@ function Community() {
           </div>
         </section>
       )}
-      {user && (
+      {user ? (
         <form
           className="mt-8 rounded-3xl bg-card p-4"
           onSubmit={async (e) => {
@@ -114,9 +138,16 @@ function Community() {
             </Button>
           </div>
         </form>
+      ) : (
+        <p className="mt-8 rounded-2xl bg-secondary/60 px-4 py-3 text-sm text-muted-foreground">
+          <Link to="/login" className="text-primary underline">
+            Sign in
+          </Link>{" "}
+          to post. You can still browse the feed below.
+        </p>
       )}
       <ul className="mt-6 space-y-4">
-        {(q.data ?? []).map((p) => (
+        {posts.map((p) => (
           <li key={p.id} className="rounded-3xl bg-card p-5">
             <div className="flex items-center gap-3">
               <img src={p.authorAvatar ?? "/favicon.svg"} alt="" className="size-10 rounded-full object-cover" />
@@ -128,10 +159,10 @@ function Community() {
               </div>
             </div>
             <p className="mt-3 text-sm leading-relaxed">{p.body}</p>
-            {p.imageUrl && (
+            {"imageUrl" in p && p.imageUrl && (
               <img src={p.imageUrl} alt="" className="mt-3 max-h-80 w-full rounded-2xl object-cover" />
             )}
-            {p.track && (
+            {"track" in p && p.track && (
               <button
                 type="button"
                 onClick={() => play([p.track!], 0)}

@@ -1,0 +1,23 @@
+{
+  "name": "VerzZify",
+  "short_name": "VerzZify",
+  "description": "Regional music, tickets, and offline playlists.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#07010d",
+  "theme_color": "#c026d3",
+  "icons": [
+    {
+      "src": "/icon-256.png",
+      "sizes": "256x256",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
