@@ -76,6 +76,20 @@ export function YoutubeHome({
         </div>
       </section>
 
+      {(data.rails ?? []).map((rail) =>
+        rail.videos.length ? (
+          <section key={rail.id} className="mt-8">
+            <h3 className="mb-1 font-display text-xl md:text-2xl">{rail.title}</h3>
+            <p className="mb-4 text-sm text-muted-foreground">{rail.subtitle}</p>
+            <div className="media-rail media-rail-wide">
+              {rail.videos.map((v) => (
+                <YtVideoCard key={`${rail.id}-${v.videoId}`} video={v} queue={rail.videos} />
+              ))}
+            </div>
+          </section>
+        ) : null,
+      )}
+
       <section className="mt-8">
         <h3 className="mb-4 font-display text-xl md:text-2xl">Popular artists</h3>
         <div className="media-rail">

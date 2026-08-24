@@ -163,6 +163,7 @@ class YtHome {
     required this.playlists,
     required this.nearby,
     required this.feed,
+    this.rails = const [],
   });
 
   final String region;
@@ -173,6 +174,7 @@ class YtHome {
   final List<({String title, String sub, String cover, List<YtClip> videos})> playlists;
   final List<({String region, String name, List<YtClip> videos})> nearby;
   final List<YtClip> feed;
+  final List<({String title, String sub, List<YtClip> videos})> rails;
 
   static YtClip clip(Map<String, dynamic> j) => YtClip(
         videoId: '${j['videoId']}',
@@ -223,6 +225,14 @@ class YtHome {
           (
             region: '${e['region'] ?? ''}',
             name: '${e['regionName'] ?? ''}',
+            videos: clips(e['videos']),
+          )
+      ],
+      rails: [
+        for (final e in (j['rails'] as List? ?? []).whereType<Map>())
+          (
+            title: '${e['title'] ?? ''}',
+            sub: '${e['subtitle'] ?? ''}',
             videos: clips(e['videos']),
           )
       ],

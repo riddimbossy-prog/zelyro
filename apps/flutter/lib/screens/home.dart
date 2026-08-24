@@ -142,7 +142,7 @@ class _HomeScreenState extends State<HomeScreen> {
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
               children: [
-                for (final code in ['GH', 'NG', 'US', 'GB', 'ZA', 'BR', 'KR', 'PT'])
+                for (final code in ['GH', 'NG', 'ZA', 'KE', 'JM', 'US', 'GB', 'BR', 'MX', 'KR', 'IN', 'FR', 'PT'])
                   Padding(
                     padding: const EdgeInsets.only(right: 8),
                     child: ChoiceChip(
@@ -197,6 +197,9 @@ class _HomeScreenState extends State<HomeScreen> {
         for (final n in yt.nearby)
             if (n.videos.isNotEmpty)
               _ytRail(context, n.name, n.videos, player, kicker: 'Nearby'),
+        for (final r in yt.rails)
+          if (r.videos.isNotEmpty)
+            _ytRail(context, r.title, r.videos, player, kicker: r.sub),
         if (yt.playlists.isNotEmpty)
           SliverToBoxAdapter(
             child: Column(

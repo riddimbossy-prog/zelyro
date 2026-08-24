@@ -257,6 +257,79 @@ function mapDataItem(v: {
   };
 }
 
+const REGION_SEARCH: Record<string, string[]> = {
+  GH: ["ghana afrobeats official", "highlife ghana official", "amapiano ghana"],
+  NG: ["afrobeats nigeria official", "amapiano nigeria official", "afro house nigeria"],
+  ZA: ["amapiano south africa official", "south africa house music"],
+  KE: ["kenya music official", "genge kapuka"],
+  SN: ["mbalax senegal", "afrobeats senegal"],
+  CI: ["coupe decale official", "afrobeats cote divoire"],
+  JM: ["dancehall jamaica official", "reggae jamaica official"],
+  US: ["hip hop official video", "rnb official 2024"],
+  GB: ["uk drill official", "uk afrobeats official"],
+  BR: ["funk brasileiro official", "sertanejo official"],
+  MX: ["musica urbana mexico", "reggaeton official"],
+  KR: ["kpop official mv", "k hip hop official"],
+  JP: ["jpop official", "city pop official"],
+  IN: ["bollywood songs official", "punjabi songs official"],
+  FR: ["rap francais official", "afrobeats france"],
+  DE: ["deutschrap official", "afrobeats germany"],
+  PT: ["musica portuguesa official", "afrohouse portugal"],
+  ES: ["reggaeton espana official", "urban latin official"],
+  CA: ["canadian hip hop official", "toronto rnb official"],
+  AU: ["australian hip hop official", "afrobeats australia"],
+};
+
+async function hydrateIds(ids: string[], key: string): Promise<YouTubeVideo[]> {
+  if (!ids.length) return [];
+  const url = `https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails,statistics,status&id=${ids.slice(0, 40).join(",")}&key=${key}`;
+  const res = await fetch(url);
+  if (!res.ok) return [];
+  const json = (await res.json()) as { items?: Parameters<typeof mapDataItem>[0][] };
+  return (json.items ?? []).map(mapDataItem);
+}
+
+async function searchRegionMusic(code: string, q: string, key: string): Promise<YouTubeVideo[]> {
+  try {
+    const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoCategoryId=10&regionCode=${encodeURIComponent(code)}&maxResults=12&q=${encodeURIComponent(q)}&key=${key}`;
+    const res = await fetch(url);
+    if (!res.ok) return [];
+    const json = (await res.json()) as { items?: Array<{ id?: { videoId?: string } }> };
+    const ids = (json.items ?? []).map((i) => i.id?.videoId).filter(Boolean) as string[];
+    return hydrateIds(ids, key);
+  } catch {
+    return [];
+  }
+}
+
+function dedupe(list: YouTubeVideo[]): YouTubeVideo[] {
+  const seen = new Set<string>();
+  const out: YouTubeVideo[] = [];
+  for (const v of list) {
+    if (!v.videoId || seen.has(v.videoId)) continue;
+    seen.add(v.videoId);
+    out.push(v);
+  }
+  return out;
+}
+
+function railLabel(q: string): string {
+  const s = q.toLowerCase();
+  if (s.includes("amapiano")) return "Amapiano";
+  if (s.includes("highlife")) return "Highlife";
+  if (s.includes("afrobeats") || s.includes("afrobeat")) return "Afrobeats";
+  if (s.includes("drill")) return "Drill";
+  if (s.includes("kpop")) return "K-pop";
+  if (s.includes("jpop") || s.includes("city pop")) return "J-pop";
+  if (s.includes("bollywood") || s.includes("punjabi")) return "South Asia";
+  if (s.includes("dancehall") || s.includes("reggae")) return "Dancehall & reggae";
+  if (s.includes("reggaeton") || s.includes("urbana") || s.includes("latin")) return "Urbano";
+  if (s.includes("funk") || s.includes("sertanejo")) return "Brazil";
+  if (s.includes("hip hop") || s.includes("rap")) return "Hip hop";
+  if (s.includes("rnb") || s.includes("r&b")) return "R&B";
+  return "Scene mix";
+}
+
 const cache = new Map<string, { at: number; videos: YouTubeVideo[] }>();
 const TTL = 20 * 60 * 1000;
 
@@ -268,7 +341,7 @@ export async function getPopularMusicByCountry(region: string): Promise<YouTubeV
   const key = process.env.YOUTUBE_API_KEY?.trim();
   if (key) {
     try {
-      const url = `https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails,statistics,status&chart=mostPopular&regionCode=${code}&videoCategoryId=10&maxResults=16&key=${key}`;
+      const url = `https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails,statistics,status&chart=mostPopular&regionCode=${code}&videoCategoryId=10&maxResults=32&key=${key}`;
       const res = await fetch(url);
       if (res.ok) {
         const json = (await res.json()) as { items?: Parameters<typeof mapDataItem>[0][] };
@@ -348,7 +421,7 @@ function mixFeed(local: YouTubeVideo[], nearby: NearbyScene[]): YouTubeVideo[] {
   const lanes = [local, ...nearby.map((n) => n.videos)];
   let i = 0;
   let added = true;
-  while (out.length < 24 && added) {
+  while (out.length < 40 && added) {
     added = false;
     for (const lane of lanes) {
       const v = lane[i];
@@ -372,6 +445,7 @@ export type YoutubeHomeData = {
   playlists: YtPlaylistCard[];
   nearby: NearbyScene[];
   feed: YouTubeVideo[];
+  rails: { id: string; title: string; subtitle: string; videos: YouTubeVideo[] }[];
 };
 
 export async function loadYoutubeHome(region: string, city: string | null = null): Promise<YoutubeHomeData> {
@@ -393,6 +467,23 @@ export async function loadYoutubeHome(region: string, city: string | null = null
   ).filter((n) => n.videos.length);
   const neighborMix = nearby.flatMap((n) => n.videos).slice(0, 8);
   const playlists = playlistsFrom(code, REGION_NAMES[code] ?? code, videos);
+  const key = process.env.YOUTUBE_API_KEY?.trim();
+  const rails: YoutubeHomeData["rails"] = [];
+  if (key) {
+    const queries = (REGION_SEARCH[code] ?? [`${REGION_NAMES[code] ?? code} official music`]).slice(0, 3);
+    const found = await Promise.all(queries.map(async (q) => ({ q, videos: await searchRegionMusic(code, q, key) })));
+    for (const row of found) {
+      const list = dedupe(row.videos).filter((v) => !videos.some((x) => x.videoId === v.videoId));
+      if (list.length >= 4) {
+        rails.push({
+          id: `${code}-${railLabel(row.q).toLowerCase().replace(/\s+/g, "-")}`,
+          title: railLabel(row.q),
+          subtitle: `${REGION_NAMES[code] ?? code} catalog`,
+          videos: list,
+        });
+      }
+    }
+  }
   if (neighborMix.length) {
     playlists.push({
       id: `neighbors-${code}`,
@@ -411,6 +502,7 @@ export async function loadYoutubeHome(region: string, city: string | null = null
     playlists,
     nearby,
     feed: mixFeed(videos, nearby),
+    rails,
   };
 }
 
