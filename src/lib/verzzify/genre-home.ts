@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { getGenre, genreQueries, type GenreDef } from "./genres";
+import { getGenre, genreQueries, genreSearchRegions, type GenreDef } from "./genres";
 import {
   artistsFromVideos,
   loadYoutubeHome,
@@ -104,15 +104,19 @@ const GENRE_SEEDS: Record<string, YouTubeVideo[]> = {
     vid("YykjpeuMNEk", "Coldplay - Hymn For The Weekend", "Coldplay"),
   ],
   dancehall: [
-    vid("pRpeEdMmmQ0", "Shakira - Waka Waka", "Shakira"),
-    vid("uxpDa-c-4Mc", "Drake - Hotline Bling", "Drake"),
+    vid("dLTGRuLd3a4", "Sean Paul - Temperature", "SeanPaulVEVO"),
+    vid("CwdxSMQaOhQ", "Sean Paul - Get Busy", "SeanPaulVEVO"),
+    vid("o3eHsftMTcY", "Shaggy - It Wasn't Me", "Shaggy"),
+    vid("yCgMNPltzww", "Shenseea - Lighter", "Shenseea"),
+    vid("R0MqLqyWJx0", "Popcaan - Family", "Popcaan"),
+    vid("kXYiU_JCYtU", "Vybz Kartel - Summertime", "Vybz Kartel"),
   ],
   highlife: [
     vid("GIDiI5kyBDQ", "Black Sherif - Kwaku the Traveller", "Black Sherif"),
     vid("NPCC02SaJVg", "King Promise - Terminator", "King Promise"),
   ],
   reggae: [
-    vid("pRpeEdMmmQ0", "Shakira - Waka Waka", "Shakira"),
+    vid("LanCLS_XhIA", "Bob Marley - One Love", "Bob Marley"),
     vid("jNPdBP_4dyc", "Alpha Blondy - Cocody Rock", "Alpha Blondy"),
   ],
   trap: [
@@ -151,9 +155,27 @@ const GENRE_NEEDLES: Record<string, string[]> = {
   rock: ["rock", "metal", "punk", "alternative", "linkin", "queen"],
   latin: ["latin", "reggaeton", "salsa", "bachata", "urbano", "despacito", "spanish"],
   electronic: ["electronic", "edm", "house", "techno", "dance", "avicii", "dj"],
-  dancehall: ["dancehall", "bashment", "reggae fusion"],
+  dancehall: [
+    "dancehall",
+    "bashment",
+    "reggae fusion",
+    "jamaica",
+    "jamaican",
+    "riddim",
+    "sean paul",
+    "vybz",
+    "kartel",
+    "shenseea",
+    "popcaan",
+    "skillibeng",
+    "shatta",
+    "beenie",
+    "bounty",
+    "spice",
+    "chronic law",
+  ],
   highlife: ["highlife", "hiplife"],
-  reggae: ["reggae", "roots", "marley", "blondy"],
+  reggae: ["reggae", "roots", "marley", "blondy", "jamaica"],
   trap: ["trap", "drill"],
   indie: ["indie", "alternative"],
   "k-pop": ["kpop", "k-pop", "bts", "blackpink", "hybe", "jyp", "sm "],
@@ -232,7 +254,6 @@ function genreScore(slug: string, v: YouTubeVideo): number {
   for (const n of needles) {
     if (blob.includes(n)) score += n.length > 5 ? 3 : 2;
   }
-  // Prefer official music packaging
   if (blob.includes("official")) score += 1;
   if (blob.includes("lyrics") || blob.includes("live performance")) score += 0.5;
   return score;
@@ -244,7 +265,6 @@ function keepGenre(slug: string, list: YouTubeVideo[], minKeep = 8): YouTubeVide
     .sort((a, b) => b.s - a.s);
   const strong = ranked.filter((x) => x.s > 0).map((x) => x.v);
   if (strong.length >= minKeep) return strong;
-  // Keep strong first, then unrated search hits (API already scoped by query)
   const rest = ranked.filter((x) => x.s === 0).map((x) => x.v);
   return dedupe([...strong, ...rest]).slice(0, 28);
 }
@@ -267,6 +287,7 @@ export async function loadGenreHome(
   const name = REGION_NAMES[code] ?? code;
   const key = process.env.YOUTUBE_API_KEY?.trim();
   const queries = genreQueries(genre, code, name);
+  const searchRegions = genreSearchRegions(genre, code);
   const seeds = GENRE_SEEDS[genre.slug] ?? [];
 
   let videos: YouTubeVideo[] = [];
@@ -274,11 +295,19 @@ export async function loadGenreHome(
   const rails: GenreHomeData["rails"] = [];
 
   if (key) {
+    // Search listener region + cultural hubs (e.g. JM for dancehall) in parallel
+    const searchJobs = searchRegions.flatMap((reg) =>
+      queries.slice(0, 5).map((q) => searchGenre(reg, q, key, "relevance")),
+    );
     const [popularBatches, fresh] = await Promise.all([
-      Promise.all(queries.slice(0, 4).map((q) => searchGenre(code, q, key, "relevance"))),
-      searchGenre(code, `${queries[0] ?? genre.name} new song official`, key, "date"),
+      Promise.all(searchJobs),
+      searchGenre(
+        searchRegions[0] ?? code,
+        `${queries[0] ?? genre.name} new song official`,
+        key,
+        "date",
+      ),
     ]);
-    // Do NOT run regional artist-marker filter here — it collapses genres to the same local chart.
     videos = keepGenre(genre.slug, dedupe(popularBatches.flat()));
     newSongs = keepGenre(
       genre.slug,
@@ -286,26 +315,37 @@ export async function loadGenreHome(
       4,
     );
 
-    for (const q of queries.slice(0, 3)) {
+    // Dedicated rails: Jamaica / hub first, then local
+    const railQueries =
+      genre.slug === "dancehall"
+        ? [
+            { reg: "JM", q: "dancehall jamaica official" },
+            { reg: "JM", q: "shenseea OR popcaan OR skillibeng official" },
+            { reg: code, q: queries.find((q) => q.toLowerCase().includes(name.toLowerCase())) ?? `${genre.name} ${name}` },
+            { reg: "GB", q: "uk dancehall bashment official" },
+          ]
+        : queries.slice(0, 3).map((q) => ({ reg: code, q }));
+
+    for (const { reg, q } of railQueries) {
       const list = keepGenre(
         genre.slug,
-        dedupe(await searchGenre(code, q, key, "viewCount")).filter(
+        dedupe(await searchGenre(reg, q, key, "viewCount")).filter(
           (v) => !videos.some((x) => x.videoId === v.videoId),
         ),
         4,
       );
       if (list.length >= 3) {
+        const hubLabel = REGION_NAMES[reg] ?? reg;
         rails.push({
-          id: `${genre.slug}-${q.slice(0, 28).replace(/\s+/g, "-")}`,
+          id: `${genre.slug}-${reg}-${q.slice(0, 24).replace(/\s+/g, "-")}`,
           title: genre.name,
-          subtitle: q,
+          subtitle: reg === code ? q : `${hubLabel} · ${q}`,
           videos: list.slice(0, 12),
         });
       }
     }
   }
 
-  // Seed-only fallback — never pad with generic regional home charts
   if (videos.length < 6) {
     videos = dedupe([...videos, ...seeds]);
   }
@@ -315,38 +355,67 @@ export async function loadGenreHome(
     );
   }
 
-  // Nearby markets: genre search only; if empty, leave empty (no shared chart bleed)
+  // Nearby: prefer hub scenes for origin genres, else listener neighbours
   let nearby: GenreHomeData["nearby"] = [];
   try {
-    const homeNear = await loadYoutubeHome(code, city);
-    nearby = await Promise.all(
-      homeNear.nearby.slice(0, 3).map(async (n) => {
-        if (!key) {
-          return { region: n.region, regionName: n.regionName, videos: [], artists: [] };
-        }
-        const q =
-          genreQueries(genre, n.region, n.regionName)[0] ?? `${genre.name} ${n.regionName} official`;
-        const nv = keepGenre(genre.slug, dedupe(await searchGenre(n.region, q, key, "relevance")), 3);
-        return {
-          region: n.region,
-          regionName: n.regionName,
-          videos: nv.slice(0, 12),
-          artists: artistsFromVideos(nv).slice(0, 10),
-        };
-      }),
-    );
-    nearby = nearby.filter((n) => n.videos.length > 0);
+    const hubCodes = (genre.hubRegions ?? []).filter((c) => c !== code).slice(0, 3);
+    if (hubCodes.length && key) {
+      nearby = await Promise.all(
+        hubCodes.map(async (reg) => {
+          const regionName = REGION_NAMES[reg] ?? reg;
+          const q =
+            genreQueries(genre, reg, regionName)[0] ?? `${genre.name} ${regionName} official`;
+          const nv = keepGenre(genre.slug, dedupe(await searchGenre(reg, q, key, "relevance")), 3);
+          return {
+            region: reg,
+            regionName,
+            videos: nv.slice(0, 12),
+            artists: artistsFromVideos(nv).slice(0, 10),
+          };
+        }),
+      );
+      nearby = nearby.filter((n) => n.videos.length > 0);
+    }
+    if (!nearby.length) {
+      const homeNear = await loadYoutubeHome(code, city);
+      nearby = await Promise.all(
+        homeNear.nearby.slice(0, 3).map(async (n) => {
+          if (!key) {
+            return { region: n.region, regionName: n.regionName, videos: [], artists: [] };
+          }
+          const q =
+            genreQueries(genre, n.region, n.regionName)[0] ??
+            `${genre.name} ${n.regionName} official`;
+          const nv = keepGenre(
+            genre.slug,
+            dedupe(await searchGenre(n.region, q, key, "relevance")),
+            3,
+          );
+          return {
+            region: n.region,
+            regionName: n.regionName,
+            videos: nv.slice(0, 12),
+            artists: artistsFromVideos(nv).slice(0, 10),
+          };
+        }),
+      );
+      nearby = nearby.filter((n) => n.videos.length > 0);
+    }
   } catch {
     nearby = [];
   }
 
   const artists = artistsFromVideos(videos);
   const cover = (list: YouTubeVideo[]) => list[0]?.thumbnailUrl ?? "/covers/night-market.jpg";
+  const hubNote =
+    genre.hubRegions?.length && !genre.hubRegions.includes(code)
+      ? ` + ${genre.hubRegions.map((c) => REGION_NAMES[c] ?? c).join(", ")}`
+      : "";
   const playlists: YtPlaylistCard[] = [
     {
       id: `${genre.slug}-hot-${code}`,
-      title: `${genre.name} · ${name}`,
-      subtitle: "Hottest in your area",
+      title: `${genre.name} · ${name}${hubNote ? " & hubs" : ""}`,
+      subtitle: hubNote ? `Local + ${hubNote.replace(/^ \+ /, "")}` : "Hottest in your area",
       thumbnailUrl: cover(videos),
       videos: videos.slice(0, 10),
     },
