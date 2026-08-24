@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { REGION_NAMES, normalizeRegion } from "./yt-charts";
-import { eventsKeyConfigured, fetchConcertsByArtist, fetchConcertsByLocation, type RapidConcert } from "./rapid-events";
+import { eventsKeyConfigured, fetchConcertsByArtist, searchEvents, type RapidConcert } from "./rapid-events";
 
 export type MarketTicket = RapidConcert & {
   scope: "local" | "global";
@@ -59,11 +59,102 @@ const GLOBAL_STARS = [
   "alpha blondy",
 ];
 
-const MEGA_VENUE = /stadium|arena|dome|park|centre|center|forum|garden|bowl|coliseum|o2|msg/i;
+const CITY_GEO: Record<string, { lat: string; lng: string }> = {
+  Accra: { lat: "5.6037", lng: "-0.1870" },
+  Kumasi: { lat: "6.6885", lng: "-1.6244" },
+  Lagos: { lat: "6.5244", lng: "3.3792" },
+  Abuja: { lat: "9.0765", lng: "7.3986" },
+  Abidjan: { lat: "5.3600", lng: "-4.0083" },
+  Dakar: { lat: "14.7167", lng: "-17.4677" },
+  Johannesburg: { lat: "-26.2041", lng: "28.0473" },
+  "Cape Town": { lat: "-33.9249", lng: "18.4241" },
+  Nairobi: { lat: "-1.2921", lng: "36.8219" },
+  Kingston: { lat: "17.9714", lng: "-76.7931" },
+  "New York": { lat: "40.7128", lng: "-74.0060" },
+  "Los Angeles": { lat: "34.0522", lng: "-118.2437" },
+  London: { lat: "51.5074", lng: "-0.1278" },
+  Manchester: { lat: "53.4808", lng: "-2.2426" },
+  Paris: { lat: "48.8566", lng: "2.3522" },
+  Berlin: { lat: "52.5200", lng: "13.4050" },
+  "São Paulo": { lat: "-23.5505", lng: "-46.6333" },
+  "Mexico City": { lat: "19.4326", lng: "-99.1332" },
+  Toronto: { lat: "43.6532", lng: "-79.3832" },
+  Sydney: { lat: "-33.8688", lng: "151.2093" },
+  Mumbai: { lat: "19.0760", lng: "72.8777" },
+  Tokyo: { lat: "35.6762", lng: "139.6503" },
+  Seoul: { lat: "37.5665", lng: "126.9780" },
+  Dubai: { lat: "25.2048", lng: "55.2708" },
+};
+
+function dedupe(rows: RapidConcert[], scope: "local" | "global"): MarketTicket[] {
+  const seen = new Set<string>();
+  const out: MarketTicket[] = [];
+  for (const e of rows) {
+    if (seen.has(e.id)) continue;
+    seen.add(e.id);
+    out.push(tag(e, scope));
+  }
+  return out;
+}
+
+async function localFor(code: string): Promise<RapidConcert[]> {
+  const cities = COUNTRY_CITIES[code] ?? [REGION_NAMES[code] ?? code];
+  const batches = await Promise.all(
+    cities.slice(0, 2).map(async (city) => {
+      try {
+        const byCity = await searchEvents({ city, types: "event,festival", sort: "date", keyword: "concert" }, code);
+        if (byCity.length) return byCity;
+      } catch {
+        /* try geo */
+      }
+      const geo = CITY_GEO[city];
+      if (!geo) return [];
+      try {
+        return await searchEvents(
+          { latitude: geo.lat, longitude: geo.lng, radius: "80", types: "event,festival", sort: "date", keyword: "concert" },
+          code,
+        );
+      } catch {
+        return [];
+      }
+    }),
+  );
+  return batches.flat();
+}
+
+async function globalPopular(): Promise<RapidConcert[]> {
+  const hubs = ["London", "New York", "Lagos", "Paris"];
+  const hubRows = (
+    await Promise.all(
+      hubs.map(async (city) => {
+        try {
+          return await searchEvents({ city, types: "event", sort: "popularity", keyword: "concert" }, "US");
+        } catch {
+          return [];
+        }
+      }),
+    )
+  ).flat();
+  const stars = ["Burna Boy", "Wizkid", "Taylor Swift", "Coldplay", "Beyonce"];
+  const starRows = (
+    await Promise.all(
+      stars.map(async (name) => {
+        try {
+          return await fetchConcertsByArtist(name);
+        } catch {
+          return [];
+        }
+      }),
+    )
+  ).flat();
+  return [...hubRows, ...starRows];
+}
 
 const cache = new Map<string, { at: number; data: TicketMarket }>();
 const byId = new Map<string, MarketTicket>();
 const TTL = 30 * 60 * 1000;
+
+const MEGA_VENUE = /stadium|arena|dome|park|centre|center|forum|garden|bowl|coliseum|o2|msg/i;
 
 function isPopular(ev: RapidConcert) {
   const blob = `${ev.title} ${ev.artist} ${ev.venue}`.toLowerCase();
@@ -165,6 +256,7 @@ export type TicketMarket = {
   live: boolean;
   local: MarketTicket[];
   global: MarketTicket[];
+  error?: string;
 };
 
 export async function loadTicketMarket(region: string): Promise<TicketMarket> {
@@ -172,56 +264,33 @@ export async function loadTicketMarket(region: string): Promise<TicketMarket> {
   const hit = cache.get(code);
   if (hit && Date.now() - hit.at < TTL) return hit.data;
   const regionName = REGION_NAMES[code] ?? code;
+  let error: string | undefined;
   let local: MarketTicket[] = [];
   let global: MarketTicket[] = [];
-  if (eventsKeyConfigured()) {
-    const cities = COUNTRY_CITIES[code] ?? [regionName];
-    const localRaw = (
-      await Promise.all(
-        cities.slice(0, 2).map(async (city) => {
-          try {
-            return await fetchConcertsByLocation(city, code);
-          } catch {
-            return [];
-          }
-        }),
-      )
-    ).flat();
-    const seen = new Set<string>();
-    local = localRaw
-      .filter((e) => {
-        if (seen.has(e.id)) return false;
-        seen.add(e.id);
-        return true;
-      })
-      .map((e) => tag(e, "local"));
-
-    const stars = GLOBAL_STARS.slice(0, 8);
-    const globalRaw = (
-      await Promise.all(
-        stars.map(async (name) => {
-          try {
-            return await fetchConcertsByArtist(name);
-          } catch {
-            return [];
-          }
-        }),
-      )
-    ).flat();
-    const gSeen = new Set<string>();
-    global = globalRaw
-      .map((e) => tag(e, "global"))
-      .filter((e) => e.popular)
-      .filter((e) => {
-        if (gSeen.has(e.id)) return false;
-        gSeen.add(e.id);
-        return true;
-      })
-      .slice(0, 24);
+  const live = eventsKeyConfigured();
+  if (live) {
+    try {
+      local = dedupe(await localFor(code), "local");
+    } catch (e) {
+      error = e instanceof Error ? e.message : "local concerts failed";
+    }
+    try {
+      const rows = dedupe(await globalPopular(), "global").slice(0, 24).map((t) => {
+        const row = { ...t, popular: true as const };
+        byId.set(row.id, row);
+        return row;
+      });
+      global = rows;
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "global concerts failed";
+      error = error ? `${error} · ${msg}` : msg;
+    }
+  } else {
+    local = fallback(code);
+    global = GLOBAL_FALLBACK;
+    error = "RAPIDAPI_KEY is not set on the server";
   }
-  if (!local.length) local = fallback(code);
-  if (!global.length) global = GLOBAL_FALLBACK;
-  const data: TicketMarket = { region: code, regionName, live: eventsKeyConfigured(), local, global };
+  const data: TicketMarket = { region: code, regionName, live, local, global, error };
   cache.set(code, { at: Date.now(), data });
   return data;
 }

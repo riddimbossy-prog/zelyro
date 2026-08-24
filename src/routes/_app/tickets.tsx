@@ -34,6 +34,12 @@ function TicketsMarket() {
       {!data.live && (
         <p className="mt-3 text-xs text-amber-300">Live concert feed needs RAPIDAPI_KEY on Render. Showing the VerzZify starter board until then.</p>
       )}
+      {data.live && data.error && (
+        <p className="mt-3 text-xs text-amber-300">Concert API: {data.error}</p>
+      )}
+      {data.live && !data.local.length && !data.global.length && (
+        <p className="mt-3 text-xs text-muted-foreground">No live dates returned for this country yet — try another country chip.</p>
+      )}
       <div className="mt-5 flex gap-2 overflow-x-auto pb-2">
         {CATALOG_COUNTRIES.map((c) => (
           <button
