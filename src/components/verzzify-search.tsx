@@ -6,6 +6,7 @@ import { YtVideoCard } from "@/components/yt-video-card";
 import { TrackRow } from "@/components/track-row";
 import { Input } from "@/components/ui/input";
 import { copy } from "@/lib/verzzify/copy";
+import { cn } from "@/lib/utils";
 
 const KINDS = [
   { id: "songs" as const, label: "Songs" },
