@@ -67,7 +67,7 @@ function TicketsMarket() {
 
       <section className="mt-10">
         <p className="kicker">Worldwide</p>
-        <h2 className="font-display text-2xl font-extrabold">Big rooms</h2>
+        <h2 className="font-display text-2xl font-extrabold">Popular tickets</h2>
         <p className="mt-1 text-sm text-muted-foreground">Stadium heat only — not every club flyer.</p>
         <div className="mt-4 flex gap-3 overflow-x-auto pb-2">
           {data.global.map((t) => (

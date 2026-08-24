@@ -25,7 +25,7 @@ export function TicketsRail() {
         </SectionRail>
       )}
       {global.length > 0 && (
-        <SectionRail title="Big rooms worldwide" kicker="Heat" to="/tickets">
+        <SectionRail title="Popular tickets worldwide" kicker="Heat" to="/tickets">
           {global.map((t) => (
             <TicketCard key={t.id} t={t} />
           ))}
