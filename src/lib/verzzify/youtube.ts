@@ -1,6 +1,4 @@
-import { rapidKey, rapidSearch } from "./rapid-yt";
 import type { TrackCard, YouTubeVideo } from "./types";
-import { ALL_YT_VIDEOS, searchLocalYoutube } from "./yt-charts";
 
 const YT_ID = /^[a-zA-Z0-9_-]{11}$/;
 
@@ -50,108 +48,228 @@ export function getVideoThumbnail(videoId: string): string {
   return `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
 }
 
-function apiKey(): string | undefined {
+/** YouTube Data API v3 key from server env (Render: YOUTUBE_API_KEY). */
+export function youtubeApiKey(): string | undefined {
   const k = process.env.YOUTUBE_API_KEY?.trim();
   return k || undefined;
 }
 
-export async function searchMusic(q: string, opts?: { regionCode?: string; maxResults?: number }): Promise<YouTubeVideo[]> {
-  const region = opts?.regionCode;
-  const max = opts?.maxResults ?? 36;
-  const needle = q.trim();
-  if (!needle) return [];
+function apiKey(): string | undefined {
+  return youtubeApiKey();
+}
+
+function parseIsoDuration(iso?: string): number | null {
+  if (!iso) return null;
+  const m = iso.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+  if (!m) return null;
+  return Number(m[1] || 0) * 3600 + Number(m[2] || 0) * 60 + Number(m[3] || 0);
+}
+
+type DataVideo = {
+  id: string;
+  snippet?: {
+    title?: string;
+    description?: string;
+    channelTitle?: string;
+    channelId?: string;
+    publishedAt?: string;
+    thumbnails?: { high?: { url?: string }; medium?: { url?: string } };
+  };
+  contentDetails?: { duration?: string };
+  status?: { embeddable?: boolean; privacyStatus?: string };
+  statistics?: { viewCount?: string; likeCount?: string };
+};
+
+function mapDataVideo(v: DataVideo): YouTubeVideo {
+  const id = v.id;
+  return {
+    videoId: id,
+    title: v.snippet?.title ?? "Track",
+    thumbnailUrl: v.snippet?.thumbnails?.high?.url ?? getVideoThumbnail(id),
+    channelName: v.snippet?.channelTitle ?? "Artist",
+    channelId: v.snippet?.channelId ?? null,
+    channelUrl: v.snippet?.channelId ? `https://www.youtube.com/channel/${v.snippet.channelId}` : null,
+    publishedAt: v.snippet?.publishedAt ?? null,
+    description: v.snippet?.description ?? null,
+    durationSeconds: parseIsoDuration(v.contentDetails?.duration),
+    embeddable: v.status?.embeddable !== false && v.status?.privacyStatus !== "private",
+    url: youtubeWatchUrl(id),
+    viewCount: v.statistics?.viewCount ? Number(v.statistics.viewCount) : null,
+    likeCount: v.statistics?.likeCount ? Number(v.statistics.likeCount) : null,
+    source: "youtube",
+  };
+}
+
+async function dataApiVideos(ids: string[]): Promise<DataVideo[]> {
   const key = apiKey();
-  if (!key) return [];
+  if (!key || ids.length === 0) return [];
   try {
-    const params = new URLSearchParams({
-      part: "snippet",
-      type: "video",
-      maxResults: String(Math.min(24, max)),
-      q: needle,
-      key,
-      order: "relevance",
-      safeSearch: "none",
-    });
-    if (region) params.set("regionCode", region);
-    const res = await fetch(`https://www.googleapis.com/youtube/v3/search?${params}`, {
-      signal: AbortSignal.timeout(8000),
-    });
+    const url = `https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails,statistics,status&id=${ids.slice(0, 40).join(",")}&key=${key}`;
+    const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
     if (!res.ok) return [];
-    const json = (await res.json()) as {
-      items?: Array<{
-        id?: { videoId?: string };
-        snippet?: {
-          title?: string;
-          channelTitle?: string;
-          channelId?: string;
-          publishedAt?: string;
-          description?: string;
-          thumbnails?: { high?: { url?: string } };
-        };
-      }>;
-    };
-    return (json.items ?? [])
-      .map((i) => {
-        const id = i.id?.videoId;
-        if (!id) return null;
-        return {
-          videoId: id,
-          title: i.snippet?.title ?? "Track",
-          thumbnailUrl: i.snippet?.thumbnails?.high?.url ?? getVideoThumbnail(id),
-          channelName: i.snippet?.channelTitle ?? "Artist",
-          channelId: i.snippet?.channelId ?? null,
-          channelUrl: i.snippet?.channelId
-            ? `https://www.youtube.com/channel/${i.snippet.channelId}`
-            : null,
-          publishedAt: i.snippet?.publishedAt ?? null,
-          description: i.snippet?.description ?? null,
-          durationSeconds: null,
-          embeddable: true,
-          url: youtubeWatchUrl(id),
-          viewCount: null,
-          likeCount: null,
-          source: "youtube" as const,
-        };
-      })
-      .filter(Boolean) as YouTubeVideo[];
+    const json = (await res.json()) as { items?: DataVideo[] };
+    return json.items ?? [];
   } catch {
     return [];
   }
 }
 
-export async function searchVideos(q: string, opts?: { regionCode?: string; maxResults?: number }) {
+export type YtSearchOpts = {
+  regionCode?: string;
+  maxResults?: number;
+  musicOnly?: boolean;
+  order?: "relevance" | "viewCount" | "date";
+};
+
+export type YtSearchResult = {
+  videos: YouTubeVideo[];
+  /** Always youtube-data-api-v3 when the official API is used */
+  api: "youtube-data-api-v3" | "none";
+  keyConfigured: boolean;
+  error?: string;
+  httpStatus?: number;
+};
+
+/**
+ * Official YouTube Data API v3 search.list (+ videos.list enrich).
+ * Does not use innertube, RapidAPI, or scraped results.
+ */
+export async function searchMusicDetailed(q: string, opts: YtSearchOpts = {}): Promise<YtSearchResult> {
+  const needle = q.trim();
+  if (!needle) {
+    return { videos: [], api: "none", keyConfigured: Boolean(apiKey()) };
+  }
+
+  const key = apiKey();
+  if (!key) {
+    return {
+      videos: [],
+      api: "none",
+      keyConfigured: false,
+      error: "YOUTUBE_API_KEY is not set on the server",
+    };
+  }
+
+  const directId = extractVideoId(needle);
+  if (directId) {
+    const items = await dataApiVideos([directId]);
+    if (items[0]) {
+      return { videos: [mapDataVideo(items[0])], api: "youtube-data-api-v3", keyConfigured: true };
+    }
+    return {
+      videos: [],
+      api: "youtube-data-api-v3",
+      keyConfigured: true,
+      error: "videos.list returned no item for that id",
+    };
+  }
+
+  const maxResults = String(Math.min(50, Math.max(8, opts.maxResults ?? 24)));
+  const params = new URLSearchParams({
+    part: "snippet",
+    type: "video",
+    maxResults,
+    q: needle,
+    key,
+    order: opts.order ?? "relevance",
+    safeSearch: "none",
+  });
+  if (opts.regionCode) params.set("regionCode", opts.regionCode);
+  // Do not force videoCategoryId=10 — it often returns empty for artist queries.
+  if (opts.musicOnly === true) params.set("videoCategoryId", "10");
+
+  let res: Response;
+  try {
+    res = await fetch(`https://www.googleapis.com/youtube/v3/search?${params.toString()}`, {
+      signal: AbortSignal.timeout(10000),
+    });
+  } catch (e) {
+    return {
+      videos: [],
+      api: "youtube-data-api-v3",
+      keyConfigured: true,
+      error: e instanceof Error ? e.message : "search.list network error",
+    };
+  }
+
+  if (!res.ok) {
+    let detail = `search.list HTTP ${res.status}`;
+    try {
+      const body = (await res.json()) as { error?: { message?: string } };
+      if (body.error?.message) detail = body.error.message;
+    } catch {
+      /* ignore */
+    }
+    return {
+      videos: [],
+      api: "youtube-data-api-v3",
+      keyConfigured: true,
+      error: detail,
+      httpStatus: res.status,
+    };
+  }
+
+  const json = (await res.json()) as {
+    items?: Array<{ id?: { videoId?: string }; snippet?: DataVideo["snippet"] }>;
+  };
+  const items = json.items ?? [];
+  const ids = items.map((i) => i.id?.videoId).filter(Boolean) as string[];
+
+  // Enrich with videos.list for duration / views (still Data API v3)
+  const details = await dataApiVideos(ids);
+  if (details.length) {
+    return {
+      videos: details.map(mapDataVideo),
+      api: "youtube-data-api-v3",
+      keyConfigured: true,
+    };
+  }
+
+  // Snippet-only fallback from the same search.list response
+  const quick = items
+    .map((i) => {
+      const id = i.id?.videoId;
+      if (!id) return null;
+      return {
+        videoId: id,
+        title: i.snippet?.title ?? "Track",
+        thumbnailUrl: i.snippet?.thumbnails?.high?.url ?? getVideoThumbnail(id),
+        channelName: i.snippet?.channelTitle ?? "Artist",
+        channelId: i.snippet?.channelId ?? null,
+        channelUrl: i.snippet?.channelId
+          ? `https://www.youtube.com/channel/${i.snippet.channelId}`
+          : null,
+        publishedAt: i.snippet?.publishedAt ?? null,
+        description: i.snippet?.description ?? null,
+        durationSeconds: null,
+        embeddable: true,
+        url: youtubeWatchUrl(id),
+        viewCount: null,
+        likeCount: null,
+        source: "youtube" as const,
+      };
+    })
+    .filter(Boolean) as YouTubeVideo[];
+
+  return {
+    videos: quick,
+    api: "youtube-data-api-v3",
+    keyConfigured: true,
+  };
+}
+
+export async function searchMusic(q: string, opts?: YtSearchOpts): Promise<YouTubeVideo[]> {
+  const result = await searchMusicDetailed(q, opts);
+  return result.videos;
+}
+
+export async function searchVideos(q: string, opts?: YtSearchOpts): Promise<YouTubeVideo[]> {
   return searchMusic(q, opts);
 }
 
 export async function getVideoDetails(videoId: string): Promise<YouTubeVideo | null> {
-  const key = apiKey();
-  if (!key) return null;
-  try {
-    const url = `https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails,statistics,status&id=${videoId}&key=${key}`;
-    const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
-    if (!res.ok) return null;
-    const json = (await res.json()) as { items?: any[] };
-    const v = json.items?.[0];
-    if (!v) return null;
-    return {
-      videoId: v.id,
-      title: v.snippet?.title ?? "Track",
-      thumbnailUrl: v.snippet?.thumbnails?.high?.url ?? getVideoThumbnail(v.id),
-      channelName: v.snippet?.channelTitle ?? "Artist",
-      channelId: v.snippet?.channelId ?? null,
-      channelUrl: v.snippet?.channelId ? `https://www.youtube.com/channel/${v.snippet.channelId}` : null,
-      publishedAt: v.snippet?.publishedAt ?? null,
-      description: v.snippet?.description ?? null,
-      durationSeconds: null,
-      embeddable: true,
-      url: youtubeWatchUrl(v.id),
-      viewCount: v.statistics?.viewCount ? Number(v.statistics.viewCount) : null,
-      likeCount: v.statistics?.likeCount ? Number(v.statistics.likeCount) : null,
-      source: "youtube",
-    };
-  } catch {
-    return null;
-  }
+  const items = await dataApiVideos([videoId]);
+  return items[0] ? mapDataVideo(items[0]) : null;
 }
 
 export async function getPublicVideoStats(videoId: string) {
@@ -168,13 +286,41 @@ export async function validateYouTubeUrl(input: string) {
 }
 
 export async function getChannelDetails(channelId: string) {
-  return {
-    channelId,
-    channelName: channelId,
-    channelUrl: `https://www.youtube.com/channel/${channelId}`,
-    avatarUrl: null,
-    subscriberCount: null,
-  };
+  const key = apiKey();
+  if (!key) {
+    return {
+      channelId,
+      channelName: channelId,
+      channelUrl: `https://www.youtube.com/channel/${channelId}`,
+      avatarUrl: null as string | null,
+      subscriberCount: null as number | null,
+    };
+  }
+  try {
+    const url = `https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics&id=${channelId}&key=${key}`;
+    const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
+    if (!res.ok) return null;
+    const json = (await res.json()) as {
+      items?: Array<{
+        id: string;
+        snippet?: { title?: string; thumbnails?: { default?: { url?: string } } };
+        statistics?: { subscriberCount?: string; hiddenSubscriberCount?: boolean };
+      }>;
+    };
+    const item = json.items?.[0];
+    if (!item) return null;
+    return {
+      channelId: item.id,
+      channelName: item.snippet?.title ?? channelId,
+      channelUrl: `https://www.youtube.com/channel/${item.id}`,
+      avatarUrl: item.snippet?.thumbnails?.default?.url ?? null,
+      subscriberCount: item.statistics?.hiddenSubscriberCount
+        ? null
+        : Number(item.statistics?.subscriberCount ?? 0) || null,
+    };
+  } catch {
+    return null;
+  }
 }
 
 export async function searchArtists(q: string) {
@@ -187,7 +333,7 @@ export async function getRelatedVideos(videoId: string) {
   return [];
 }
 
-export async function getPlaylistDetails(playlistId: string) {
+export async function getPlaylistDetails(_playlistId: string) {
   return null;
 }
 
@@ -237,10 +383,12 @@ export const YouTubeService = {
   getChannelDetails,
   searchVideos,
   searchMusic,
+  searchMusicDetailed,
   searchArtists,
   getRelatedVideos,
   getPlaylistDetails,
   youtubeWatchUrl,
   youtubeEmbedUrl,
   youtubeVideoToTrack,
+  youtubeApiKey,
 };
