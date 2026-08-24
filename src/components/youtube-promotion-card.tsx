@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { Bookmark, Flag, Play, Share2, UserRound } from "lucide-react";
 import type { YouTubePromotion } from "@/lib/verzzify/types";
 import { useYtPlayer } from "@/lib/verzzify/yt-player";
+import { shareWatchUrl, useShareSheet } from "@/lib/verzzify/share";
 import { recordClick, recordImpression, reportPromotion, toggleSavePromotion } from "@/lib/verzzify/promotions";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
@@ -16,6 +17,7 @@ export function YouTubePromotionCard({
   compact?: boolean;
 }) {
   const open = useYtPlayer((s) => s.open);
+  const showShare = useShareSheet((s) => s.show);
   const seen = useRef(false);
   const [saved, setSaved] = useState(Boolean(promo.saved));
 
@@ -45,18 +47,15 @@ export function YouTubePromotionCard({
     }
   }
 
-  async function share() {
+  function share() {
     void track("share");
-    const url = promo.video.url;
-    try {
-      if (navigator.share) await navigator.share({ title: promo.video.title, url });
-      else {
-        await navigator.clipboard.writeText(url);
-        toast("Link copied");
-      }
-    } catch {
-      toast("Could not share");
-    }
+    showShare({
+      kind: "Song",
+      title: promo.video.title,
+      subtitle: promo.video.channelName,
+      coverUrl: promo.video.thumbnailUrl,
+      url: shareWatchUrl(promo.video.videoId),
+    });
   }
 
   return (
@@ -101,7 +100,7 @@ export function YouTubePromotionCard({
           <IconBtn label="Play" onClick={play}>
             <Play className="size-3.5 fill-current" />
           </IconBtn>
-          <IconBtn label="Share" onClick={() => void share()}>
+          <IconBtn label="Share" onClick={share}>
             <Share2 className="size-3.5" />
           </IconBtn>
           <IconBtn

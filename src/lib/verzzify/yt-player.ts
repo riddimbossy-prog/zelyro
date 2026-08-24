@@ -49,6 +49,7 @@ let dragging = false;
 let dragOffset = { x: 0, y: 0 };
 let minimized = false;
 let wakeLock: WakeLockSentinel | null = null;
+let overlayHidden = false;
 
 const FLOAT_W = 400;
 const CHROME_H = 36;
@@ -287,6 +288,13 @@ function stopVideo() {
   if (navigator.mediaSession) navigator.mediaSession.playbackState = "paused";
 }
 
+export function setYtOverlayHidden(hidden: boolean) {
+  overlayHidden = hidden;
+  if (!wrap) return;
+  wrap.style.visibility = hidden ? "hidden" : "visible";
+  wrap.style.pointerEvents = hidden ? "none" : "auto";
+}
+
 export function layoutYtFrame() {
   if (!wrap) return;
   const playing = Boolean(useYtPlayer.getState().videoId);
@@ -295,6 +303,8 @@ export function layoutYtFrame() {
     return;
   }
   wrap.style.display = "block";
+  wrap.style.visibility = overlayHidden ? "hidden" : "visible";
+  wrap.style.pointerEvents = overlayHidden ? "none" : "auto";
   const expanded = useYtPlayer.getState().expanded;
   const slot = document.getElementById("verzzify-cover-slot");
   const desktop = isDesktop();

@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import type { AlbumCard, ArtistCard, LiveCard, PlaylistCard, PostCard, TrackCard } from "@/lib/verzzify/types";
 import { getSpectrum, usePlayer } from "@/lib/verzzify/player";
-import { useShareSheet } from "@/lib/verzzify/share";
+import { useShareSheet, shareTrackUrl } from "@/lib/verzzify/share";
 import { toggleLike, purchaseTrack } from "@/lib/verzzify/queries";
 import { Button } from "@/components/ui/button";
 import { ArtistTile } from "@/components/cover-card";
@@ -212,7 +212,7 @@ export function MackTrackCard({
                   title: track.title,
                   subtitle: track.artistName,
                   coverUrl: track.coverUrl,
-                  url: `${typeof window !== "undefined" ? window.location.origin : ""}/track/${track.id}`,
+                  url: shareTrackUrl(track.id),
                 })
               }
             >

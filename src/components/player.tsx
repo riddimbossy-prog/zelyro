@@ -20,7 +20,7 @@ import { usePlayer } from "@/lib/verzzify/player";
 import { layoutYtFrame, useYtPlayer } from "@/lib/verzzify/yt-player";
 import { prettyArtistName } from "@/lib/verzzify/yt-charts";
 import { toggleLike, purchaseTrack } from "@/lib/verzzify/queries";
-import { useShareSheet } from "@/lib/verzzify/share";
+import { useShareSheet, shareTrackUrl, shareWatchUrl } from "@/lib/verzzify/share";
 import { useDownloads } from "@/lib/verzzify/downloads";
 import { youtubeVideoToTrack } from "@/lib/verzzify/youtube";
 import { cn, formatMoney, formatTime } from "@/lib/utils";
@@ -194,7 +194,12 @@ export function FullPlayer() {
       title: title ?? "VerzZify",
       subtitle: subtitle ?? "",
       coverUrl: cover ?? "",
-      url: isYt ? (ytWatch ?? window.location.origin) : `${window.location.origin}/track/${track?.id}`,
+      url:
+        isYt && videoId
+          ? shareWatchUrl(videoId)
+          : track?.id
+            ? shareTrackUrl(track.id)
+            : window.location.origin,
     });
 
   return (

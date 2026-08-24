@@ -31,10 +31,12 @@ import { Route as ApiRtcRouteImport } from './routes/api/rtc'
 import { Route as AppAlbumIdRouteImport } from './routes/_app/album.$id'
 import { Route as AppArtistSlugRouteImport } from './routes/_app/artist.$slug'
 import { Route as AppEventIdRouteImport } from './routes/_app/event.$id'
+import { Route as AppGenreSlugRouteImport } from './routes/_app/genre.$slug'
 import { Route as AppLiveIdRouteImport } from './routes/_app/live.$id'
 import { Route as AppPlaylistIdRouteImport } from './routes/_app/playlist.$id'
 import { Route as AppTrackIdRouteImport } from './routes/_app/track.$id'
 import { Route as AppVideoIdRouteImport } from './routes/_app/video.$id'
+import { Route as AppWatchIdRouteImport } from './routes/_app/watch.$id'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiStorageUploadRouteImport } from './routes/api/storage/upload'
 import { Route as ApiV1SplatRouteImport } from './routes/api/v1/$'
@@ -156,6 +158,11 @@ const AppEventIdRoute = AppEventIdRouteImport.update({
   path: '/event/$id',
   getParentRoute: () => AppRoute,
 } as any)
+const AppGenreSlugRoute = AppGenreSlugRouteImport.update({
+  id: '/genre/$slug',
+  path: '/genre/$slug',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppLiveIdRoute = AppLiveIdRouteImport.update({
   id: '/live/$id',
   path: '/live/$id',
@@ -174,6 +181,11 @@ const AppTrackIdRoute = AppTrackIdRouteImport.update({
 const AppVideoIdRoute = AppVideoIdRouteImport.update({
   id: '/video/$id',
   path: '/video/$id',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppWatchIdRoute = AppWatchIdRouteImport.update({
+  id: '/watch/$id',
+  path: '/watch/$id',
   getParentRoute: () => AppRoute,
 } as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
@@ -254,10 +266,12 @@ export interface FileRoutesByFullPath {
   '/album/$id': typeof AppAlbumIdRoute
   '/artist/$slug': typeof AppArtistSlugRoute
   '/event/$id': typeof AppEventIdRoute
+  '/genre/$slug': typeof AppGenreSlugRoute
   '/live/$id': typeof AppLiveIdRoute
   '/playlist/$id': typeof AppPlaylistIdRoute
   '/track/$id': typeof AppTrackIdRoute
   '/video/$id': typeof AppVideoIdRoute
+  '/watch/$id': typeof AppWatchIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/storage/upload': typeof ApiStorageUploadRoute
   '/api/v1/$': typeof ApiV1SplatRoute
@@ -292,10 +306,12 @@ export interface FileRoutesByTo {
   '/album/$id': typeof AppAlbumIdRoute
   '/artist/$slug': typeof AppArtistSlugRoute
   '/event/$id': typeof AppEventIdRoute
+  '/genre/$slug': typeof AppGenreSlugRoute
   '/live/$id': typeof AppLiveIdRoute
   '/playlist/$id': typeof AppPlaylistIdRoute
   '/track/$id': typeof AppTrackIdRoute
   '/video/$id': typeof AppVideoIdRoute
+  '/watch/$id': typeof AppWatchIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/storage/upload': typeof ApiStorageUploadRoute
   '/api/v1/$': typeof ApiV1SplatRoute
@@ -332,10 +348,12 @@ export interface FileRoutesById {
   '/_app/album/$id': typeof AppAlbumIdRoute
   '/_app/artist/$slug': typeof AppArtistSlugRoute
   '/_app/event/$id': typeof AppEventIdRoute
+  '/_app/genre/$slug': typeof AppGenreSlugRoute
   '/_app/live/$id': typeof AppLiveIdRoute
   '/_app/playlist/$id': typeof AppPlaylistIdRoute
   '/_app/track/$id': typeof AppTrackIdRoute
   '/_app/video/$id': typeof AppVideoIdRoute
+  '/_app/watch/$id': typeof AppWatchIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/storage/upload': typeof ApiStorageUploadRoute
   '/api/v1/$': typeof ApiV1SplatRoute
@@ -372,10 +390,12 @@ export interface FileRouteTypes {
     | '/album/$id'
     | '/artist/$slug'
     | '/event/$id'
+    | '/genre/$slug'
     | '/live/$id'
     | '/playlist/$id'
     | '/track/$id'
     | '/video/$id'
+    | '/watch/$id'
     | '/api/auth/$'
     | '/api/storage/upload'
     | '/api/v1/$'
@@ -410,10 +430,12 @@ export interface FileRouteTypes {
     | '/album/$id'
     | '/artist/$slug'
     | '/event/$id'
+    | '/genre/$slug'
     | '/live/$id'
     | '/playlist/$id'
     | '/track/$id'
     | '/video/$id'
+    | '/watch/$id'
     | '/api/auth/$'
     | '/api/storage/upload'
     | '/api/v1/$'
@@ -449,10 +471,12 @@ export interface FileRouteTypes {
     | '/_app/album/$id'
     | '/_app/artist/$slug'
     | '/_app/event/$id'
+    | '/_app/genre/$slug'
     | '/_app/live/$id'
     | '/_app/playlist/$id'
     | '/_app/track/$id'
     | '/_app/video/$id'
+    | '/_app/watch/$id'
     | '/api/auth/$'
     | '/api/storage/upload'
     | '/api/v1/$'
@@ -644,6 +668,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppEventIdRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/genre/$slug': {
+      id: '/_app/genre/$slug'
+      path: '/genre/$slug'
+      fullPath: '/genre/$slug'
+      preLoaderRoute: typeof AppGenreSlugRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/live/$id': {
       id: '/_app/live/$id'
       path: '/live/$id'
@@ -670,6 +701,13 @@ declare module '@tanstack/react-router' {
       path: '/video/$id'
       fullPath: '/video/$id'
       preLoaderRoute: typeof AppVideoIdRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/watch/$id': {
+      id: '/_app/watch/$id'
+      path: '/watch/$id'
+      fullPath: '/watch/$id'
+      preLoaderRoute: typeof AppWatchIdRouteImport
       parentRoute: typeof AppRoute
     }
     '/api/auth/$': {
@@ -767,10 +805,12 @@ interface AppRouteChildren {
   AppAlbumIdRoute: typeof AppAlbumIdRoute
   AppArtistSlugRoute: typeof AppArtistSlugRoute
   AppEventIdRoute: typeof AppEventIdRoute
+  AppGenreSlugRoute: typeof AppGenreSlugRoute
   AppLiveIdRoute: typeof AppLiveIdRoute
   AppPlaylistIdRoute: typeof AppPlaylistIdRoute
   AppTrackIdRoute: typeof AppTrackIdRoute
   AppVideoIdRoute: typeof AppVideoIdRoute
+  AppWatchIdRoute: typeof AppWatchIdRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
@@ -788,10 +828,12 @@ const AppRouteChildren: AppRouteChildren = {
   AppAlbumIdRoute: AppAlbumIdRoute,
   AppArtistSlugRoute: AppArtistSlugRoute,
   AppEventIdRoute: AppEventIdRoute,
+  AppGenreSlugRoute: AppGenreSlugRoute,
   AppLiveIdRoute: AppLiveIdRoute,
   AppPlaylistIdRoute: AppPlaylistIdRoute,
   AppTrackIdRoute: AppTrackIdRoute,
   AppVideoIdRoute: AppVideoIdRoute,
+  AppWatchIdRoute: AppWatchIdRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
