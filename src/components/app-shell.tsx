@@ -26,13 +26,22 @@ const nav = [
   { to: "/discover", label: copy.nav.discover, icon: Compass },
   { to: "/charts", label: copy.nav.charts, icon: Trophy },
   { to: "/tickets", label: copy.nav.tickets, icon: Ticket },
-  { to: "/library", label: copy.nav.library, icon: FolderDown },
   { to: "/community", label: copy.nav.community, icon: Users },
   { to: "/studio", label: copy.nav.studio, icon: Mic2 },
+  { to: "/library", label: copy.nav.library, icon: FolderDown },
   { to: "/profile", label: copy.nav.profile, icon: UserRound },
 ] as const;
 
-const tabs = nav.filter((item) => item.to !== "/charts" && item.to !== "/studio");
+/** Mobile bar: Community stays center-raised; Studio sits next to it. Charts stay desktop-only. */
+const tabs = [
+  nav[0], // Home
+  nav[1], // Discover
+  nav[3], // Tickets
+  nav[4], // Community (middle)
+  nav[5], // Studio
+  nav[6], // Library
+  nav[7], // Profile
+] as const;
 
 export function AppShell() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
@@ -131,7 +140,7 @@ export function AppShell() {
         </main>
         <div className="z-30 shrink-0">
           <MiniPlayer />
-          <nav className="glass flex items-end border-0 px-1 pt-1 pb-[max(0.25rem,env(safe-area-inset-bottom))] md:hidden">
+          <nav className="glass flex items-end border-0 px-0.5 pt-1 pb-[max(0.25rem,env(safe-area-inset-bottom))] md:hidden">
             {tabs.map((item) => {
               const Icon = item.icon;
               const active = item.to === "/" ? pathname === "/" : pathname.startsWith(item.to);
@@ -141,7 +150,7 @@ export function AppShell() {
                   key={item.to}
                   to={item.to}
                   className={cn(
-                    "flex flex-1 flex-col items-center justify-center gap-0.5 text-[10px]",
+                    "flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 text-[9px] sm:text-[10px]",
                     raised ? "-mt-5" : "h-14",
                     active ? "text-foreground" : "text-muted-foreground",
                   )}
@@ -154,7 +163,7 @@ export function AppShell() {
                   >
                     <Icon className={cn(raised ? "size-6" : "size-5")} />
                   </span>
-                  {item.label}
+                  <span className="truncate max-w-full px-0.5">{item.label}</span>
                 </Link>
               );
             })}
