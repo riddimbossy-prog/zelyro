@@ -101,7 +101,19 @@ function metaOf(row: FileRow): DownloadMeta {
 
 async function fetchBlob(url: string, onProgress?: (pct: number) => void): Promise<Blob> {
   const res = await fetch(url);
-  if (!res.ok) throw new Error("download failed");
+  if (!res.ok) {
+    let detail = `download failed (${res.status})`;
+    try {
+      const ct = res.headers.get("content-type") || "";
+      if (ct.includes("json")) {
+        const body = (await res.json()) as { error?: string; message?: string };
+        detail = body.error || body.message || detail;
+      }
+    } catch {
+      /* ignore */
+    }
+    throw new Error(detail);
+  }
   const total = Number(res.headers.get("content-length") || 0);
   if (!res.body || !total) return res.blob();
   const reader = res.body.getReader();
@@ -163,6 +175,7 @@ export const useDownloads = create<DownloadsState>((set, get) => ({
       const audio = await fetchBlob(src, (pct) =>
         set((s) => ({ progress: { ...s.progress, [track.id]: pct } })),
       );
+      if (!audio.size) throw new Error("Empty audio file");
       let cover: Blob | undefined;
       try {
         cover = await fetchBlob(track.coverUrl);
