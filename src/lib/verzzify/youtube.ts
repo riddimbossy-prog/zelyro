@@ -264,7 +264,6 @@ export async function searchMusicDetailed(q: string, opts: YtSearchOpts = {}): P
 
   const max = opts.maxResults ?? 24;
 
-  // 1) RapidAPI (Glavier / other) — preferred when key is set
   if (rapidKey()) {
     try {
       const rapid = await rapidSearch(needle, max, opts.regionCode);
@@ -281,7 +280,6 @@ export async function searchMusicDetailed(q: string, opts: YtSearchOpts = {}): P
     }
   }
 
-  // 2) Official Google Data API v3
   return googleDataApiSearch(needle, opts);
 }
 
@@ -292,6 +290,28 @@ export async function searchMusic(q: string, opts?: YtSearchOpts): Promise<YouTu
 
 export async function searchVideos(q: string, opts?: YtSearchOpts): Promise<YouTubeVideo[]> {
   return searchMusic(q, opts);
+}
+
+/** More tracks from the same artist/channel (used by promotions + player). */
+export async function moreFromArtist(opts: {
+  channelName: string;
+  channelId?: string | null;
+  videoId?: string | null;
+}): Promise<YouTubeVideo[]> {
+  const name = (opts.channelName || "").trim();
+  if (!name && !opts.channelId) return [];
+  const q = name || String(opts.channelId);
+  const list = await searchMusic(`${q} official audio`, { maxResults: 16 });
+  return list.filter((v) => {
+    if (opts.videoId && v.videoId === opts.videoId) return false;
+    if (opts.channelId && v.channelId && v.channelId !== opts.channelId) return false;
+    if (name && v.channelName) {
+      const a = v.channelName.toLowerCase();
+      const b = name.toLowerCase();
+      if (!a.includes(b) && !b.includes(a)) return false;
+    }
+    return true;
+  }).slice(0, 12);
 }
 
 export async function getVideoDetails(videoId: string): Promise<YouTubeVideo | null> {
@@ -414,6 +434,7 @@ export const YouTubeService = {
   searchArtists,
   getRelatedVideos,
   getPlaylistDetails,
+  moreFromArtist,
   youtubeWatchUrl,
   youtubeEmbedUrl,
   youtubeVideoToTrack,
