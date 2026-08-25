@@ -1,20 +1,27 @@
-/**
- * Mount once in `__root.tsx` so the Grok preview chrome can drive navigation
- * (and later receive registered routes). Noops when the app is not embedded.
- */
-
 import { useEffect } from "react";
 import { useRouter } from "@tanstack/react-router";
 import {
   collectRoutePathsFromTree,
   installPreviewHostBridge,
+  resolveParentEmbedderOrigin,
 } from "@/lib/preview-host-bridge";
 
 export function PreviewHostBridge() {
   const router = useRouter();
 
   useEffect(() => {
-    if (typeof navigator !== "undefined" && navigator.serviceWorker) {
+    const ancestorOrigin =
+      typeof location.ancestorOrigins !== "undefined" && location.ancestorOrigins.length > 0
+        ? location.ancestorOrigins[0]
+        : null;
+    const parentOrigin = resolveParentEmbedderOrigin(
+      window.parent === window,
+      document.referrer,
+      ancestorOrigin,
+      window.location.hostname,
+    );
+    // Only wipe service workers inside the Grok preview iframe.
+    if (parentOrigin && typeof navigator !== "undefined" && navigator.serviceWorker) {
       void navigator.serviceWorker.getRegistrations().then((regs) => {
         for (const r of regs) void r.unregister();
       });

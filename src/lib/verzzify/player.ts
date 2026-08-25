@@ -3,6 +3,7 @@ import type { TrackCard } from "./types";
 import { recordStream } from "./queries";
 import { resolvePlaybackUrl, useDownloads } from "./downloads";
 import { toast } from "sonner";
+import { resumeKeepAliveIfNeeded, startKeepAlive, stopKeepAlive } from "./keepalive";
 
 type Repeat = "off" | "all" | "one";
 
@@ -101,9 +102,12 @@ function audio(): HTMLAudioElement | null {
     el = new Audio();
     el.preload = "auto";
     el.crossOrigin = "anonymous";
-    // Keep element out of the way but in the DOM for some mobile browsers
+    el.autoplay = true;
     el.setAttribute("playsinline", "true");
     el.setAttribute("webkit-playsinline", "true");
+    el.controls = false;
+    el.style.cssText = "position:fixed;width:1px;height:1px;opacity:0.01;left:0;bottom:0;pointer-events:none;z-index:0";
+    document.body.appendChild(el);
     el.addEventListener("timeupdate", () => {
       const now = performance.now();
       if (lastTick) listenedMs += Math.min(now - lastTick, 500);
@@ -142,12 +146,16 @@ function audio(): HTMLAudioElement | null {
       const t = usePlayer.getState().queue[usePlayer.getState().index];
       bindMediaSession(t);
       if (navigator.mediaSession) navigator.mediaSession.playbackState = "playing";
+      startKeepAlive();
       void requestWake();
     });
     el.addEventListener("pause", () => {
       usePlayer.setState({ isPlaying: false });
       if (navigator.mediaSession) navigator.mediaSession.playbackState = "paused";
-      releaseWake();
+      if (document.visibilityState === "visible") {
+        releaseWake();
+        stopKeepAlive();
+      }
     });
   }
   return el;
@@ -221,28 +229,31 @@ function loadCurrent() {
   })();
 }
 
+function resumeAudioIfNeeded() {
+  const a = el;
+  if (!a) return;
+  void ctx?.resume();
+  resumeKeepAliveIfNeeded();
+  if (usePlayer.getState().isPlaying && a.paused) {
+    void a.play().catch(() => undefined);
+  }
+  if (usePlayer.getState().isPlaying) void requestWake();
+}
+
 if (typeof window !== "undefined") {
-  // Stay playing when user switches tabs / apps. Do not auto-pause on hide.
   document.addEventListener("visibilitychange", () => {
-    const a = el;
-    if (!a) return;
-    if (document.visibilityState === "visible") {
-      void ctx?.resume();
-      if (usePlayer.getState().isPlaying && a.paused) {
-        void a.play().catch(() => undefined);
+    if (document.visibilityState === "hidden") {
+      if (usePlayer.getState().isPlaying) {
+        resumeKeepAliveIfNeeded();
+        const a = el;
+        if (a && a.paused) void a.play().catch(() => undefined);
       }
-      if (usePlayer.getState().isPlaying) void requestWake();
+      return;
     }
+    resumeAudioIfNeeded();
   });
-  window.addEventListener("pageshow", () => {
-    const a = el;
-    if (a && usePlayer.getState().isPlaying && a.paused) {
-      void a.play().catch(() => undefined);
-    }
-  });
-  window.addEventListener("focus", () => {
-    void ctx?.resume();
-  });
+  window.addEventListener("pageshow", () => resumeAudioIfNeeded());
+  window.addEventListener("focus", () => resumeAudioIfNeeded());
 }
 
 export const usePlayer = create<PlayerState>((set, get) => ({
@@ -250,7 +261,7 @@ export const usePlayer = create<PlayerState>((set, get) => ({
   index: 0,
   isPlaying: false,
   shuffle: false,
-  repeat: "off",
+  repeat: "all",
   volume: 0.85,
   muted: false,
   position: 0,
@@ -263,6 +274,7 @@ export const usePlayer = create<PlayerState>((set, get) => ({
   },
   pause: () => {
     audio()?.pause();
+    stopKeepAlive();
   },
   toggle: () => {
     const a = audio();
@@ -286,25 +298,19 @@ export const usePlayer = create<PlayerState>((set, get) => ({
       }
       return;
     }
-    const cur = s.queue[s.index];
-    const later = s.queue.slice(s.index + 1);
-    const sameLater = later.findIndex(
-      (t) => t.artistId === cur?.artistId || t.artistSlug === cur?.artistSlug,
-    );
     let next = s.index + 1;
-    if (sameLater >= 0) next = s.index + 1 + sameLater;
-    else if (s.shuffle) next = Math.floor(Math.random() * s.queue.length);
+    if (s.shuffle && s.queue.length > 1) {
+      let pick = s.index;
+      for (let i = 0; i < 8 && pick === s.index; i++) pick = Math.floor(Math.random() * s.queue.length);
+      next = pick;
+    }
     if (next >= s.queue.length) {
-      const earlier = s.queue.findIndex(
-        (t, i) => i !== s.index && (t.artistId === cur?.artistId || t.artistSlug === cur?.artistSlug),
-      );
-      if (earlier >= 0 && s.repeat !== "off") next = earlier;
-      else if (s.repeat === "all") next = 0;
-      else {
+      if (s.repeat === "off") {
         audio()?.pause();
         set({ isPlaying: false, position: 0 });
         return;
       }
+      next = 0;
     }
     set({ index: next });
     loadCurrent();

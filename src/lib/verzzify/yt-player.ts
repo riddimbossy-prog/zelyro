@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { usePlayer } from "./player";
 import type { YouTubeVideo } from "./types";
+import { resumeKeepAliveIfNeeded, startKeepAlive, stopKeepAlive } from "./keepalive";
 
 type Repeat = "off" | "all" | "one";
 
@@ -44,19 +45,63 @@ let chrome: HTMLDivElement | null = null;
 let radioToken = 0;
 let playGen = 0;
 let endedArmed = false;
+let advancing = false;
 let floatPos: { x: number; y: number } | null = null;
 let dragging = false;
 let dragOffset = { x: 0, y: 0 };
 let minimized = false;
 let wakeLock: WakeLockSentinel | null = null;
 let overlayHidden = false;
+let listenTimer: number | null = null;
+let watchdogTimer: number | null = null;
+let pipWin: Window | null = null;
+let startedAt = 0;
 
 const FLOAT_W = 400;
 const CHROME_H = 36;
 const FLOAT_H = Math.round((FLOAT_W * 9) / 16) + CHROME_H;
+const ENGINE_MIN_W = 240;
+const ENGINE_MIN_H = 135;
 
 function isDesktop() {
   return typeof window !== "undefined" && window.matchMedia("(min-width: 768px)").matches;
+}
+
+function ytCmd(func: string, args: unknown[] = []) {
+  if (!frame?.contentWindow) return;
+  try {
+    frame.contentWindow.postMessage(JSON.stringify({ event: "command", func, args }), "*");
+  } catch {
+    /* ignore */
+  }
+}
+
+function startListening() {
+  if (!frame?.contentWindow) return;
+  try {
+    frame.contentWindow.postMessage(JSON.stringify({ event: "listening", id: 1 }), "*");
+  } catch {
+    /* ignore */
+  }
+  ytCmd("addEventListener", ["onStateChange"]);
+  ytCmd("addEventListener", ["onError"]);
+  ytCmd("playVideo");
+  const s = useYtPlayer.getState();
+  ytCmd("setVolume", [s.muted ? 0 : Math.round(s.volume * 100)]);
+}
+
+function armIframeApi() {
+  if (listenTimer != null) window.clearInterval(listenTimer);
+  startListening();
+  let n = 0;
+  listenTimer = window.setInterval(() => {
+    n += 1;
+    startListening();
+    if (n > 12 && listenTimer != null) {
+      window.clearInterval(listenTimer);
+      listenTimer = null;
+    }
+  }, 400);
 }
 
 async function requestWake() {
@@ -96,7 +141,7 @@ function bindYtMediaSession() {
   navigator.mediaSession.setActionHandler("play", () => {
     const st = useYtPlayer.getState();
     if (st.videoId) {
-      startVideo(st.videoId);
+      resumePlayback();
       useYtPlayer.setState({ isPlaying: true });
     }
   });
@@ -105,6 +150,9 @@ function bindYtMediaSession() {
   });
   navigator.mediaSession.setActionHandler("previoustrack", () => useYtPlayer.getState().prev());
   navigator.mediaSession.setActionHandler("nexttrack", () => useYtPlayer.getState().next());
+  navigator.mediaSession.setActionHandler("seekto", (d) => {
+    if (typeof d.seekTime === "number") useYtPlayer.getState().seek(d.seekTime);
+  });
   navigator.mediaSession.playbackState = s.isPlaying ? "playing" : "paused";
   try {
     if (s.duration > 0) {
@@ -126,9 +174,9 @@ function embedUrl(id: string, play: boolean) {
     modestbranding: "1",
     playsinline: "1",
     enablejsapi: "1",
+    fs: "1",
     origin: typeof window !== "undefined" ? window.location.origin : "https://verzzify.com",
   });
-  // Play ONLY this video. Passing `playlist=` makes YouTube start the first queued id instead.
   return `https://www.youtube.com/embed/${encodeURIComponent(id)}?${q.toString()}`;
 }
 
@@ -136,6 +184,25 @@ function clampPos(x: number, y: number) {
   const maxX = Math.max(8, window.innerWidth - FLOAT_W - 8);
   const maxY = Math.max(8, window.innerHeight - FLOAT_H - 8);
   return { x: Math.min(maxX, Math.max(8, x)), y: Math.min(maxY, Math.max(8, y)) };
+}
+
+function resumePlayback() {
+  const s = useYtPlayer.getState();
+  if (!s.videoId) return;
+  const live = Boolean(frame?.src?.includes("youtube.com/embed"));
+  if (live) {
+    startListening();
+    ytCmd("playVideo");
+  } else {
+    startVideo(s.videoId);
+  }
+  startKeepAlive();
+  void requestWake();
+  bindYtMediaSession();
+}
+
+function isFrameLive() {
+  return Boolean(frame?.src?.includes("youtube.com/embed"));
 }
 
 function ensureFrame() {
@@ -256,8 +323,13 @@ function ensureFrame() {
     frame.id = "verzzify-yt-frame";
     frame.title = "VerzZify player";
     frame.allow =
-      "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share";
+      "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen";
     frame.setAttribute("allowfullscreen", "true");
+    frame.referrerPolicy = "strict-origin-when-cross-origin";
+    frame.addEventListener("load", () => {
+      if (!frame?.src?.includes("youtube.com/embed")) return;
+      armIframeApi();
+    });
     wrap.appendChild(frame);
   }
   frame.style.width = "100%";
@@ -265,6 +337,8 @@ function ensureFrame() {
   frame.style.border = "0";
   frame.style.display = "block";
   frame.style.background = "#000";
+  frame.style.minWidth = `${ENGINE_MIN_W}px`;
+  frame.style.minHeight = `${ENGINE_MIN_H}px`;
 }
 
 /** Must run inside a click. Assigning src here is what allows unmuted autoplay. */
@@ -273,18 +347,23 @@ function startVideo(id: string) {
   if (!frame || !wrap) return;
   playGen += 1;
   endedArmed = false;
+  advancing = false;
+  startedAt = Date.now();
   const label = document.getElementById("verzzify-yt-label");
-  if (label) label.textContent = "VerzZify player · drag";
+  if (label && !minimized) label.textContent = "VerzZify player · drag";
   frame.src = embedUrl(id, true);
   wrap.style.display = "block";
   requestAnimationFrame(layoutYtFrame);
   bindYtMediaSession();
+  startKeepAlive();
   void requestWake();
+  startWatchdog();
 }
 
-function stopVideo() {
+function destroyFrameSrc() {
   if (frame) frame.src = "about:blank";
   releaseWake();
+  stopKeepAlive();
   if (navigator.mediaSession) navigator.mediaSession.playbackState = "paused";
 }
 
@@ -309,22 +388,24 @@ export function layoutYtFrame() {
   const slot = document.getElementById("verzzify-cover-slot");
   const desktop = isDesktop();
 
-  if (expanded && slot) {
+  if (expanded && slot && !pipWin) {
     const r = slot.getBoundingClientRect();
     if (chrome) chrome.style.display = "none";
     wrap.style.left = `${Math.round(r.left)}px`;
     wrap.style.top = `${Math.round(r.top)}px`;
-    wrap.style.width = `${Math.round(r.width)}px`;
-    wrap.style.height = `${Math.round(r.height)}px`;
+    wrap.style.width = `${Math.round(Math.max(r.width, ENGINE_MIN_W))}px`;
+    wrap.style.height = `${Math.round(Math.max(r.height, ENGINE_MIN_H))}px`;
     wrap.style.borderRadius = getComputedStyle(slot).borderRadius || "24px";
     wrap.style.border = "none";
     wrap.style.boxShadow = "none";
     wrap.style.background = "#000";
     wrap.style.zIndex = "70";
+    wrap.style.overflow = "hidden";
     if (frame) {
       frame.style.display = "block";
       frame.style.opacity = "1";
       frame.style.height = "100%";
+      frame.style.minHeight = `${ENGINE_MIN_H}px`;
     }
     return;
   }
@@ -339,23 +420,48 @@ export function layoutYtFrame() {
   const fallback = clampPos(window.innerWidth - w - 24, window.innerHeight - h - 96);
   const pos = floatPos ?? fallback;
   wrap.style.width = `${w}px`;
-  wrap.style.height = `${h}px`;
   wrap.style.left = `${pos.x}px`;
   wrap.style.top = `${pos.y}px`;
-  wrap.style.borderRadius = minimized ? "999px" : "16px";
-  wrap.style.boxShadow = minimized ? "0 10px 28px rgba(0,0,0,0.4)" : "0 18px 50px rgba(0,0,0,0.55)";
+  wrap.style.borderRadius = minimized ? "16px" : "16px";
+  wrap.style.boxShadow = "0 18px 50px rgba(0,0,0,0.55)";
+  // Never display:none the iframe — YouTube pauses hidden players.
   if (minimized) {
-    wrap.style.height = `${CHROME_H}px`;
-    wrap.style.width = `${Math.min(w, 280)}px`;
+    wrap.style.height = `${Math.max(h, ENGINE_MIN_H + CHROME_H)}px`;
+    wrap.style.opacity = "0.04";
+    wrap.style.pointerEvents = "none";
     if (frame) {
-      frame.style.transition = "opacity .18s ease";
-      frame.style.opacity = "0";
-      window.setTimeout(() => {
-        if (minimized && frame) frame.style.display = "none";
-      }, 180);
+      frame.style.display = "block";
+      frame.style.opacity = "1";
+      frame.style.height = `calc(100% - ${CHROME_H}px)`;
+    }
+    const chip = document.getElementById("verzzify-yt-restore");
+    if (!chip) {
+      const btn = document.createElement("button");
+      btn.id = "verzzify-yt-restore";
+      btn.type = "button";
+      btn.textContent = "VerzZify playing";
+      btn.style.cssText =
+        "position:fixed;z-index:90;right:16px;bottom:96px;height:36px;padding:0 14px;border:0;border-radius:999px;background:#c026d3;color:#fff;font:700 12px/1 Montserrat,system-ui,sans-serif;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;box-shadow:0 10px 28px rgba(0,0,0,.4)";
+      btn.addEventListener("click", () => {
+        minimized = false;
+        wrap && (wrap.style.opacity = "1");
+        wrap && (wrap.style.pointerEvents = "auto");
+        btn.remove();
+        const minBtn = document.getElementById("verzzify-yt-min");
+        if (minBtn) {
+          minBtn.textContent = "–";
+          minBtn.setAttribute("aria-label", "Minimize player");
+        }
+        layoutYtFrame();
+      });
+      document.body.appendChild(btn);
     }
     return;
   }
+  document.getElementById("verzzify-yt-restore")?.remove();
+  wrap.style.opacity = "1";
+  wrap.style.height = `${h}px`;
+  wrap.style.pointerEvents = overlayHidden ? "none" : "auto";
   if (frame) {
     frame.style.display = "block";
     frame.style.transition = "opacity .22s ease .08s";
@@ -412,14 +518,113 @@ async function fillArtistQueue(video: YouTubeVideo) {
   }
 }
 
+function handleEnded() {
+  if (advancing) return;
+  if (!endedArmed) return;
+  if (Date.now() - startedAt < 1600) return;
+  endedArmed = false;
+  advancing = true;
+  const s = useYtPlayer.getState();
+  if (s.repeat === "one" && s.videoId) {
+    startVideo(s.videoId);
+    window.setTimeout(() => {
+      advancing = false;
+    }, 800);
+    return;
+  }
+  s.next();
+  window.setTimeout(() => {
+    advancing = false;
+  }, 1200);
+}
+
+function startWatchdog() {
+  if (watchdogTimer != null) return;
+  watchdogTimer = window.setInterval(() => {
+    if (!useYtPlayer.getState().videoId || !isFrameLive()) return;
+    ytCmd("getCurrentTime");
+    ytCmd("getDuration");
+    ytCmd("getPlayerState");
+    const s = useYtPlayer.getState();
+    if (s.isPlaying && s.duration > 5 && s.position >= s.duration - 0.55) {
+      endedArmed = true;
+      handleEnded();
+    }
+  }, 500);
+}
+
+async function enterDocPip() {
+  if (typeof window === "undefined" || pipWin || !wrap) return;
+  const api = (window as unknown as { documentPictureInPicture?: { requestWindow: (o: { width: number; height: number }) => Promise<Window> } })
+    .documentPictureInPicture;
+  if (!api) return;
+  try {
+    const w = await api.requestWindow({ width: FLOAT_W, height: FLOAT_H });
+    pipWin = w;
+    w.document.body.style.margin = "0";
+    w.document.body.style.background = "#0b0610";
+    w.document.body.appendChild(wrap);
+    wrap.style.left = "0";
+    wrap.style.top = "0";
+    wrap.style.width = "100%";
+    wrap.style.height = "100%";
+    wrap.style.opacity = "1";
+    wrap.style.pointerEvents = "auto";
+    w.addEventListener("pagehide", () => {
+      pipWin = null;
+      document.body.appendChild(wrap!);
+      layoutYtFrame();
+    });
+  } catch {
+    pipWin = null;
+  }
+}
+
+function handlePlayerState(state: number) {
+  // -1 unstarted, 0 ended, 1 playing, 2 paused, 3 buffering, 5 cued
+  if (state === 1) {
+    endedArmed = true;
+    advancing = false;
+    useYtPlayer.setState({ isPlaying: true });
+    startKeepAlive();
+    bindYtMediaSession();
+  } else if (state === 2) {
+    if (document.visibilityState === "hidden") {
+      ytCmd("playVideo");
+      return;
+    }
+    useYtPlayer.setState({ isPlaying: false });
+  } else if (state === 0) {
+    handleEnded();
+  } else if (state === 5) {
+    ytCmd("playVideo");
+  }
+}
+
 if (typeof window !== "undefined") {
   window.addEventListener("resize", () => layoutYtFrame());
   window.addEventListener("scroll", () => layoutYtFrame(), true);
   document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "visible" && useYtPlayer.getState().isPlaying) {
-      void requestWake();
-      bindYtMediaSession();
+    const playing = useYtPlayer.getState().isPlaying && Boolean(useYtPlayer.getState().videoId);
+    if (document.visibilityState === "hidden") {
+      if (playing) {
+        ytCmd("playVideo");
+        resumeKeepAliveIfNeeded();
+        void enterDocPip();
+      }
+      return;
     }
+    resumeKeepAliveIfNeeded();
+    if (playing) {
+      resumePlayback();
+      void requestWake();
+    }
+  });
+  window.addEventListener("pageshow", () => {
+    if (useYtPlayer.getState().isPlaying) resumePlayback();
+  });
+  window.addEventListener("focus", () => {
+    if (useYtPlayer.getState().isPlaying) resumePlayback();
   });
   window.addEventListener("message", (event) => {
     const origin = String(event.origin || "");
@@ -434,26 +639,19 @@ if (typeof window !== "undefined") {
       return;
     }
     if (!payload) return;
+    if (payload.event === "initialDelivery" || payload.event === "onReady") {
+      startListening();
+      ytCmd("playVideo");
+    }
     if (payload.event === "onStateChange") {
-      // 1 = playing, 0 = ended. Ignore ENDED until this load has actually started,
-      // otherwise swapping iframe src fires ENDED for the previous clip and skips ahead.
-      if (payload.info === 1) {
-        endedArmed = true;
-        useYtPlayer.setState({ isPlaying: true });
-      }
-      if (payload.info === 0 && endedArmed) {
-        endedArmed = false;
-        const gen = playGen;
-        const s = useYtPlayer.getState();
-        if (s.repeat === "one" && s.videoId) {
-          startVideo(s.videoId);
-          return;
-        }
-        if (gen === playGen) s.next();
-      }
+      if (typeof payload.info === "number") handlePlayerState(payload.info);
+    }
+    if (payload.event === "onError") {
+      endedArmed = true;
+      handleEnded();
     }
     if (payload.event === "infoDelivery" && payload.info && typeof payload.info === "object") {
-      const info = payload.info as { currentTime?: number; duration?: number };
+      const info = payload.info as { currentTime?: number; duration?: number; playerState?: number };
       const patch: Partial<YtState> = {};
       if (typeof info.currentTime === "number") patch.position = info.currentTime;
       if (typeof info.duration === "number" && info.duration > 0) patch.duration = info.duration;
@@ -461,6 +659,7 @@ if (typeof window !== "undefined") {
         useYtPlayer.setState(patch);
         bindYtMediaSession();
       }
+      if (typeof info.playerState === "number") handlePlayerState(info.playerState);
     }
   });
 }
@@ -524,53 +723,70 @@ export const useYtPlayer = create<YtState>((set, get) => ({
   toggle: () => {
     const s = get();
     if (!s.videoId) return;
-    const live = Boolean(frame?.src && !frame.src.endsWith("blank") && !frame.src.endsWith("about:blank"));
-    if (s.isPlaying && live) {
-      stopVideo();
-      endedArmed = false;
+    if (s.isPlaying && isFrameLive()) {
+      ytCmd("pauseVideo");
+      stopKeepAlive();
       set({ isPlaying: false });
       bindYtMediaSession();
     } else {
-      startVideo(s.videoId);
+      resumePlayback();
       set({ isPlaying: true, expanded: true });
       bindYtMediaSession();
     }
   },
   pause: () => {
-    stopVideo();
+    ytCmd("pauseVideo");
+    stopKeepAlive();
     set({ isPlaying: false });
     bindYtMediaSession();
   },
   next: () => {
     const s = get();
-    if (s.index + 1 < s.queue.length) {
-      set(asVideo(s.queue[s.index + 1], s.queue, s.index + 1));
+    const go = (video: YouTubeVideo, queue: YouTubeVideo[], index: number) => {
+      set(asVideo(video, queue, index));
       bindYtMediaSession();
+    };
+    if (s.index + 1 < s.queue.length) {
+      go(s.queue[s.index + 1], s.queue, s.index + 1);
       return;
     }
+    if (s.repeat !== "off" && s.queue.length) {
+      go(s.queue[0], s.queue, 0);
+    }
     const current = s.queue[s.index];
-    if (!current) return;
-    void (async () => {
-      await fillArtistQueue(current);
-      const now = get();
-      if (now.index + 1 < now.queue.length) {
-        set(asVideo(now.queue[now.index + 1], now.queue, now.index + 1));
-      } else if (now.queue.length) {
-        set(asVideo(now.queue[0], now.queue, 0));
-      }
-      bindYtMediaSession();
-    })();
+    if (current) void fillArtistQueue(current);
   },
   prev: () => {
-    const { queue, index } = get();
+    const { queue, index, position } = get();
     if (!queue.length) return;
+    if (position > 3 && queue[index]) {
+      ytCmd("seekTo", [0, true]);
+      set({ position: 0 });
+      return;
+    }
     const prev = (index - 1 + queue.length) % queue.length;
     set(asVideo(queue[prev], queue, prev));
     bindYtMediaSession();
   },
-  seek: (seconds) => set({ position: seconds }),
-  setVolume: (v) => set({ volume: v, muted: v === 0 }),
-  toggleMute: () => set({ muted: !get().muted }),
+  seek: (seconds) => {
+    ytCmd("seekTo", [seconds, true]);
+    set({ position: seconds });
+  },
+  setVolume: (v) => {
+    ytCmd("setVolume", [Math.round(v * 100)]);
+    if (v > 0) ytCmd("unMute");
+    set({ volume: v, muted: v === 0 });
+  },
+  toggleMute: () => {
+    const s = get();
+    const muted = !s.muted;
+    if (muted) ytCmd("mute");
+    else {
+      ytCmd("unMute");
+      ytCmd("setVolume", [Math.round(s.volume * 100)]);
+    }
+    set({ muted });
+  },
   toggleShuffle: () => {
     const s = get();
     const on = !s.shuffle;
@@ -595,10 +811,12 @@ export const useYtPlayer = create<YtState>((set, get) => ({
     radioToken += 1;
     playGen += 1;
     endedArmed = false;
+    advancing = false;
     floatPos = null;
     dragging = false;
     minimized = false;
-    stopVideo();
+    document.getElementById("verzzify-yt-restore")?.remove();
+    destroyFrameSrc();
     if (wrap) wrap.style.display = "none";
     if (navigator.mediaSession) {
       navigator.mediaSession.metadata = null;
