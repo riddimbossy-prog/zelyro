@@ -4,6 +4,10 @@ import { useDownloads } from "@/lib/verzzify/downloads";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
+function isYouTubeTrack(track: TrackCard): boolean {
+  return track.id.startsWith("yt_") || track.distribution === "youtube";
+}
+
 export function DownloadButton({
   track,
   className,
@@ -14,6 +18,9 @@ export function DownloadButton({
   const saved = useDownloads((s) => s.items.some((x) => x.id === track.id));
   const pct = useDownloads((s) => s.progress[track.id] ?? 0);
   const busy = pct > 0 && pct < 100 && !saved;
+
+  // YouTube content: official player only — no offline download UI.
+  if (isYouTubeTrack(track)) return null;
 
   return (
     <button
