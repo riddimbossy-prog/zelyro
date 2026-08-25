@@ -1,7 +1,18 @@
 import type { YouTubeVideo } from "./types";
 
-const HOST =
+/** Search API host (Glavier youtube-v311, yt-api, etc.) */
+const SEARCH_HOST =
   process.env.RAPIDAPI_YT_HOST?.trim() || "youtube-v311.p.rapidapi.com";
+
+/**
+ * MP3 / download host — must expose an audio endpoint.
+ * Glavier youtube-v311 is search-only; do not use it for MP3.
+ */
+const MP3_HOST =
+  process.env.RAPIDAPI_MP3_HOST?.trim() ||
+  process.env.RAPIDAPI_DOWNLOAD_HOST?.trim() ||
+  "yt-search-and-download-mp3.p.rapidapi.com";
+
 const YT_ID = /^[a-zA-Z0-9_-]{11}$/;
 
 function extractId(input: string): string | null {
@@ -26,12 +37,12 @@ export function rapidKey(): string | undefined {
   return process.env.RAPIDAPI_KEY?.trim() || process.env.X_RAPIDAPI_KEY?.trim() || undefined;
 }
 
-function headers(): HeadersInit {
+function headersFor(host: string): HeadersInit {
   const key = rapidKey();
   if (!key) throw new Error("RAPIDAPI_KEY is not set");
   return {
     "x-rapidapi-key": key,
-    "x-rapidapi-host": HOST,
+    "x-rapidapi-host": host,
   };
 }
 
@@ -123,15 +134,27 @@ export type RapidMp3 = {
   url: string;
 };
 
+/** Resolve an MP3 stream URL for offline download / audio playback. */
 export async function rapidMp3(watchUrl: string): Promise<RapidMp3> {
+  if (!rapidKey()) throw new Error("RAPIDAPI_KEY is not set");
+
+  const id = extractId(watchUrl) ?? watchUrl;
+  const host = MP3_HOST;
+  const hdr = headersFor(host);
+
   const attempts = [
-    `https://${HOST}/mp3?url=${encodeURIComponent(watchUrl)}`,
-    `https://${HOST}/mp3?id=${encodeURIComponent(extractId(watchUrl) ?? watchUrl)}`,
+    `https://${host}/mp3?url=${encodeURIComponent(watchUrl)}`,
+    `https://${host}/mp3?id=${encodeURIComponent(id)}`,
+    `https://${host}/download?url=${encodeURIComponent(watchUrl)}`,
+    `https://${host}/download?id=${encodeURIComponent(id)}`,
+    `https://${host}/dl?url=${encodeURIComponent(watchUrl)}`,
+    `https://${host}/get_mp3?url=${encodeURIComponent(watchUrl)}`,
   ];
-  let last = "RapidAPI /mp3 failed";
+
+  let last = "RapidAPI MP3 failed — subscribe to an MP3 host and set RAPIDAPI_MP3_HOST";
   for (const href of attempts) {
     try {
-      const res = await fetch(href, { headers: headers(), signal: AbortSignal.timeout(12000) });
+      const res = await fetch(href, { headers: hdr, signal: AbortSignal.timeout(15000) });
       const text = await res.text();
       let json: unknown = null;
       try {
@@ -144,16 +167,15 @@ export async function rapidMp3(watchUrl: string): Promise<RapidMp3> {
       const nested = asRecord(rec?.result) ?? asRecord(rec?.data) ?? rec;
       const urls = walkUrls(json);
       const audio =
-        urls.find((u) => /\.mp3(\?|$)/i.test(u) || /audio/i.test(u)) ??
-        str(nested, "url", "link", "download", "mp3", "audio", "src") ??
+        urls.find((u) => /\.mp3(\?|$)/i.test(u) || /audio|googlevideo|mime=audio/i.test(u)) ??
+        str(nested, "url", "link", "download", "mp3", "audio", "src", "file") ??
         urls[0];
       if (res.ok && audio && /^https?:\/\//i.test(audio)) {
-        const id = extractId(watchUrl);
         return {
           title: str(nested, "title", "name") || "Track",
           thumbnail:
             str(nested, "thumbnail", "thumb", "image") ||
-            (id ? `https://i.ytimg.com/vi/${id}/hqdefault.jpg` : ""),
+            (YT_ID.test(id) ? `https://i.ytimg.com/vi/${id}/hqdefault.jpg` : ""),
           url: audio,
         };
       }
@@ -174,7 +196,8 @@ export async function rapidSearch(
   if (!rapidKey() || !q.trim()) return [];
 
   const max = Math.min(50, Math.max(1, limit));
-  const isGlavier = HOST.includes("youtube-v311");
+  const host = SEARCH_HOST;
+  const isGlavier = host.includes("youtube-v311");
 
   const urls: string[] = [];
   if (isGlavier) {
@@ -187,17 +210,17 @@ export async function rapidSearch(
       safeSearch: "none",
     });
     if (regionCode) p.set("regionCode", regionCode);
-    urls.push(`https://${HOST}/search/?${p.toString()}`);
-    urls.push(`https://${HOST}/search?${p.toString()}`);
+    urls.push(`https://${host}/search/?${p.toString()}`);
+    urls.push(`https://${host}/search?${p.toString()}`);
   } else {
-    urls.push(`https://${HOST}/search?q=${encodeURIComponent(q.trim())}&limit=${max}`);
-    urls.push(`https://${HOST}/search?query=${encodeURIComponent(q.trim())}&type=video`);
+    urls.push(`https://${host}/search?q=${encodeURIComponent(q.trim())}&limit=${max}`);
+    urls.push(`https://${host}/search?query=${encodeURIComponent(q.trim())}&type=video`);
   }
 
   for (const url of urls) {
     try {
       const res = await fetch(url, {
-        headers: headers(),
+        headers: headersFor(host),
         signal: AbortSignal.timeout(10000),
       });
       if (!res.ok) continue;
