@@ -3,6 +3,9 @@
  * Secrets stay here — status helpers expose hostnames / modes only.
  */
 
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
 export function postgresUrl(): string | undefined {
   const raw =
     process.env.DATABASE_URL?.trim() ||
@@ -55,10 +58,17 @@ export function s3Endpoint(): string | undefined {
   return raw || undefined;
 }
 
+/** True when real AWS credentials are present — switches storage driver off local disk. */
 export function awsConfigured(): boolean {
   return Boolean(process.env.AWS_ACCESS_KEY_ID?.trim() && process.env.AWS_SECRET_ACCESS_KEY?.trim());
 }
 
+/**
+ * Local fallback only (dev / missing AWS keys).
+ * Prefer explicit S3_LOCAL_DIR; otherwise use OS temp (Render cannot mkdir /workspace).
+ */
 export function localS3Root(): string {
-  return process.env.S3_LOCAL_DIR?.trim() || "/workspace/.data/s3";
+  const explicit = process.env.S3_LOCAL_DIR?.trim();
+  if (explicit) return explicit;
+  return join(tmpdir(), "verzzify-s3");
 }
