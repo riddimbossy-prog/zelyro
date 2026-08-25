@@ -99,6 +99,14 @@ function metaOf(row: FileRow): DownloadMeta {
   return meta;
 }
 
+function isYouTubeTrack(track: TrackCard): boolean {
+  return (
+    track.id.startsWith("yt_") ||
+    track.distribution === "youtube" ||
+    /youtube\.com|youtu\.be/i.test(track.audioUrl || "")
+  );
+}
+
 async function fetchBlob(url: string, onProgress?: (pct: number) => void): Promise<Blob> {
   const res = await fetch(url);
   if (!res.ok) {
@@ -165,14 +173,16 @@ export const useDownloads = create<DownloadsState>((set, get) => ({
   },
   has: (id) => get().items.some((x) => x.id === id),
   saveTrack: async (track) => {
+    if (isYouTubeTrack(track)) {
+      throw new Error("YouTube videos cannot be downloaded. Play them with the official player only.");
+    }
+    if (!track.audioUrl) {
+      throw new Error("No downloadable audio for this track.");
+    }
     if (get().items.some((x) => x.id === track.id)) return;
     set((s) => ({ progress: { ...s.progress, [track.id]: 1 } }));
     try {
-      const src =
-        track.id.startsWith("yt_") && (!track.audioUrl || track.audioUrl.startsWith("https://www.youtube"))
-          ? `/api/v1/yt-mp3?videoId=${encodeURIComponent(track.id.slice(3))}`
-          : track.audioUrl;
-      const audio = await fetchBlob(src, (pct) =>
+      const audio = await fetchBlob(track.audioUrl, (pct) =>
         set((s) => ({ progress: { ...s.progress, [track.id]: pct } })),
       );
       if (!audio.size) throw new Error("Empty audio file");
@@ -241,11 +251,12 @@ export const useDownloads = create<DownloadsState>((set, get) => ({
 }));
 
 export async function resolvePlaybackUrl(track: TrackCard): Promise<string | null> {
-  if (typeof indexedDB === "undefined") return track.audioUrl;
+  if (isYouTubeTrack(track)) return null;
+  if (typeof indexedDB === "undefined") return track.audioUrl || null;
   if (!useDownloads.getState().ready) await useDownloads.getState().hydrate();
   if (!useDownloads.getState().has(track.id)) {
     if (typeof navigator !== "undefined" && !navigator.onLine) return null;
-    return track.audioUrl;
+    return track.audioUrl || null;
   }
-  return (await useDownloads.getState().getAudioUrl(track.id)) ?? track.audioUrl;
+  return (await useDownloads.getState().getAudioUrl(track.id)) ?? track.audioUrl ?? null;
 }
