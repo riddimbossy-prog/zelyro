@@ -34,9 +34,10 @@ export function DownloadButton({
         }
         try {
           await useDownloads.getState().saveTrack(track);
-          toast("Saved to Downloads — plays in VerzZify offline");
-        } catch {
-          toast("Could not save this file");
+          toast.success("Saved to Downloads — plays offline in VerzZify");
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : "Could not save this file";
+          toast.error(msg.slice(0, 140));
         }
       }}
     >
