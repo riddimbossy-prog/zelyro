@@ -37,6 +37,10 @@ export function rapidKey(): string | undefined {
   return process.env.RAPIDAPI_KEY?.trim() || process.env.X_RAPIDAPI_KEY?.trim() || undefined;
 }
 
+export function rapidMp3Host(): string {
+  return MP3_HOST;
+}
+
 function headersFor(host: string): HeadersInit {
   const key = rapidKey();
   if (!key) throw new Error("RAPIDAPI_KEY is not set");
@@ -134,57 +138,78 @@ export type RapidMp3 = {
   url: string;
 };
 
+async function tryMp3Url(href: string, host: string): Promise<RapidMp3 | null> {
+  const res = await fetch(href, {
+    headers: headersFor(host),
+    signal: AbortSignal.timeout(5000),
+  });
+  const text = await res.text();
+  let json: unknown = null;
+  try {
+    json = JSON.parse(text);
+  } catch {
+    return null;
+  }
+  const rec = asRecord(json);
+  const nested = asRecord(rec?.result) ?? asRecord(rec?.data) ?? rec;
+  const urls = walkUrls(json);
+  const audio =
+    urls.find((u) => /\.mp3(\?|$)/i.test(u) || /audio|googlevideo|mime=audio/i.test(u)) ??
+    str(nested, "url", "link", "download", "mp3", "audio", "src", "file") ??
+    urls[0];
+  if (!res.ok || !audio || !/^https?:\/\//i.test(audio)) return null;
+  const idMatch = href.match(/[?&](?:id|videoId)=([a-zA-Z0-9_-]{11})/i);
+  const id = idMatch?.[1] ?? "";
+  return {
+    title: str(nested, "title", "name") || "Track",
+    thumbnail:
+      str(nested, "thumbnail", "thumb", "image") ||
+      (id ? `https://i.ytimg.com/vi/${id}/hqdefault.jpg` : ""),
+    url: audio,
+  };
+}
+
 /** Resolve an MP3 stream URL for offline download / audio playback. */
 export async function rapidMp3(watchUrl: string): Promise<RapidMp3> {
   if (!rapidKey()) throw new Error("RAPIDAPI_KEY is not set");
 
   const id = extractId(watchUrl) ?? watchUrl;
   const host = MP3_HOST;
-  const hdr = headersFor(host);
+
+  // Never call a search-only host for MP3
+  if (host.includes("youtube-v311")) {
+    throw new Error(
+      "RAPIDAPI_MP3_HOST is set to a search-only API. Use an MP3/download host (e.g. yt-search-and-download-mp3.p.rapidapi.com).",
+    );
+  }
 
   const attempts = [
     `https://${host}/mp3?url=${encodeURIComponent(watchUrl)}`,
     `https://${host}/mp3?id=${encodeURIComponent(id)}`,
     `https://${host}/download?url=${encodeURIComponent(watchUrl)}`,
     `https://${host}/download?id=${encodeURIComponent(id)}`,
-    `https://${host}/dl?url=${encodeURIComponent(watchUrl)}`,
-    `https://${host}/get_mp3?url=${encodeURIComponent(watchUrl)}`,
   ];
 
-  let last = "RapidAPI MP3 failed — subscribe to an MP3 host and set RAPIDAPI_MP3_HOST";
-  for (const href of attempts) {
+  // Race first two in parallel, then try remaining — overall budget ~12s
+  const firstBatch = await Promise.allSettled(
+    attempts.slice(0, 2).map((href) => tryMp3Url(href, host)),
+  );
+  for (const r of firstBatch) {
+    if (r.status === "fulfilled" && r.value) return r.value;
+  }
+
+  for (const href of attempts.slice(2)) {
     try {
-      const res = await fetch(href, { headers: hdr, signal: AbortSignal.timeout(15000) });
-      const text = await res.text();
-      let json: unknown = null;
-      try {
-        json = JSON.parse(text);
-      } catch {
-        last = text.slice(0, 180);
-        continue;
-      }
-      const rec = asRecord(json);
-      const nested = asRecord(rec?.result) ?? asRecord(rec?.data) ?? rec;
-      const urls = walkUrls(json);
-      const audio =
-        urls.find((u) => /\.mp3(\?|$)/i.test(u) || /audio|googlevideo|mime=audio/i.test(u)) ??
-        str(nested, "url", "link", "download", "mp3", "audio", "src", "file") ??
-        urls[0];
-      if (res.ok && audio && /^https?:\/\//i.test(audio)) {
-        return {
-          title: str(nested, "title", "name") || "Track",
-          thumbnail:
-            str(nested, "thumbnail", "thumb", "image") ||
-            (YT_ID.test(id) ? `https://i.ytimg.com/vi/${id}/hqdefault.jpg` : ""),
-          url: audio,
-        };
-      }
-      last = str(rec, "message", "error", "msg") || text.slice(0, 180);
-    } catch (e) {
-      last = e instanceof Error ? e.message : "mp3 network error";
+      const hit = await tryMp3Url(href, host);
+      if (hit) return hit;
+    } catch {
+      /* continue */
     }
   }
-  throw new Error(last);
+
+  throw new Error(
+    `MP3 unavailable from ${host}. Subscribe to that API on RapidAPI and confirm RAPIDAPI_MP3_HOST matches x-rapidapi-host.`,
+  );
 }
 
 /** Search via RapidAPI — Glavier youtube-v311 + generic hosts. */
