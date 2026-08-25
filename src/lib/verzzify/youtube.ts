@@ -1,3 +1,4 @@
+import { rapidKey, rapidSearch } from "./rapid-yt";
 import type { TrackCard, YouTubeVideo } from "./types";
 
 const YT_ID = /^[a-zA-Z0-9_-]{11}$/;
@@ -48,7 +49,6 @@ export function getVideoThumbnail(videoId: string): string {
   return `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
 }
 
-/** YouTube Data API v3 key from server env (Render: YOUTUBE_API_KEY). */
 export function youtubeApiKey(): string | undefined {
   const k = process.env.YOUTUBE_API_KEY?.trim();
   return k || undefined;
@@ -123,44 +123,23 @@ export type YtSearchOpts = {
 
 export type YtSearchResult = {
   videos: YouTubeVideo[];
-  /** Always youtube-data-api-v3 when the official API is used */
-  api: "youtube-data-api-v3" | "none";
+  api: "rapidapi" | "youtube-data-api-v3" | "none";
   keyConfigured: boolean;
+  rapidConfigured: boolean;
   error?: string;
   httpStatus?: number;
 };
 
-/**
- * Official YouTube Data API v3 search.list (+ videos.list enrich).
- * Does not use innertube, RapidAPI, or scraped results.
- */
-export async function searchMusicDetailed(q: string, opts: YtSearchOpts = {}): Promise<YtSearchResult> {
+async function googleDataApiSearch(q: string, opts: YtSearchOpts = {}): Promise<YtSearchResult> {
   const needle = q.trim();
-  if (!needle) {
-    return { videos: [], api: "none", keyConfigured: Boolean(apiKey()) };
-  }
-
   const key = apiKey();
   if (!key) {
     return {
       videos: [],
       api: "none",
       keyConfigured: false,
-      error: "YOUTUBE_API_KEY is not set on the server",
-    };
-  }
-
-  const directId = extractVideoId(needle);
-  if (directId) {
-    const items = await dataApiVideos([directId]);
-    if (items[0]) {
-      return { videos: [mapDataVideo(items[0])], api: "youtube-data-api-v3", keyConfigured: true };
-    }
-    return {
-      videos: [],
-      api: "youtube-data-api-v3",
-      keyConfigured: true,
-      error: "videos.list returned no item for that id",
+      rapidConfigured: Boolean(rapidKey()),
+      error: "YOUTUBE_API_KEY is not set",
     };
   }
 
@@ -175,19 +154,19 @@ export async function searchMusicDetailed(q: string, opts: YtSearchOpts = {}): P
     safeSearch: "none",
   });
   if (opts.regionCode) params.set("regionCode", opts.regionCode);
-  // Do not force videoCategoryId=10 — it often returns empty for artist queries.
   if (opts.musicOnly === true) params.set("videoCategoryId", "10");
 
   let res: Response;
   try {
     res = await fetch(`https://www.googleapis.com/youtube/v3/search?${params.toString()}`, {
-      signal: AbortSignal.timeout(10000),
+      signal: AbortSignal.timeout(8000),
     });
   } catch (e) {
     return {
       videos: [],
       api: "youtube-data-api-v3",
       keyConfigured: true,
+      rapidConfigured: Boolean(rapidKey()),
       error: e instanceof Error ? e.message : "search.list network error",
     };
   }
@@ -204,6 +183,7 @@ export async function searchMusicDetailed(q: string, opts: YtSearchOpts = {}): P
       videos: [],
       api: "youtube-data-api-v3",
       keyConfigured: true,
+      rapidConfigured: Boolean(rapidKey()),
       error: detail,
       httpStatus: res.status,
     };
@@ -214,18 +194,16 @@ export async function searchMusicDetailed(q: string, opts: YtSearchOpts = {}): P
   };
   const items = json.items ?? [];
   const ids = items.map((i) => i.id?.videoId).filter(Boolean) as string[];
-
-  // Enrich with videos.list for duration / views (still Data API v3)
   const details = await dataApiVideos(ids);
   if (details.length) {
     return {
       videos: details.map(mapDataVideo),
       api: "youtube-data-api-v3",
       keyConfigured: true,
+      rapidConfigured: Boolean(rapidKey()),
     };
   }
 
-  // Snippet-only fallback from the same search.list response
   const quick = items
     .map((i) => {
       const id = i.id?.videoId;
@@ -255,7 +233,56 @@ export async function searchMusicDetailed(q: string, opts: YtSearchOpts = {}): P
     videos: quick,
     api: "youtube-data-api-v3",
     keyConfigured: true,
+    rapidConfigured: Boolean(rapidKey()),
   };
+}
+
+/** Primary search: RapidAPI first (when configured), then Google Data API. */
+export async function searchMusicDetailed(q: string, opts: YtSearchOpts = {}): Promise<YtSearchResult> {
+  const needle = q.trim();
+  if (!needle) {
+    return {
+      videos: [],
+      api: "none",
+      keyConfigured: Boolean(apiKey()),
+      rapidConfigured: Boolean(rapidKey()),
+    };
+  }
+
+  const directId = extractVideoId(needle);
+  if (directId) {
+    const items = await dataApiVideos([directId]);
+    if (items[0]) {
+      return {
+        videos: [mapDataVideo(items[0])],
+        api: "youtube-data-api-v3",
+        keyConfigured: true,
+        rapidConfigured: Boolean(rapidKey()),
+      };
+    }
+  }
+
+  const max = opts.maxResults ?? 24;
+
+  // 1) RapidAPI (Glavier / other) — preferred when key is set
+  if (rapidKey()) {
+    try {
+      const rapid = await rapidSearch(needle, max, opts.regionCode);
+      if (rapid.length) {
+        return {
+          videos: rapid,
+          api: "rapidapi",
+          keyConfigured: Boolean(apiKey()),
+          rapidConfigured: true,
+        };
+      }
+    } catch {
+      /* fall through */
+    }
+  }
+
+  // 2) Official Google Data API v3
+  return googleDataApiSearch(needle, opts);
 }
 
 export async function searchMusic(q: string, opts?: YtSearchOpts): Promise<YouTubeVideo[]> {
