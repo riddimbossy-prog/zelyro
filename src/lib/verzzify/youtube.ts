@@ -1,4 +1,3 @@
-import { rapidKey, rapidSearch } from "./rapid-yt";
 import type { TrackCard, YouTubeVideo } from "./types";
 
 const YT_ID = /^[a-zA-Z0-9_-]{11}$/;
@@ -40,9 +39,14 @@ export function youtubeWatchUrl(videoId: string): string {
 }
 
 export function youtubeEmbedUrl(videoId: string, autoplay = false): string {
-  const q = new URLSearchParams({ rel: "0", modestbranding: "1" });
+  const q = new URLSearchParams({
+    rel: "0",
+    modestbranding: "1",
+    playsinline: "1",
+    enablejsapi: "1",
+  });
   if (autoplay) q.set("autoplay", "1");
-  return `https://www.youtube-nocookie.com/embed/${videoId}?${q.toString()}`;
+  return `https://www.youtube.com/embed/${videoId}?${q.toString()}`;
 }
 
 export function getVideoThumbnail(videoId: string): string {
@@ -123,7 +127,7 @@ export type YtSearchOpts = {
 
 export type YtSearchResult = {
   videos: YouTubeVideo[];
-  api: "rapidapi" | "youtube-data-api-v3" | "none";
+  api: "youtube-data-api-v3" | "none";
   keyConfigured: boolean;
   rapidConfigured: boolean;
   error?: string;
@@ -138,7 +142,7 @@ async function googleDataApiSearch(q: string, opts: YtSearchOpts = {}): Promise<
       videos: [],
       api: "none",
       keyConfigured: false,
-      rapidConfigured: Boolean(rapidKey()),
+      rapidConfigured: false,
       error: "YOUTUBE_API_KEY is not set",
     };
   }
@@ -151,7 +155,7 @@ async function googleDataApiSearch(q: string, opts: YtSearchOpts = {}): Promise<
     q: needle,
     key,
     order: opts.order ?? "relevance",
-    safeSearch: "none",
+    safeSearch: "moderate",
   });
   if (opts.regionCode) params.set("regionCode", opts.regionCode);
   if (opts.musicOnly === true) params.set("videoCategoryId", "10");
@@ -166,7 +170,7 @@ async function googleDataApiSearch(q: string, opts: YtSearchOpts = {}): Promise<
       videos: [],
       api: "youtube-data-api-v3",
       keyConfigured: true,
-      rapidConfigured: Boolean(rapidKey()),
+      rapidConfigured: false,
       error: e instanceof Error ? e.message : "search.list network error",
     };
   }
@@ -183,7 +187,7 @@ async function googleDataApiSearch(q: string, opts: YtSearchOpts = {}): Promise<
       videos: [],
       api: "youtube-data-api-v3",
       keyConfigured: true,
-      rapidConfigured: Boolean(rapidKey()),
+      rapidConfigured: false,
       error: detail,
       httpStatus: res.status,
     };
@@ -200,7 +204,7 @@ async function googleDataApiSearch(q: string, opts: YtSearchOpts = {}): Promise<
       videos: details.map(mapDataVideo),
       api: "youtube-data-api-v3",
       keyConfigured: true,
-      rapidConfigured: Boolean(rapidKey()),
+      rapidConfigured: false,
     };
   }
 
@@ -233,11 +237,11 @@ async function googleDataApiSearch(q: string, opts: YtSearchOpts = {}): Promise<
     videos: quick,
     api: "youtube-data-api-v3",
     keyConfigured: true,
-    rapidConfigured: Boolean(rapidKey()),
+    rapidConfigured: false,
   };
 }
 
-/** Primary search: RapidAPI first (when configured), then Google Data API. */
+/** Official YouTube Data API v3 only (no scrapers / third-party download APIs). */
 export async function searchMusicDetailed(q: string, opts: YtSearchOpts = {}): Promise<YtSearchResult> {
   const needle = q.trim();
   if (!needle) {
@@ -245,7 +249,7 @@ export async function searchMusicDetailed(q: string, opts: YtSearchOpts = {}): P
       videos: [],
       api: "none",
       keyConfigured: Boolean(apiKey()),
-      rapidConfigured: Boolean(rapidKey()),
+      rapidConfigured: false,
     };
   }
 
@@ -257,26 +261,8 @@ export async function searchMusicDetailed(q: string, opts: YtSearchOpts = {}): P
         videos: [mapDataVideo(items[0])],
         api: "youtube-data-api-v3",
         keyConfigured: true,
-        rapidConfigured: Boolean(rapidKey()),
+        rapidConfigured: false,
       };
-    }
-  }
-
-  const max = opts.maxResults ?? 24;
-
-  if (rapidKey()) {
-    try {
-      const rapid = await rapidSearch(needle, max, opts.regionCode);
-      if (rapid.length) {
-        return {
-          videos: rapid,
-          api: "rapidapi",
-          keyConfigured: Boolean(apiKey()),
-          rapidConfigured: true,
-        };
-      }
-    } catch {
-      /* fall through */
     }
   }
 
@@ -302,16 +288,18 @@ export async function moreFromArtist(opts: {
   if (!name && !opts.channelId) return [];
   const q = name || String(opts.channelId);
   const list = await searchMusic(`${q} official audio`, { maxResults: 16 });
-  return list.filter((v) => {
-    if (opts.videoId && v.videoId === opts.videoId) return false;
-    if (opts.channelId && v.channelId && v.channelId !== opts.channelId) return false;
-    if (name && v.channelName) {
-      const a = v.channelName.toLowerCase();
-      const b = name.toLowerCase();
-      if (!a.includes(b) && !b.includes(a)) return false;
-    }
-    return true;
-  }).slice(0, 12);
+  return list
+    .filter((v) => {
+      if (opts.videoId && v.videoId === opts.videoId) return false;
+      if (opts.channelId && v.channelId && v.channelId !== opts.channelId) return false;
+      if (name && v.channelName) {
+        const a = v.channelName.toLowerCase();
+        const b = name.toLowerCase();
+        if (!a.includes(b) && !b.includes(a)) return false;
+      }
+      return true;
+    })
+    .slice(0, 12);
 }
 
 export async function getVideoDetails(videoId: string): Promise<YouTubeVideo | null> {
@@ -384,6 +372,7 @@ export async function getPlaylistDetails(_playlistId: string) {
   return null;
 }
 
+/** Metadata helper only — never exposes a downloadable YouTube audio URL. */
 export function youtubeVideoToTrack(v: YouTubeVideo): TrackCard {
   const slug =
     v.channelName
@@ -394,7 +383,7 @@ export function youtubeVideoToTrack(v: YouTubeVideo): TrackCard {
     id: `yt_${v.videoId}`,
     title: v.title,
     coverUrl: v.thumbnailUrl,
-    audioUrl: `/api/v1/yt-mp3?videoId=${encodeURIComponent(v.videoId)}`,
+    audioUrl: "",
     durationMs: (v.durationSeconds ?? 0) * 1000,
     genre: "Music",
     distribution: "youtube",
