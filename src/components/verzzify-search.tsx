@@ -5,8 +5,6 @@ import { Play, Search, X } from "@/components/icons";
 import { searchDiscover } from "@/lib/verzzify/promotions";
 import type { YouTubeVideo } from "@/lib/verzzify/types";
 import { useYtPlayer } from "@/lib/verzzify/yt-player";
-import { youtubeVideoToTrack } from "@/lib/verzzify/youtube";
-import { DownloadButton } from "@/components/download-button";
 import { TrackRow } from "@/components/track-row";
 import { Input } from "@/components/ui/input";
 import { cn, formatCount } from "@/lib/utils";
@@ -67,9 +65,18 @@ function ResultRow({
         <p className="truncate text-xs text-muted-foreground">
           {video.channelName}
           {video.viewCount != null ? ` · ${formatCount(video.viewCount)} views` : ""}
+          {" · YouTube"}
         </p>
       </button>
-      <DownloadButton track={youtubeVideoToTrack(video)} />
+      <a
+        href={video.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="shrink-0 rounded-full bg-white/10 px-2.5 py-1 text-[10px] font-semibold tracking-wide text-muted-foreground uppercase hover:bg-white/15 hover:text-foreground"
+        onClick={(e) => e.stopPropagation()}
+      >
+        YouTube
+      </a>
     </div>
   );
 }
@@ -109,7 +116,6 @@ export function VerzZifySearch({ autoFocus = false }: { autoFocus?: boolean }) {
     };
   }, []);
 
-  // Dim the page behind results so home content does not bleed through
   useEffect(() => {
     if (!open || debounced.length <= 1) return;
     const prev = document.body.style.overflow;
@@ -196,7 +202,6 @@ export function VerzZifySearch({ autoFocus = false }: { autoFocus?: boolean }) {
 
       {showPanel && (
         <>
-          {/* Solid dim — home content cannot show through results */}
           <button
             type="button"
             aria-label="Close search"
@@ -204,7 +209,6 @@ export function VerzZifySearch({ autoFocus = false }: { autoFocus?: boolean }) {
             onClick={() => setOpen(false)}
           />
 
-          {/* Opaque results sheet */}
           <div
             className="fixed inset-x-0 top-[4.5rem] z-50 mx-auto max-h-[min(32rem,72dvh)] w-[min(100%,36rem)] overflow-hidden rounded-2xl border border-white/10 bg-[#140a22] shadow-2xl sm:left-auto sm:right-4 md:right-8"
             role="listbox"
@@ -245,7 +249,7 @@ export function VerzZifySearch({ autoFocus = false }: { autoFocus?: boolean }) {
               {videos.length > 0 && (
                 <div className="mb-2">
                   <p className="px-2 py-1 text-[10px] font-bold tracking-widest text-primary uppercase">
-                    Songs
+                    From YouTube
                   </p>
                   {videos.map((v, i) => (
                     <ResultRow key={v.videoId} video={v} queue={videos} index={i} />
@@ -256,7 +260,7 @@ export function VerzZifySearch({ autoFocus = false }: { autoFocus?: boolean }) {
               {boomplay.length > 0 && (
                 <div className="border-t border-white/10 pt-2">
                   <p className="px-2 py-1 text-[10px] font-bold tracking-widest text-muted-foreground uppercase">
-                    More on VerzZify
+                    On VerzZify
                   </p>
                   {boomplay.map((t, i) => (
                     <TrackRow key={t.id} track={t} queue={boomplay} index={i} />
