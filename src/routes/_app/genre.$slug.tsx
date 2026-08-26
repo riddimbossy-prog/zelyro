@@ -6,6 +6,7 @@ import { getGenre } from "@/lib/verzzify/genres";
 import { REGION_LIST, REGION_NAMES } from "@/lib/verzzify/yt-charts";
 import { HomeHero } from "@/components/home-hero";
 import { GenreChips } from "@/components/genre-chips";
+import { CoverCard } from "@/components/cover-card";
 import { YtVideoCard } from "@/components/yt-video-card";
 import { useYtPlayer } from "@/lib/verzzify/yt-player";
 import { cn } from "@/lib/utils";
@@ -88,6 +89,20 @@ function GenrePage() {
       </div>
 
       <GenreChips active={def.slug} />
+
+      {(data.jamendo ?? []).length > 0 && (
+        <section className="mt-8">
+          <p className="text-xs tracking-[0.2em] text-sand uppercase">Playable now</p>
+          <h2 className="font-display text-2xl font-extrabold tracking-tight">
+            Independent {def.name}
+          </h2>
+          <div className="media-rail mt-4">
+            {data.jamendo.map((t) => (
+              <CoverCard key={t.id} track={t} queue={data.jamendo} subtitle={t.artistName} />
+            ))}
+          </div>
+        </section>
+      )}
 
       {hero.length > 0 && (
         <div className="mt-8">

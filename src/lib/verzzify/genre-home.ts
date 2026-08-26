@@ -7,7 +7,7 @@ import {
   REGION_NAMES,
   type YoutubeHomeData,
 } from "./yt-charts";
-import type { YouTubeVideo, YtArtistCard, YtPlaylistCard } from "./types";
+import type { TrackCard, YouTubeVideo, YtArtistCard, YtPlaylistCard } from "./types";
 import { getViewerGeo } from "./geo";
 
 export type GenreHomeData = {
@@ -22,6 +22,7 @@ export type GenreHomeData = {
   nearby: YoutubeHomeData["nearby"];
   feed: YouTubeVideo[];
   rails: { id: string; title: string; subtitle: string; videos: YouTubeVideo[] }[];
+  jamendo: TrackCard[];
 };
 
 function vid(id: string, title: string, channel: string): YouTubeVideo {
@@ -437,6 +438,14 @@ export async function loadGenreHome(
 
   const feed = dedupe([...newSongs.slice(0, 4), ...videos]).slice(0, 18);
 
+  let jamendo: TrackCard[] = [];
+  try {
+    const { loadJamendoForGenre } = await import("./jamendo");
+    jamendo = await loadJamendoForGenre(genre.slug);
+  } catch {
+    jamendo = [];
+  }
+
   const data: GenreHomeData = {
     genre,
     region: code,
@@ -449,6 +458,7 @@ export async function loadGenreHome(
     nearby,
     feed,
     rails,
+    jamendo,
   };
   cache.set(cacheKey, { at: Date.now(), data });
   return data;

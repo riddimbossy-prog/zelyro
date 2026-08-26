@@ -5,6 +5,7 @@ import { SectionRail } from "@/components/section-rail";
 import { YouTubePromotionCard } from "@/components/youtube-promotion-card";
 import { YtWorldCatalog } from "@/components/yt-world-catalog";
 import { GenreChips } from "@/components/genre-chips";
+import { JamendoGenreBrowse } from "@/components/jamendo-genre-browse";
 
 export const Route = createFileRoute("/_app/discover")({
   loader: () => getDiscover(),
@@ -23,6 +24,8 @@ function Discover() {
       </p>
 
       <GenreChips />
+
+      <JamendoGenreBrowse />
 
       <YtWorldCatalog />
       <Link

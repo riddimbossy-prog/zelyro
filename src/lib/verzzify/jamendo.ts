@@ -572,3 +572,84 @@ export const getJamendoMood = createServerFn({ method: "GET" })
       return [];
     }
   });
+
+/** Primary Jamendo tag + text search fallback per VerzZify genre. */
+const GENRE_JAMENDO: Record<string, { tags?: string; q?: string }> = {
+  gospel: { tags: "gospel", q: "gospel" },
+  afrobeats: { tags: "african", q: "afro" },
+  amapiano: { tags: "african", q: "piano house" },
+  "hip-hop": { tags: "rap", q: "hip hop" },
+  rnb: { tags: "soul", q: "rnb" },
+  pop: { tags: "pop" },
+  rock: { tags: "rock" },
+  latin: { tags: "latin" },
+  electronic: { tags: "electronic" },
+  dancehall: { q: "reggae dancehall" },
+  highlife: { tags: "african", q: "highlife" },
+  reggae: { q: "reggae" },
+  trap: { tags: "rap", q: "trap" },
+  indie: { tags: "indie" },
+  "k-pop": { tags: "pop", q: "kpop" },
+  jazz: { tags: "jazz" },
+  country: { tags: "country" },
+  classical: { q: "classical piano" },
+};
+
+const genreCache = new Map<string, { at: number; tracks: TrackCard[] }>();
+
+function dedupeTracks(list: TrackCard[]): TrackCard[] {
+  const seen = new Set<string>();
+  const out: TrackCard[] = [];
+  for (const t of list) {
+    if (seen.has(t.id)) continue;
+    seen.add(t.id);
+    out.push(t);
+  }
+  return out;
+}
+
+export async function loadJamendoForGenre(slug: string): Promise<TrackCard[]> {
+  if (!jamendoConfigured()) return [];
+  const key = slug.toLowerCase();
+  const hit = genreCache.get(key);
+  if (hit && Date.now() - hit.at < 15 * 60 * 1000 && hit.tracks.length) return hit.tracks;
+  const spec = GENRE_JAMENDO[key];
+  if (!spec) return [];
+  let raw: JamendoTrack[] = [];
+  if (spec.tags) {
+    raw = await settledTracks(() => searchJamendoTracks({ tags: spec.tags, limit: 14 }));
+  }
+  if (raw.length < 8 && spec.q) {
+    await sleep(120);
+    const extra = await settledTracks(() => searchJamendoTracks({ q: spec.q, limit: 14 }));
+    const seen = new Set(raw.map((t) => t.id));
+    raw = [...raw, ...extra.filter((t) => !seen.has(t.id))];
+  }
+  const tracks = raw.map(jamendoToTrack).slice(0, 16);
+  if (tracks.length) genreCache.set(key, { at: Date.now(), tracks });
+  return tracks;
+}
+
+export type JamendoGenrePack = { slug: string; name: string; tracks: TrackCard[] }[];
+
+const packCache = new Map<string, { at: number; data: JamendoGenrePack }>();
+
+export async function loadJamendoGenrePack(): Promise<JamendoGenrePack> {
+  const hit = packCache.get("discover");
+  if (hit && Date.now() - hit.at < 15 * 60 * 1000 && hit.data.length) return hit.data;
+  const featured = ["gospel", "afrobeats", "hip-hop", "rock", "electronic", "reggae", "jazz", "latin"];
+  const { GENRES } = await import("./genres");
+  const out: JamendoGenrePack = [];
+  for (const slug of featured) {
+    const g = GENRES.find((x) => x.slug === slug);
+    if (!g) continue;
+    await sleep(80);
+    const tracks = await loadJamendoForGenre(slug);
+    if (tracks.length) out.push({ slug, name: g.name, tracks: tracks.slice(0, 8) });
+  }
+  if (out.length) packCache.set("discover", { at: Date.now(), data: out });
+  return out;
+}
+
+export const getJamendoGenrePack = createServerFn({ method: "GET" }).handler(async () => loadJamendoGenrePack());
+
