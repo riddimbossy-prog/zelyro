@@ -111,7 +111,7 @@ html.light {
 
 @layer base {
   html {
-    font-size: 19px;
+    font-size: 22px;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
