@@ -1,16 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Play } from "@/components/icons";
 import { getHomeData } from "@/lib/verzzify/queries";
-import { usePlayer } from "@/lib/verzzify/player";
 import { CoverCard, ArtistTile } from "@/components/cover-card";
 import { TrackRow } from "@/components/track-row";
 import { SectionRail } from "@/components/section-rail";
-import { Button } from "@/components/ui/button";
 import { YouTubePromotionCard } from "@/components/youtube-promotion-card";
 import { YoutubeHome } from "@/components/youtube-home";
 import { DownloadsFolder } from "@/components/downloads-folder";
 import { TicketsRail } from "@/components/tickets-rail";
 import { BoomplayRail } from "@/components/boomplay-rail";
+import { JamendoRail } from "@/components/jamendo-rail";
 import { HomeHero } from "@/components/home-hero";
 
 export const Route = createFileRoute("/_app/")({
@@ -20,7 +18,6 @@ export const Route = createFileRoute("/_app/")({
 
 function Home() {
   const d = Route.useLoaderData();
-  const play = usePlayer((s) => s.play);
   if (!d) {
     return <p className="py-16 text-muted-foreground">The catalog could not load. Refresh to try again.</p>;
   }
@@ -39,6 +36,9 @@ function Home() {
       <section className="mt-10">
         <DownloadsFolder compact />
       </section>
+
+      {/* Licensed independents — fills the site without YouTube quota */}
+      <JamendoRail />
 
       <BoomplayRail />
 
