@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import type { TrackCard } from "./types";
+import { NEARBY_REGIONS, REGION_NAMES } from "./yt-charts";
 
 const BASE = "https://api.jamendo.com/v3.0";
 
@@ -58,6 +59,7 @@ export type JamendoTrack = {
   audiodownload?: string;
   audiodownload_allowed?: boolean;
   license_ccurl?: string;
+  country?: string;
   musicinfo?: { tags?: { genres?: string[]; vartags?: string[] } };
 };
 
@@ -116,7 +118,12 @@ async function jamGetOnce(path: string, params: Record<string, string>): Promise
 }
 
 /** Jamendo often returns success + 0 results when burst-limited. Retry those. */
-async function jamGet(path: string, params: Record<string, string> = {}): Promise<unknown> {
+async function jamGet(
+  path: string,
+  params: Record<string, string> = {},
+  opts: { allowEmpty?: boolean } = {},
+): Promise<unknown> {
+  if (opts.allowEmpty) return jamGetOnce(path, params);
   let json: unknown = null;
   for (let attempt = 0; attempt < 4; attempt++) {
     if (attempt) await sleep(250 * attempt);
@@ -151,6 +158,7 @@ function pickResults(json: unknown): JamendoTrack[] {
         audiodownload: str(o.audiodownload) || undefined,
         audiodownload_allowed: Boolean(o.audiodownload_allowed),
         license_ccurl: str(o.license_ccurl) || undefined,
+        country: str(o.country) || undefined,
         musicinfo: o.musicinfo as JamendoTrack["musicinfo"],
       } satisfies JamendoTrack;
     })
@@ -192,7 +200,7 @@ export function jamendoToTrack(t: JamendoTrack): TrackCard {
     producer: null,
     songwriter: null,
     copyrightOwner: t.license_ccurl ?? "Jamendo",
-    country: null,
+    country: t.country ?? null,
     artistId: `jm_artist_${t.artist_id}`,
     artistName: t.artist_name,
     artistSlug: slug,
@@ -218,12 +226,14 @@ export async function searchJamendoTracks(opts: {
   order?: string;
   limit?: number;
   offset?: number;
+  artistId?: string;
 }): Promise<JamendoTrack[]> {
   if (!jamendoConfigured()) return [];
   const params: Record<string, string> = {
     limit: String(Math.min(50, Math.max(1, opts.limit ?? 20))),
     offset: String(opts.offset ?? 0),
   };
+  if (opts.artistId) params.artist_id = opts.artistId;
   if (opts.q?.trim()) {
     params.search = opts.q.trim().slice(0, 80);
     params.order = opts.order || "relevance";
@@ -231,7 +241,7 @@ export async function searchJamendoTracks(opts: {
     params.order = opts.order;
   }
   if (opts.tags?.trim()) params.fuzzytags = opts.tags.trim();
-  const json = await jamGet("/tracks/", params);
+  const json = await jamGet("/tracks/", params, { allowEmpty: Boolean(opts.artistId) });
   return pickResults(json);
 }
 
@@ -242,7 +252,10 @@ export async function getJamendoTrack(id: string): Promise<JamendoTrack | null> 
 }
 
 export type JamendoHomePack = {
+  region: string;
+  regionName: string;
   popular: TrackCard[];
+  nearby: TrackCard[];
   fresh: TrackCard[];
   freeKeep: TrackCard[];
   moods: Record<string, TrackCard[]>;
@@ -259,32 +272,199 @@ async function settledTracks(fn: () => Promise<JamendoTrack[]>): Promise<Jamendo
   }
 }
 
+/** ISO 3166-1 alpha-2 → alpha-3 (Jamendo location_country). */
+const ISO3: Record<string, string> = {
+  US: "USA",
+  GB: "GBR",
+  IE: "IRL",
+  PT: "PRT",
+  NG: "NGA",
+  GH: "GHA",
+  ZA: "ZAF",
+  KE: "KEN",
+  TZ: "TZA",
+  UG: "UGA",
+  SN: "SEN",
+  CI: "CIV",
+  BR: "BRA",
+  MX: "MEX",
+  AR: "ARG",
+  CO: "COL",
+  CL: "CHL",
+  PE: "PER",
+  KR: "KOR",
+  JP: "JPN",
+  IN: "IND",
+  PK: "PAK",
+  BD: "BGD",
+  PH: "PHL",
+  ID: "IDN",
+  TH: "THA",
+  VN: "VNM",
+  FR: "FRA",
+  DE: "DEU",
+  ES: "ESP",
+  IT: "ITA",
+  NL: "NLD",
+  BE: "BEL",
+  PL: "POL",
+  SE: "SWE",
+  TR: "TUR",
+  CA: "CAN",
+  AU: "AUS",
+  NZ: "NZL",
+  JM: "JAM",
+  EG: "EGY",
+  MA: "MAR",
+  AE: "ARE",
+  SA: "SAU",
+  TW: "TWN",
+  HK: "HKG",
+  UY: "URY",
+  MY: "MYS",
+  TG: "TGO",
+  BJ: "BEN",
+  CM: "CMR",
+  TT: "TTO",
+};
+
+function iso3ToName(iso3: string): string {
+  const iso2 = Object.entries(ISO3).find(([, v]) => v === iso3)?.[0];
+  return (iso2 && REGION_NAMES[iso2]) || iso3;
+}
+
+type LocatedArtist = { id: string; name: string; country: string; city: string };
+
+async function artistsInCountry(iso3: string, limit = 12): Promise<LocatedArtist[]> {
+  const json = await jamGet(
+    "/artists/locations/",
+    { haslocation: "true", location_country: iso3, limit: String(limit) },
+    { allowEmpty: true },
+  );
+  const rec = asRecord(json);
+  const results = rec?.results;
+  if (!Array.isArray(results)) return [];
+  const out: LocatedArtist[] = [];
+  for (const row of results) {
+    const o = asRecord(row);
+    if (!o) continue;
+    const id = str(o.id);
+    const name = str(o.name);
+    if (!id || !name || name === "-") continue;
+    const loc = Array.isArray(o.locations) ? asRecord(o.locations[0]) : null;
+    out.push({
+      id,
+      name,
+      country: str(loc?.country, iso3),
+      city: str(loc?.city),
+    });
+  }
+  return out;
+}
+
+async function tracksFromArtists(artists: LocatedArtist[], perArtist = 3): Promise<JamendoTrack[]> {
+  const tracks: JamendoTrack[] = [];
+  const seen = new Set<string>();
+  for (const a of artists) {
+    await sleep(100);
+    const rows = await settledTracks(() => searchJamendoTracks({ artistId: a.id, limit: perArtist }));
+    for (const t of rows) {
+      if (seen.has(t.id)) continue;
+      seen.add(t.id);
+      tracks.push({
+        ...t,
+        artist_name: t.artist_name || a.name,
+        country: a.city || iso3ToName(a.country) || a.country,
+      });
+    }
+    if (tracks.length >= 24) break;
+  }
+  return tracks;
+}
+
 export async function loadJamendoHome(): Promise<JamendoHomePack> {
   const emptyMoods: Record<string, TrackCard[]> = {};
   for (const m of JAMENDO_MOODS) emptyMoods[m.id] = [];
-  const empty: JamendoHomePack = { popular: [], fresh: [], freeKeep: [], moods: emptyMoods };
+  const { detectViewerGeo } = await import("./geo.server");
+  const geo = await detectViewerGeo().catch(() => ({
+    region: "US",
+    regionName: REGION_NAMES.US,
+    city: null,
+    source: "default" as const,
+  }));
+  const region = geo.region || "US";
+  const regionName = geo.regionName || REGION_NAMES[region] || region;
+  const empty: JamendoHomePack = {
+    region,
+    regionName,
+    popular: [],
+    nearby: [],
+    fresh: [],
+    freeKeep: [],
+    moods: emptyMoods,
+  };
   if (!jamendoConfigured()) return { ...empty, error: "JAMENDO_CLIENT_ID is not set" };
 
-  const hit = homeCache.get("all");
+  const hit = homeCache.get(region);
   if (hit && Date.now() - hit.at < 15 * 60 * 1000 && hit.data.popular.length > 0) return hit.data;
 
-  const popularRaw = await settledTracks(() => searchJamendoTracks({ order: "popularity_total", limit: 16 }));
+  const homeIso3 = ISO3[region];
+  const neighborIso2 = NEARBY_REGIONS[region] ?? [];
+  const neighborIso3 = neighborIso2.map((c) => ISO3[c]).filter(Boolean) as string[];
+
+  let homeArtists: LocatedArtist[] = [];
+  if (homeIso3) {
+    try {
+      homeArtists = await artistsInCountry(homeIso3, 14);
+    } catch {
+      homeArtists = [];
+    }
+  }
+
+  let nearbyArtists: LocatedArtist[] = [];
+  for (const code of neighborIso3.slice(0, 3)) {
+    await sleep(120);
+    try {
+      const extra = await artistsInCountry(code, 8);
+      nearbyArtists.push(...extra);
+    } catch {
+      /* skip thin markets */
+    }
+    if (nearbyArtists.length >= 16) break;
+  }
+
+  const homeTracks = await tracksFromArtists(homeArtists.slice(0, 10), 3);
+  const nearbyTracks = await tracksFromArtists(nearbyArtists.slice(0, 8), 2);
+
   await sleep(120);
-  const freshRaw = await settledTracks(() => searchJamendoTracks({ order: "releasedate_desc", limit: 12 }));
+  const globalPopular = await settledTracks(() => searchJamendoTracks({ order: "popularity_total", limit: 12 }));
   await sleep(120);
-  const freeRaw = await settledTracks(() => searchJamendoTracks({ order: "popularity_week", limit: 12 }));
+  const freshRaw = await settledTracks(() => searchJamendoTracks({ order: "releasedate_desc", limit: 10 }));
+  await sleep(120);
+  const freeRaw = await settledTracks(() => searchJamendoTracks({ order: "popularity_week", limit: 10 }));
 
   const moodRaws: JamendoTrack[][] = [];
   for (const m of JAMENDO_MOODS) {
-    await sleep(120);
-    moodRaws.push(await settledTracks(() => searchJamendoTracks({ tags: m.tags, limit: 10 })));
+    await sleep(100);
+    moodRaws.push(await settledTracks(() => searchJamendoTracks({ tags: m.tags, limit: 8 })));
   }
 
+  const popularRaw = homeTracks.length ? homeTracks : [...nearbyTracks, ...globalPopular];
   const popular = popularRaw.map(jamendoToTrack);
   const seen = new Set(popular.map((t) => t.id));
-  const fresh = freshRaw
+  const nearby = nearbyTracks
     .map(jamendoToTrack)
     .filter((t) => !seen.has(t.id))
+    .slice(0, 12);
+  nearby.forEach((t) => seen.add(t.id));
+
+  const fresh = [...homeTracks.slice().reverse(), ...freshRaw]
+    .map(jamendoToTrack)
+    .filter((t) => {
+      if (seen.has(t.id)) return false;
+      seen.add(t.id);
+      return true;
+    })
     .slice(0, 12);
 
   const freeKeep = freeRaw
@@ -298,13 +478,16 @@ export async function loadJamendoHome(): Promise<JamendoHomePack> {
   });
 
   const data: JamendoHomePack = {
+    region,
+    regionName,
     popular,
+    nearby,
     fresh,
     freeKeep: freeKeep.length ? freeKeep : popular.slice(0, 8),
     moods,
     error: popular.length ? undefined : lastCall?.error || "Jamendo returned no tracks",
   };
-  if (popular.length) homeCache.set("all", { at: Date.now(), data });
+  if (popular.length) homeCache.set(region, { at: Date.now(), data });
   return data;
 }
 
