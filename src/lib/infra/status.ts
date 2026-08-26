@@ -17,8 +17,10 @@ export const getInfraStatus = createServerFn({ method: "GET" }).handler(
     } = await import("@/lib/infra/env");
     const { pingS3, storageMode } = await import("@/lib/storage/driver");
     const { pingSupabase } = await import("@/lib/supabase/server");
+    const { pingJamendo } = await import("@/lib/verzzify/jamendo");
 
     const s3 = await pingS3();
+    const jamendo = await pingJamendo();
     const sbUrl = supabaseUrl();
     const sbConfigured = Boolean(sbUrl && (supabaseAnonKey() || supabaseServiceRoleKey()));
     let reachable: boolean | null = null;
@@ -46,6 +48,7 @@ export const getInfraStatus = createServerFn({ method: "GET" }).handler(
         reachable: s3.ok,
         error: s3.error,
       },
+      jamendo,
     };
   },
 );
