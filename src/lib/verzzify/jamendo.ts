@@ -8,14 +8,21 @@ function cleanEnv(raw: string | undefined): string | undefined {
   return v || undefined;
 }
 
-/** Prefer Client ID. CLIENT_KEY is accepted because Render was set with that name. */
+/** Public catalog reads — Client ID only, never the secret. */
 export function jamendoClientId(): string | undefined {
   return (
     cleanEnv(process.env.JAMENDO_CLIENT_ID) ||
-    cleanEnv(process.env.JAMENDO_CLIENT_KEY) ||
     cleanEnv(process.env.JAMENDO_API_KEY) ||
-    cleanEnv(process.env.JAMENDO_KEY) ||
     cleanEnv(process.env.JAMENDO_CLIENTID)
+  );
+}
+
+/** OAuth / user login later. Not sent on search or stream. */
+export function jamendoClientSecret(): string | undefined {
+  return (
+    cleanEnv(process.env.JAMENDO_CLIENT_SECRET) ||
+    cleanEnv(process.env.JAMENDO_CLIENT_KEY) ||
+    cleanEnv(process.env.JAMENDO_SECRET)
   );
 }
 
@@ -306,20 +313,28 @@ export async function pingJamendo(): Promise<{
   env: string | null;
   keyPrefix: string | null;
   keyLength: number;
+  secretSet: boolean;
   error?: string;
   code?: number | null;
   resultsCount?: number;
 }> {
   const present = [
     ["JAMENDO_CLIENT_ID", process.env.JAMENDO_CLIENT_ID],
-    ["JAMENDO_CLIENT_KEY", process.env.JAMENDO_CLIENT_KEY],
     ["JAMENDO_API_KEY", process.env.JAMENDO_API_KEY],
-    ["JAMENDO_KEY", process.env.JAMENDO_KEY],
     ["JAMENDO_CLIENTID", process.env.JAMENDO_CLIENTID],
   ].find(([, v]) => Boolean(cleanEnv(v)));
   const id = jamendoClientId();
+  const secretSet = Boolean(jamendoClientSecret());
   if (!id) {
-    return { configured: false, ok: false, env: null, keyPrefix: null, keyLength: 0, error: "missing client id" };
+    return {
+      configured: false,
+      ok: false,
+      env: null,
+      keyPrefix: null,
+      keyLength: 0,
+      secretSet,
+      error: "JAMENDO_CLIENT_ID missing (do not use the long secret as client_id)",
+    };
   }
   try {
     const tracks = await searchJamendoTracks({ limit: 3 });
@@ -329,6 +344,7 @@ export async function pingJamendo(): Promise<{
       env: present?.[0] ?? "JAMENDO_CLIENT_ID",
       keyPrefix: `${id.slice(0, 4)}…`,
       keyLength: id.length,
+      secretSet,
       error: tracks.length ? lastCall?.warnings : lastCall?.error || "empty results",
       code: lastCall?.code,
       resultsCount: tracks.length,
@@ -340,6 +356,7 @@ export async function pingJamendo(): Promise<{
       env: present?.[0] ?? "JAMENDO_CLIENT_ID",
       keyPrefix: `${id.slice(0, 4)}…`,
       keyLength: id.length,
+      secretSet,
       error: err instanceof Error ? err.message : "jamendo failed",
       code: lastCall?.code,
       resultsCount: lastCall?.resultsCount ?? 0,
