@@ -33,6 +33,8 @@ function str(...vals: unknown[]): string {
   return "";
 }
 
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
 export type JamendoTrack = {
   id: string;
   name: string;
@@ -60,12 +62,11 @@ export type JamendoCallMeta = {
 };
 
 let lastCall: JamendoCallMeta | null = null;
-
 export function lastJamendoCall(): JamendoCallMeta | null {
   return lastCall;
 }
 
-async function jamGet(path: string, params: Record<string, string> = {}): Promise<unknown> {
+async function jamGetOnce(path: string, params: Record<string, string>): Promise<unknown> {
   const clientId = jamendoClientId();
   if (!clientId) throw new Error("JAMENDO_CLIENT_ID is not set");
   const url = new URL(`${BASE}${path}`);
@@ -73,7 +74,6 @@ async function jamGet(path: string, params: Record<string, string> = {}): Promis
   url.searchParams.set("format", "json");
   for (const [k, v] of Object.entries(params)) {
     if (!v) continue;
-    // Keep spaces (Jamendo treats + as OR). URLSearchParams would turn + into %2B.
     url.searchParams.set(k, v.replace(/\+/g, " "));
   }
   const res = await fetch(url.toString(), {
@@ -102,8 +102,17 @@ async function jamGet(path: string, params: Record<string, string> = {}): Promis
     resultsCount,
     warnings: warnings || undefined,
   };
-  if (!lastCall.ok) {
-    throw new Error(errMsg || `Jamendo ${status} code ${lastCall.code}`);
+  if (!lastCall.ok) throw new Error(errMsg || `Jamendo ${status} code ${lastCall.code}`);
+  return json;
+}
+
+/** Jamendo often returns success + 0 results when burst-limited. Retry those. */
+async function jamGet(path: string, params: Record<string, string> = {}): Promise<unknown> {
+  let json: unknown = null;
+  for (let attempt = 0; attempt < 4; attempt++) {
+    if (attempt) await sleep(250 * attempt);
+    json = await jamGetOnce(path, params);
+    if ((lastCall?.resultsCount ?? 0) > 0) return json;
   }
   return json;
 }
@@ -183,9 +192,9 @@ export function jamendoToTrack(t: JamendoTrack): TrackCard {
 }
 
 export const JAMENDO_MOODS = [
-  { id: "focus", label: "Focus", tags: "instrumental calm", color: "from-sky-600 to-indigo-700" },
-  { id: "night", label: "Night drive", tags: "electronic chill", color: "from-violet-700 to-fuchsia-800" },
-  { id: "sunday", label: "Sunday light", tags: "acoustic folk", color: "from-amber-500 to-orange-700" },
+  { id: "focus", label: "Focus", tags: "instrumental", color: "from-sky-600 to-indigo-700" },
+  { id: "night", label: "Night drive", tags: "electronic", color: "from-violet-700 to-fuchsia-800" },
+  { id: "sunday", label: "Sunday light", tags: "acoustic", color: "from-amber-500 to-orange-700" },
   { id: "energy", label: "Energy", tags: "rock", color: "from-rose-600 to-red-800" },
   { id: "afro", label: "Afro world", tags: "world", color: "from-emerald-600 to-teal-800" },
   { id: "gospel", label: "Spirit", tags: "soul", color: "from-yellow-600 to-amber-800" },
@@ -201,15 +210,17 @@ export async function searchJamendoTracks(opts: {
   offset?: number;
 }): Promise<JamendoTrack[]> {
   if (!jamendoConfigured()) return [];
-  const limit = String(Math.min(50, Math.max(1, opts.limit ?? 20)));
   const params: Record<string, string> = {
-    limit,
+    limit: String(Math.min(50, Math.max(1, opts.limit ?? 20))),
     offset: String(opts.offset ?? 0),
-    order: opts.order ?? "popularity_total",
-    include: "musicinfo",
-    audioformat: "mp32",
   };
-  if (opts.q?.trim()) params.search = opts.q.trim().slice(0, 80);
+  // Search + popularity_total often returns empty. Use relevance, or omit order.
+  if (opts.q?.trim()) {
+    params.search = opts.q.trim().slice(0, 80);
+    params.order = opts.order || "relevance";
+  } else if (opts.order) {
+    params.order = opts.order;
+  }
   if (opts.tags?.trim()) params.fuzzytags = opts.tags.trim();
   const json = await jamGet("/tracks/", params);
   return pickResults(json);
@@ -217,11 +228,7 @@ export async function searchJamendoTracks(opts: {
 
 export async function getJamendoTrack(id: string): Promise<JamendoTrack | null> {
   if (!jamendoConfigured() || !id) return null;
-  const json = await jamGet("/tracks/", {
-    id,
-    include: "musicinfo",
-    audioformat: "mp32",
-  });
+  const json = await jamGet("/tracks/", { id, audioformat: "mp32" });
   return pickResults(json)[0] ?? null;
 }
 
@@ -252,12 +259,18 @@ export async function loadJamendoHome(): Promise<JamendoHomePack> {
   const hit = homeCache.get("all");
   if (hit && Date.now() - hit.at < 15 * 60 * 1000 && hit.data.popular.length > 0) return hit.data;
 
-  const [popularRaw, freshRaw, freeRaw, ...moodRaws] = await Promise.all([
-    settledTracks(() => searchJamendoTracks({ order: "popularity_total", limit: 16 })),
-    settledTracks(() => searchJamendoTracks({ order: "releasedate_desc", limit: 12 })),
-    settledTracks(() => searchJamendoTracks({ order: "popularity_month", limit: 12 })),
-    ...JAMENDO_MOODS.map((m) => settledTracks(() => searchJamendoTracks({ tags: m.tags, limit: 10 }))),
-  ]);
+  // Sequential — parallel bursts make Jamendo return success with 0 rows.
+  const popularRaw = await settledTracks(() => searchJamendoTracks({ order: "popularity_total", limit: 16 }));
+  await sleep(120);
+  const freshRaw = await settledTracks(() => searchJamendoTracks({ order: "releasedate_desc", limit: 12 }));
+  await sleep(120);
+  const freeRaw = await settledTracks(() => searchJamendoTracks({ order: "popularity_week", limit: 12 }));
+
+  const moodRaws: JamendoTrack[][] = [];
+  for (const m of JAMENDO_MOODS) {
+    await sleep(120);
+    moodRaws.push(await settledTracks(() => searchJamendoTracks({ tags: m.tags, limit: 10 })));
+  }
 
   const popular = popularRaw.map(jamendoToTrack);
   const seen = new Set(popular.map((t) => t.id));
@@ -308,16 +321,16 @@ export async function pingJamendo(): Promise<{
     return { configured: false, ok: false, env: null, keyPrefix: null, keyLength: 0, error: "missing client id" };
   }
   try {
-    await searchJamendoTracks({ order: "popularity_total", limit: 3 });
+    const tracks = await searchJamendoTracks({ limit: 3 });
     return {
       configured: true,
-      ok: Boolean(lastCall?.ok && (lastCall.resultsCount ?? 0) > 0),
+      ok: tracks.length > 0,
       env: present?.[0] ?? "JAMENDO_CLIENT_ID",
       keyPrefix: `${id.slice(0, 4)}…`,
       keyLength: id.length,
-      error: lastCall?.error || lastCall?.warnings,
+      error: tracks.length ? lastCall?.warnings : lastCall?.error || "empty results",
       code: lastCall?.code,
-      resultsCount: lastCall?.resultsCount,
+      resultsCount: tracks.length,
     };
   } catch (err) {
     return {
