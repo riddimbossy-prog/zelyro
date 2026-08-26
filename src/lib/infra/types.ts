@@ -15,4 +15,13 @@ export type InfraStatus = {
     reachable: boolean;
     error?: string;
   };
+  jamendo: {
+    configured: boolean;
+    ok: boolean;
+    env: string | null;
+    keyPrefix: string | null;
+    keyLength: number;
+    error?: string;
+    resultsCount?: number;
+  };
 };
