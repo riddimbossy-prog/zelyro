@@ -8,9 +8,11 @@ function cleanEnv(raw: string | undefined): string | undefined {
   return v || undefined;
 }
 
+/** Prefer Client ID. CLIENT_KEY is accepted because Render was set with that name. */
 export function jamendoClientId(): string | undefined {
   return (
     cleanEnv(process.env.JAMENDO_CLIENT_ID) ||
+    cleanEnv(process.env.JAMENDO_CLIENT_KEY) ||
     cleanEnv(process.env.JAMENDO_API_KEY) ||
     cleanEnv(process.env.JAMENDO_KEY) ||
     cleanEnv(process.env.JAMENDO_CLIENTID)
@@ -214,7 +216,6 @@ export async function searchJamendoTracks(opts: {
     limit: String(Math.min(50, Math.max(1, opts.limit ?? 20))),
     offset: String(opts.offset ?? 0),
   };
-  // Search + popularity_total often returns empty. Use relevance, or omit order.
   if (opts.q?.trim()) {
     params.search = opts.q.trim().slice(0, 80);
     params.order = opts.order || "relevance";
@@ -259,7 +260,6 @@ export async function loadJamendoHome(): Promise<JamendoHomePack> {
   const hit = homeCache.get("all");
   if (hit && Date.now() - hit.at < 15 * 60 * 1000 && hit.data.popular.length > 0) return hit.data;
 
-  // Sequential — parallel bursts make Jamendo return success with 0 rows.
   const popularRaw = await settledTracks(() => searchJamendoTracks({ order: "popularity_total", limit: 16 }));
   await sleep(120);
   const freshRaw = await settledTracks(() => searchJamendoTracks({ order: "releasedate_desc", limit: 12 }));
@@ -312,6 +312,7 @@ export async function pingJamendo(): Promise<{
 }> {
   const present = [
     ["JAMENDO_CLIENT_ID", process.env.JAMENDO_CLIENT_ID],
+    ["JAMENDO_CLIENT_KEY", process.env.JAMENDO_CLIENT_KEY],
     ["JAMENDO_API_KEY", process.env.JAMENDO_API_KEY],
     ["JAMENDO_KEY", process.env.JAMENDO_KEY],
     ["JAMENDO_CLIENTID", process.env.JAMENDO_CLIENTID],
