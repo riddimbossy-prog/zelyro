@@ -21,6 +21,7 @@ export type InfraStatus = {
     env: string | null;
     keyPrefix: string | null;
     keyLength: number;
+    secretSet: boolean;
     error?: string;
     resultsCount?: number;
   };
