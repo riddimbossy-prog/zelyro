@@ -170,7 +170,8 @@ export function jamendoToTrack(t: JamendoTrack): TrackCard {
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-|-$/g, "") || "artist";
   const cover = t.album_image || t.image || "/favicon.svg";
-  const audio = t.audio || `/api/v1/jamendo?id=${encodeURIComponent(t.id)}&stream=1`;
+  // Same-origin proxy — Jamendo storage has no CORS, so <audio crossOrigin> would fail.
+  const audio = `/api/v1/jamendo?id=${encodeURIComponent(t.id)}&stream=1`;
   return {
     id: `jm_${t.id}`,
     title: t.name,
@@ -236,7 +237,7 @@ export async function searchJamendoTracks(opts: {
 
 export async function getJamendoTrack(id: string): Promise<JamendoTrack | null> {
   if (!jamendoConfigured() || !id) return null;
-  const json = await jamGet("/tracks/", { id, audioformat: "mp32" });
+  const json = await jamGet("/tracks/", { id });
   return pickResults(json)[0] ?? null;
 }
 

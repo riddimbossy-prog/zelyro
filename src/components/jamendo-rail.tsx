@@ -78,7 +78,7 @@ export function JamendoRail() {
           <button
             type="button"
             className="mt-4 rounded-full bg-white px-5 py-2.5 text-sm font-bold text-[#1a0b2e] hover:bg-white/90"
-            onClick={() => play(moodTracks[0], moodTracks)}
+            onClick={() => play(moodTracks, 0)}
           >
             Play {JAMENDO_MOODS.find((m) => m.id === mood)?.label} mix
           </button>

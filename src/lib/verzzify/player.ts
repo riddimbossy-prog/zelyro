@@ -101,7 +101,6 @@ function audio(): HTMLAudioElement | null {
   if (!el) {
     el = new Audio();
     el.preload = "auto";
-    el.crossOrigin = "anonymous";
     el.autoplay = true;
     el.setAttribute("playsinline", "true");
     el.setAttribute("webkit-playsinline", "true");
@@ -225,7 +224,11 @@ function loadCurrent() {
     }
     a.src = src;
     a.volume = s.muted ? 0 : s.volume;
-    void a.play().catch(() => usePlayer.setState({ isPlaying: false }));
+    void a.play().catch((err) => {
+      console.warn("playback failed", err);
+      toast(err instanceof Error ? err.message : "Could not play this track");
+      usePlayer.setState({ isPlaying: false });
+    });
   })();
 }
 
@@ -269,7 +272,9 @@ export const usePlayer = create<PlayerState>((set, get) => ({
   expanded: false,
   play: (tracks, index = 0) => {
     void import("./yt-player").then((m) => m.useYtPlayer.getState().close());
-    set({ queue: tracks, index });
+    const list = Array.isArray(tracks) ? tracks : [tracks];
+    const start = typeof index === "number" && Number.isFinite(index) ? index : 0;
+    set({ queue: list, index: Math.max(0, Math.min(start, list.length - 1)), isPlaying: true });
     loadCurrent();
   },
   pause: () => {

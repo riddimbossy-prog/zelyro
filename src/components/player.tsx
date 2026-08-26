@@ -44,7 +44,7 @@ export function MiniPlayer() {
   const ytToggle = useYtPlayer((s) => s.toggle);
   const setYtExpanded = useYtPlayer((s) => s.setExpanded);
 
-  const isYt = Boolean(ytId);
+  const isYt = Boolean(ytId) && !(audioTrack && audioPlaying);
   if (!audioTrack && !isYt) return null;
 
   const isPlaying = isYt ? ytPlaying : audioPlaying;

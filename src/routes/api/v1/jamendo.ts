@@ -39,18 +39,25 @@ export const Route = createFileRoute("/api/v1/jamendo")({
             const track = await getJamendoTrack(id);
             const src = track?.audio || track?.audiodownload;
             if (!src) return Response.json({ error: "no stream" }, { status: 404, headers: cors });
-            const file = await fetch(src, { signal: AbortSignal.timeout(20000) });
+            const range = request.headers.get("range");
+            const file = await fetch(src, {
+              headers: range ? { range } : undefined,
+              signal: AbortSignal.timeout(25000),
+            });
             if (!file.ok || !file.body) {
               return Response.json({ error: "upstream audio failed" }, { status: 502, headers: cors });
             }
-            return new Response(file.body, {
-              headers: {
-                "content-type": file.headers.get("content-type") || "audio/mpeg",
-                "cache-control": "private, max-age=3600",
-                ...cors,
-                "content-disposition": `inline; filename="jm_${id}.mp3"`,
-              },
-            });
+            const headers = new Headers();
+            headers.set("content-type", file.headers.get("content-type") || "audio/mpeg");
+            headers.set("cache-control", "private, max-age=3600");
+            headers.set("access-control-allow-origin", "*");
+            headers.set("accept-ranges", "bytes");
+            headers.set("content-disposition", `inline; filename="jm_${id}.mp3"`);
+            const cr = file.headers.get("content-range");
+            const cl = file.headers.get("content-length");
+            if (cr) headers.set("content-range", cr);
+            if (cl) headers.set("content-length", cl);
+            return new Response(file.body, { status: file.status, headers });
           } catch (err) {
             return Response.json(
               { error: err instanceof Error ? err.message : "stream failed" },
