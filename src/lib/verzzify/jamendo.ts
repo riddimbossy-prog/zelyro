@@ -3,8 +3,18 @@ import type { TrackCard } from "./types";
 
 const BASE = "https://api.jamendo.com/v3.0";
 
+function cleanEnv(raw: string | undefined): string | undefined {
+  const v = raw?.trim().replace(/^['"]|['"]$/g, "");
+  return v || undefined;
+}
+
 export function jamendoClientId(): string | undefined {
-  return process.env.JAMENDO_CLIENT_ID?.trim() || process.env.JAMENDO_API_KEY?.trim() || undefined;
+  return (
+    cleanEnv(process.env.JAMENDO_CLIENT_ID) ||
+    cleanEnv(process.env.JAMENDO_API_KEY) ||
+    cleanEnv(process.env.JAMENDO_KEY) ||
+    cleanEnv(process.env.JAMENDO_CLIENTID)
+  );
 }
 
 export function jamendoConfigured(): boolean {
@@ -40,6 +50,21 @@ export type JamendoTrack = {
   musicinfo?: { tags?: { genres?: string[]; vartags?: string[] } };
 };
 
+export type JamendoCallMeta = {
+  ok: boolean;
+  code: number | null;
+  status: string | null;
+  error?: string;
+  resultsCount: number;
+  warnings?: string;
+};
+
+let lastCall: JamendoCallMeta | null = null;
+
+export function lastJamendoCall(): JamendoCallMeta | null {
+  return lastCall;
+}
+
 async function jamGet(path: string, params: Record<string, string> = {}): Promise<unknown> {
   const clientId = jamendoClientId();
   if (!clientId) throw new Error("JAMENDO_CLIENT_ID is not set");
@@ -47,14 +72,40 @@ async function jamGet(path: string, params: Record<string, string> = {}): Promis
   url.searchParams.set("client_id", clientId);
   url.searchParams.set("format", "json");
   for (const [k, v] of Object.entries(params)) {
-    if (v) url.searchParams.set(k, v);
+    if (!v) continue;
+    // Keep spaces (Jamendo treats + as OR). URLSearchParams would turn + into %2B.
+    url.searchParams.set(k, v.replace(/\+/g, " "));
   }
-  const res = await fetch(url.toString(), { signal: AbortSignal.timeout(12000) });
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
+  const res = await fetch(url.toString(), {
+    headers: { accept: "application/json", "user-agent": "VerzZify/1.0" },
+    signal: AbortSignal.timeout(15000),
+  });
+  const text = await res.text();
+  let json: unknown;
+  try {
+    json = JSON.parse(text) as unknown;
+  } catch {
+    lastCall = { ok: false, code: res.status, status: "http", error: `non-JSON ${res.status}`, resultsCount: 0 };
     throw new Error(`Jamendo ${res.status}: ${text.slice(0, 160)}`);
   }
-  return res.json();
+  const headers = asRecord(asRecord(json)?.headers);
+  const status = str(headers?.status) || (res.ok ? "success" : "failed");
+  const code = Number(headers?.code);
+  const errMsg = str(headers?.error_message);
+  const warnings = str(headers?.warnings);
+  const resultsCount = Number(headers?.results_count ?? 0);
+  lastCall = {
+    ok: status === "success" && (Number.isNaN(code) || code === 0),
+    code: Number.isNaN(code) ? res.status : code,
+    status,
+    error: errMsg || undefined,
+    resultsCount,
+    warnings: warnings || undefined,
+  };
+  if (!lastCall.ok) {
+    throw new Error(errMsg || `Jamendo ${status} code ${lastCall.code}`);
+  }
+  return json;
 }
 
 function pickResults(json: unknown): JamendoTrack[] {
@@ -100,11 +151,7 @@ export function jamendoToTrack(t: JamendoTrack): TrackCard {
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-|-$/g, "") || "artist";
-  const cover =
-    t.album_image ||
-    t.image ||
-    `https://usercontent.jamendo.com?type=album&id=0&width=300`;
-  // Prefer direct stream URL from Jamendo (licensed); fallback to our proxy path
+  const cover = t.album_image || t.image || "/favicon.svg";
   const audio = t.audio || `/api/v1/jamendo?id=${encodeURIComponent(t.id)}&stream=1`;
   return {
     id: `jm_${t.id}`,
@@ -135,14 +182,13 @@ export function jamendoToTrack(t: JamendoTrack): TrackCard {
   };
 }
 
-/** Mood / activity chips mapped to Jamendo fuzzy tags */
 export const JAMENDO_MOODS = [
-  { id: "focus", label: "Focus", tags: "instrumental+calm", color: "from-sky-600 to-indigo-700" },
-  { id: "night", label: "Night drive", tags: "electronic+chill", color: "from-violet-700 to-fuchsia-800" },
-  { id: "sunday", label: "Sunday light", tags: "acoustic+folk", color: "from-amber-500 to-orange-700" },
-  { id: "energy", label: "Energy", tags: "rock+upbeat", color: "from-rose-600 to-red-800" },
-  { id: "afro", label: "Afro world", tags: "african+world", color: "from-emerald-600 to-teal-800" },
-  { id: "gospel", label: "Spirit", tags: "gospel+soul", color: "from-yellow-600 to-amber-800" },
+  { id: "focus", label: "Focus", tags: "instrumental calm", color: "from-sky-600 to-indigo-700" },
+  { id: "night", label: "Night drive", tags: "electronic chill", color: "from-violet-700 to-fuchsia-800" },
+  { id: "sunday", label: "Sunday light", tags: "acoustic folk", color: "from-amber-500 to-orange-700" },
+  { id: "energy", label: "Energy", tags: "rock", color: "from-rose-600 to-red-800" },
+  { id: "afro", label: "Afro world", tags: "world", color: "from-emerald-600 to-teal-800" },
+  { id: "gospel", label: "Spirit", tags: "soul", color: "from-yellow-600 to-amber-800" },
 ] as const;
 
 export type JamendoMoodId = (typeof JAMENDO_MOODS)[number]["id"];
@@ -166,7 +212,7 @@ export async function searchJamendoTracks(opts: {
   if (opts.q?.trim()) params.search = opts.q.trim().slice(0, 80);
   if (opts.tags?.trim()) params.fuzzytags = opts.tags.trim();
   const json = await jamGet("/tracks/", params);
-  return pickResults(json).filter((t) => Boolean(t.audio || t.audiodownload));
+  return pickResults(json);
 }
 
 export async function getJamendoTrack(id: string): Promise<JamendoTrack | null> {
@@ -184,54 +230,110 @@ export type JamendoHomePack = {
   fresh: TrackCard[];
   freeKeep: TrackCard[];
   moods: Record<string, TrackCard[]>;
+  error?: string;
 };
 
 const homeCache = new Map<string, { at: number; data: JamendoHomePack }>();
 
-export async function loadJamendoHome(): Promise<JamendoHomePack> {
-  const empty: JamendoHomePack = { popular: [], fresh: [], freeKeep: [], moods: {} };
-  if (!jamendoConfigured()) return empty;
-
-  const hit = homeCache.get("all");
-  if (hit && Date.now() - hit.at < 20 * 60 * 1000) return hit.data;
-
+async function settledTracks(fn: () => Promise<JamendoTrack[]>): Promise<JamendoTrack[]> {
   try {
-    const [popularRaw, freshRaw, freeRaw, ...moodRaws] = await Promise.all([
-      searchJamendoTracks({ order: "popularity_total", limit: 16 }),
-      searchJamendoTracks({ order: "releasedate_desc", limit: 12 }),
-      searchJamendoTracks({ order: "popularity_month", limit: 12 }),
-      ...JAMENDO_MOODS.map((m) => searchJamendoTracks({ tags: m.tags, limit: 10 })),
-    ]);
-
-    const popular = popularRaw.map(jamendoToTrack);
-    const seen = new Set(popular.map((t) => t.id));
-    const fresh = freshRaw
-      .map(jamendoToTrack)
-      .filter((t) => !seen.has(t.id))
-      .slice(0, 12);
-
-    // Free to keep = download allowed when Jamendo marks it
-    const freeKeep = freeRaw
-      .filter((t) => t.audiodownload_allowed)
-      .map(jamendoToTrack)
-      .slice(0, 10);
-
-    const moods: Record<string, TrackCard[]> = {};
-    JAMENDO_MOODS.forEach((m, i) => {
-      moods[m.id] = (moodRaws[i] ?? []).map(jamendoToTrack);
-    });
-
-    const data: JamendoHomePack = { popular, fresh, freeKeep, moods };
-    homeCache.set("all", { at: Date.now(), data });
-    return data;
+    return await fn();
   } catch {
-    return empty;
+    return [];
   }
 }
 
-export const getJamendoHome = createServerFn({ method: "GET" }).handler(async () =>
-  loadJamendoHome(),
-);
+export async function loadJamendoHome(): Promise<JamendoHomePack> {
+  const emptyMoods: Record<string, TrackCard[]> = {};
+  for (const m of JAMENDO_MOODS) emptyMoods[m.id] = [];
+  const empty: JamendoHomePack = { popular: [], fresh: [], freeKeep: [], moods: emptyMoods };
+  if (!jamendoConfigured()) return { ...empty, error: "JAMENDO_CLIENT_ID is not set" };
+
+  const hit = homeCache.get("all");
+  if (hit && Date.now() - hit.at < 15 * 60 * 1000 && hit.data.popular.length > 0) return hit.data;
+
+  const [popularRaw, freshRaw, freeRaw, ...moodRaws] = await Promise.all([
+    settledTracks(() => searchJamendoTracks({ order: "popularity_total", limit: 16 })),
+    settledTracks(() => searchJamendoTracks({ order: "releasedate_desc", limit: 12 })),
+    settledTracks(() => searchJamendoTracks({ order: "popularity_month", limit: 12 })),
+    ...JAMENDO_MOODS.map((m) => settledTracks(() => searchJamendoTracks({ tags: m.tags, limit: 10 }))),
+  ]);
+
+  const popular = popularRaw.map(jamendoToTrack);
+  const seen = new Set(popular.map((t) => t.id));
+  const fresh = freshRaw
+    .map(jamendoToTrack)
+    .filter((t) => !seen.has(t.id))
+    .slice(0, 12);
+
+  const freeKeep = freeRaw
+    .filter((t) => t.audiodownload_allowed || t.audiodownload)
+    .map(jamendoToTrack)
+    .slice(0, 10);
+
+  const moods: Record<string, TrackCard[]> = {};
+  JAMENDO_MOODS.forEach((m, i) => {
+    moods[m.id] = (moodRaws[i] ?? []).map(jamendoToTrack);
+  });
+
+  const data: JamendoHomePack = {
+    popular,
+    fresh,
+    freeKeep: freeKeep.length ? freeKeep : popular.slice(0, 8),
+    moods,
+    error: popular.length ? undefined : lastCall?.error || "Jamendo returned no tracks",
+  };
+  if (popular.length) homeCache.set("all", { at: Date.now(), data });
+  return data;
+}
+
+export async function pingJamendo(): Promise<{
+  configured: boolean;
+  ok: boolean;
+  env: string | null;
+  keyPrefix: string | null;
+  keyLength: number;
+  error?: string;
+  code?: number | null;
+  resultsCount?: number;
+}> {
+  const present = [
+    ["JAMENDO_CLIENT_ID", process.env.JAMENDO_CLIENT_ID],
+    ["JAMENDO_API_KEY", process.env.JAMENDO_API_KEY],
+    ["JAMENDO_KEY", process.env.JAMENDO_KEY],
+    ["JAMENDO_CLIENTID", process.env.JAMENDO_CLIENTID],
+  ].find(([, v]) => Boolean(cleanEnv(v)));
+  const id = jamendoClientId();
+  if (!id) {
+    return { configured: false, ok: false, env: null, keyPrefix: null, keyLength: 0, error: "missing client id" };
+  }
+  try {
+    await searchJamendoTracks({ order: "popularity_total", limit: 3 });
+    return {
+      configured: true,
+      ok: Boolean(lastCall?.ok && (lastCall.resultsCount ?? 0) > 0),
+      env: present?.[0] ?? "JAMENDO_CLIENT_ID",
+      keyPrefix: `${id.slice(0, 4)}…`,
+      keyLength: id.length,
+      error: lastCall?.error || lastCall?.warnings,
+      code: lastCall?.code,
+      resultsCount: lastCall?.resultsCount,
+    };
+  } catch (err) {
+    return {
+      configured: true,
+      ok: false,
+      env: present?.[0] ?? "JAMENDO_CLIENT_ID",
+      keyPrefix: `${id.slice(0, 4)}…`,
+      keyLength: id.length,
+      error: err instanceof Error ? err.message : "jamendo failed",
+      code: lastCall?.code,
+      resultsCount: lastCall?.resultsCount ?? 0,
+    };
+  }
+}
+
+export const getJamendoHome = createServerFn({ method: "GET" }).handler(async () => loadJamendoHome());
 
 export const searchJamendo = createServerFn({ method: "GET" })
   .validator((q: string) => q.trim().slice(0, 80))
