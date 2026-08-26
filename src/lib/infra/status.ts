@@ -8,6 +8,7 @@ export const getInfraStatus = createServerFn({ method: "GET" }).handler(
     const { dbSource } = await import("@/lib/db");
     const {
       S3_BUCKETS,
+      awsConfigured,
       awsRegion,
       hostnameOf,
       s3Endpoint,
@@ -42,6 +43,7 @@ export const getInfraStatus = createServerFn({ method: "GET" }).handler(
       },
       s3: {
         mode: storageMode(),
+        keysSet: awsConfigured(),
         region: awsRegion(),
         endpoint: s3Endpoint() ?? null,
         buckets: { ...S3_BUCKETS },

@@ -9,6 +9,7 @@ export type InfraStatus = {
   };
   s3: {
     mode: "aws" | "local";
+    keysSet: boolean;
     region: string;
     endpoint: string | null;
     buckets: { masters: string; stream: string; public: string };

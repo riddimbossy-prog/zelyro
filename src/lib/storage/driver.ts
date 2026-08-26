@@ -203,20 +203,25 @@ export async function presignGet(opts: {
   );
 }
 
-export async function pingS3(): Promise<{ ok: boolean; error?: string }> {
+export async function pingS3(): Promise<{ ok: boolean; error?: string; created?: string[] }> {
   if (storageMode() === "local") {
     try {
       await mkdir(localS3Root(), { recursive: true });
-      return { ok: true };
+      return { ok: true, error: "AWS keys not set — using local disk" };
     } catch (err) {
       return { ok: false, error: err instanceof Error ? err.message : "local store failed" };
     }
   }
+  const { ensureBuckets } = await import("./provision");
+  const ensured = await ensureBuckets();
+  if (!ensured.ok) return { ok: false, error: ensured.error, created: ensured.created };
   try {
     const client = await s3();
     const { HeadBucketCommand } = await import("@aws-sdk/client-s3");
     await client.send(new HeadBucketCommand({ Bucket: S3_BUCKETS.masters }));
-    return { ok: true };
+    await client.send(new HeadBucketCommand({ Bucket: S3_BUCKETS.stream }));
+    await client.send(new HeadBucketCommand({ Bucket: S3_BUCKETS.public }));
+    return { ok: true, created: ensured.created };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : "s3 unreachable" };
   }
