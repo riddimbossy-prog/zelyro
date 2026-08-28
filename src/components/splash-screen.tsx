@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { SPLASH_POSTER, SPLASH_VIDEO } from "@/components/splash-data";
 
-const SRC = SPLASH_VIDEO;
-const POSTER = SPLASH_POSTER;
+const SRC = "/splash.mp4";
+const POSTER = "/splash.jpg";
 
 export function SplashScreen() {
   const [gone, setGone] = useState(false);
