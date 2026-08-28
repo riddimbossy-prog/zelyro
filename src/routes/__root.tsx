@@ -7,10 +7,8 @@ import {
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider } from "@/lib/auth/provider";
 import { PreviewHostBridge } from "@/components/preview-host-bridge";
-import { SplashScreen } from "@/components/splash-screen";
 import { Toaster } from "sonner";
 import appCss from "../styles.css?url";
-import splashCss from "../splash.css?url";
 
 const APP_NAME = "VerzZify";
 const queryClient = new QueryClient({
@@ -36,7 +34,6 @@ export const Route = createRootRoute({
       { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
       { rel: "icon", type: "image/png", sizes: "64x64", href: "/favicon-64.png?v=5" },
       { rel: "stylesheet", href: appCss },
-      { rel: "stylesheet", href: splashCss },
       { rel: "manifest", href: "/manifest.webmanifest" },
       { rel: "apple-touch-icon", href: "/apple-touch-icon.png?v=5" },
       {
@@ -55,7 +52,6 @@ function Root() {
         <HeadContent />
       </head>
       <body>
-        <SplashScreen />
         <PreviewHostBridge />
         <QueryClientProvider client={queryClient}>
           <AuthProvider>

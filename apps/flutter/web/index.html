@@ -12,37 +12,22 @@
     <style>
       html, body { height: 100%; margin: 0; background: #07010d; }
       #boot {
-        position: fixed; inset: 0; z-index: 80;
-        display: grid; place-items: center; background: #07010d;
-        transition: opacity .4s ease;
-      }
-      #boot.out { opacity: 0; pointer-events: none; }
-      #boot video {
-        width: min(72vw, 420px); height: min(72vw, 420px);
-        object-fit: cover; background: #07010d;
+        position: fixed; inset: 0; display: grid; place-items: center;
+        color: #f6f0ff; font-family: system-ui, sans-serif; letter-spacing: 0.2em;
+        font-weight: 700;
       }
     </style>
   </head>
   <body>
-    <div id="boot" aria-label="VerzZify">
-      <video autoplay muted playsinline preload="auto" poster="splash.jpg">
-        <source src="splash.mp4" type="video/mp4" />
-      </video>
-    </div>
+    <div id="boot">VERZZIFY</div>
     <script>
       if (navigator.serviceWorker) {
         navigator.serviceWorker.getRegistrations().then((regs) => regs.forEach((r) => r.unregister()));
       }
-      function hideBoot() {
-        var el = document.getElementById("boot");
-        if (!el || el.dataset.done) return;
-        el.dataset.done = "1";
-        el.classList.add("out");
-        setTimeout(function () { el.remove(); }, 420);
-      }
-      document.querySelector("#boot video")?.addEventListener("ended", hideBoot);
-      window.addEventListener("flutter-first-frame", hideBoot);
-      setTimeout(hideBoot, 6800);
+      window.addEventListener("flutter-first-frame", () => {
+        document.getElementById("boot")?.remove();
+      });
+      setTimeout(() => document.getElementById("boot")?.remove(), 1800);
     </script>
     <script src="flutter_bootstrap.js" async></script>
   </body>
