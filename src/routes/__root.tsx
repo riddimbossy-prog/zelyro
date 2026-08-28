@@ -7,6 +7,7 @@ import {
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider } from "@/lib/auth/provider";
 import { PreviewHostBridge } from "@/components/preview-host-bridge";
+import { SplashScreen } from "@/components/splash-screen";
 import { Toaster } from "sonner";
 import appCss from "../styles.css?url";
 
@@ -52,6 +53,7 @@ function Root() {
         <HeadContent />
       </head>
       <body>
+        <SplashScreen />
         <PreviewHostBridge />
         <QueryClientProvider client={queryClient}>
           <AuthProvider>
